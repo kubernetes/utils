@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors.
+Copyright 2017 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ package exec
 import (
 	"fmt"
 	"io"
+
+	"k8s.io/utils/exec"
 )
 
 // A simple scripted Interface type.
@@ -28,9 +30,9 @@ type FakeExec struct {
 	LookPathFunc  func(string) (string, error)
 }
 
-type FakeCommandAction func(cmd string, args ...string) Cmd
+type FakeCommandAction func(cmd string, args ...string) exec.Cmd
 
-func (fake *FakeExec) Command(cmd string, args ...string) Cmd {
+func (fake *FakeExec) Command(cmd string, args ...string) exec.Cmd {
 	if fake.CommandCalls > len(fake.CommandScript)-1 {
 		panic(fmt.Sprintf("ran out of Command() actions. Could not handle command [%d]: %s args: %v", fake.CommandCalls, cmd, args))
 	}
@@ -58,7 +60,7 @@ type FakeCmd struct {
 	Stderr               io.Writer
 }
 
-func InitFakeCmd(fake *FakeCmd, cmd string, args ...string) Cmd {
+func InitFakeCmd(fake *FakeCmd, cmd string, args ...string) exec.Cmd {
 	fake.Argv = append([]string{cmd}, args...)
 	return fake
 }

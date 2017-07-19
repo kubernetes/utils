@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package exec
+package testingexec
 
 import (
 	"fmt"
@@ -59,6 +59,8 @@ type FakeCmd struct {
 	Stdout               io.Writer
 	Stderr               io.Writer
 }
+
+var _ exec.Cmd = &FakeCmd{}
 
 func InitFakeCmd(fake *FakeCmd, cmd string, args ...string) exec.Cmd {
 	fake.Argv = append([]string{cmd}, args...)
@@ -130,18 +132,20 @@ type FakeExitError struct {
 	Status int
 }
 
-func (fake *FakeExitError) String() string {
+var _ exec.ExitError = FakeExitError{}
+
+func (fake FakeExitError) String() string {
 	return fmt.Sprintf("exit %d", fake.Status)
 }
 
-func (fake *FakeExitError) Error() string {
+func (fake FakeExitError) Error() string {
 	return fake.String()
 }
 
-func (fake *FakeExitError) Exited() bool {
+func (fake FakeExitError) Exited() bool {
 	return true
 }
 
-func (fake *FakeExitError) ExitStatus() int {
+func (fake FakeExitError) ExitStatus() int {
 	return fake.Status
 }

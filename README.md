@@ -30,3 +30,7 @@ The goal is to keep libraries organized in logical entities.
 - [Exec](/exec) provides an interface for `os/exec`. It makes it easier
   to mock and replace in tests, especially with
   the [FakeExec](exec/testing/fake_exec.go) struct.
+
+## How to move a pkg from other repo
+
+Please look at [HOWTOMOVE.md](./HOWTOMOVE.md).

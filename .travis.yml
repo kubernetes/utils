@@ -4,7 +4,10 @@ go:
   - 1.7.x
   - 1.8.x
 go_import_path: k8s.io/utils
+before_install:
+  - go get github.com/mattn/goveralls
 script:
   - diff -u <(echo -n) <(gofmt -d .)
   - go tool vet .
   - go test -v -race ./...
+  - $GOPATH/bin/goveralls -service=travis-ci

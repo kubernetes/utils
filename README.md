@@ -1,29 +1,38 @@
 # Utils
 
-[![Build Status](https://travis-ci.org/kubernetes/utils.svg?branch=master)](https://travis-ci.org/kubernetes/utils)
+[![Build Status]](https://travis-ci.org/kubernetes/utils)
 
-Utils is a set of golang libraries that are not specific to
-Kubernetes. They should be available and useful to any other Go project
-out there.
+A set of Go libraries that provide low-level,
+kubernetes-independent packages supplementing the [Go
+standard libs].
 
 ## Purpose
 
-The Kubernetes project uses a lot of Golang patterns that are re-used in many
-difference places, and as the project is further split into different
-repositories, this repository is the perfect place to hold this common code.
+As Kubernetes grows and spins functionality out of its
+[core] and into cooperating repositories like
+[apiserver], [kubectl], [kubeadm], etc., the need
+arises for leaf repositories to house shared code and
+avoid cycles in repository relationships.
 
-## Goals
+This repository is intended to hold shared utilities
+with no Kubernetes dependence that may be of interest
+to any Go project.  See these [instructions for moving]
+an existing package to this repository.
 
-Go libraries in this repository must be:
 
-- Generic enough that they are useful for external/non-kubernetes
-  projects,
-- Well factored, well tested and reliable,
-- Be completely go compliant (go get/build/test/etc)
-- Have enough complexity to be shared,
-- Have stable APIs, or backward compatible.
+## Criteria for adding code here
 
-The goal is to keep libraries organized in logical entities.
+- Used by multiple Kubernetes repositories.
+
+- Full unit test coverage.
+
+- Go tools compliant (`go get`, `go test`, etc.).
+
+- Complex enough to be worth vendoring, rather than copying.
+
+- Stable, or backward compatible, API.
+
+- _No dependence on any Kubernetes repository_.
 
 ## Libraries
 
@@ -31,6 +40,12 @@ The goal is to keep libraries organized in logical entities.
   to mock and replace in tests, especially with
   the [FakeExec](exec/testing/fake_exec.go) struct.
 
-## How to move a pkg from other repo
-
-Please look at [HOWTOMOVE.md](./HOWTOMOVE.md).
+[Build Status]: https://travis-ci.org/kubernetes/utils.svg?branch=master
+[Go standard libs]: https://golang.org/pkg/#stdlib
+[api]: https://github.com/kubernetes/api
+[apiserver]: https://github.com/kubernetes/apiserver
+[core]: https://github.com/kubernetes/kubernetes
+[ingress]: https://github.com/kubernetes/ingress
+[kubeadm]: https://github.com/kubernetes/kubeadm
+[kubectl]: https://github.com/kubernetes/kubectl
+[instructions for moving]: ./HOWTOMOVE.md

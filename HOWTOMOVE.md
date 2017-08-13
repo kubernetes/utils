@@ -2,14 +2,14 @@
 
 It has 2 steps to move a pkg from other Kubernetes repos to `k8s.io/utils` repo:
 - copy the pkg to `k8s.io/utils` repo
-- uddate the import paths and `vendor/` in the repos that refer this pkg
+- update the import paths and `vendor/` in the repos that refer this pkg
 
 ## Copy the pkg to `k8s.io/utils` repo
 
 Copying should preserve all the git history associated with it.
 [Here](http://gbayer.com/development/moving-files-from-one-git-repository-to-another-preserving-history/) is a working approach.
 
-Then, you may need to restructure the packge to make sure it has the following structure.
+Then, you may need to restructure the package to make sure it has the following structure.
 
     .
     ├── doc.go                  # Description for this package
@@ -20,7 +20,7 @@ Then, you may need to restructure the packge to make sure it has the following s
 
 [#5](https://github.com/kubernetes/utils/pull/5) is an example for this step.
 
-## Update the repos that refers the pkg
+## Update the repos that refer the pkg
 
 You should update the import paths.
 Then follow [this doc](https://github.com/kubernetes/community/blob/master/contributors/devel/godep.md) to update `vendor/` and `Godeps/`.

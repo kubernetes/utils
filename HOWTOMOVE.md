@@ -8,6 +8,7 @@ It has 2 steps to move a pkg from other Kubernetes repos to `k8s.io/utils` repo:
 
 Copying should preserve all the git history associated with it.
 [Here](http://gbayer.com/development/moving-files-from-one-git-repository-to-another-preserving-history/) is a working approach.
+Note: You may need to use `--allow-unrelated-histories` if you get error when running `git pull` following the post above.
 
 Then, you may need to restructure the package to make sure it has the following structure.
 

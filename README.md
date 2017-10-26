@@ -40,6 +40,9 @@ an existing package to this repository.
   to mock and replace in tests, especially with
   the [FakeExec](exec/testing/fake_exec.go) struct.
 
+- [Temp](/temp) provides an interface to create temporary directories. It also
+  provides a [FakeDir](temp/temptesting) implementation to replace in tests.
+
 [Build Status]: https://travis-ci.org/kubernetes/utils.svg?branch=master
 [Go standard libs]: https://golang.org/pkg/#stdlib
 [api]: https://github.com/kubernetes/api

@@ -17,8 +17,10 @@ limitations under the License.
 package exec
 
 import (
+	"context"
 	osexec "os/exec"
 	"testing"
+	"time"
 )
 
 func TestExecutorNoArgs(t *testing.T) {
@@ -100,4 +102,20 @@ func TestExecutableNotFound(t *testing.T) {
 	if err != ErrExecutableNotFound {
 		t.Errorf("Expected error ErrExecutableNotFound but got %v", err)
 	}
+}
+
+func TestTimeout(t *testing.T) {
+	exec := New()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
+
+	err := exec.CommandContext(ctx, "sleep", "2").Run()
+	if err == nil {
+		t.Errorf("expected error but got %v", err)
+	}
+}
+
+func TestStopBeforeStart(t *testing.T) {
+	// It shouldn't panic!
+	New().Command("sleep", "1").Stop()
 }

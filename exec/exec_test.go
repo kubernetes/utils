@@ -101,3 +101,15 @@ func TestExecutableNotFound(t *testing.T) {
 		t.Errorf("Expected error ErrExecutableNotFound but got %v", err)
 	}
 }
+
+func TestStopBeforeStart(t *testing.T) {
+	cmd := New().Command("echo", "hello")
+
+	// no panic calling Stop before calling Run
+	cmd.Stop()
+
+	cmd.Run()
+
+	// no panic calling Stop after command is done
+	cmd.Stop()
+}

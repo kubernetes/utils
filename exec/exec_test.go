@@ -17,8 +17,10 @@ limitations under the License.
 package exec
 
 import (
+	"context"
 	osexec "os/exec"
 	"testing"
+	"time"
 )
 
 func TestExecutorNoArgs(t *testing.T) {
@@ -112,4 +114,15 @@ func TestStopBeforeStart(t *testing.T) {
 
 	// no panic calling Stop after command is done
 	cmd.Stop()
+}
+
+func TestTimeout(t *testing.T) {
+	exec := New()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
+
+	err := exec.CommandContext(ctx, "sleep", "2").Run()
+	if err != context.DeadlineExceeded {
+		t.Errorf("expected %v but got %v", context.DeadlineExceeded, err)
+	}
 }

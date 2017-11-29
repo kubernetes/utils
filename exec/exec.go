@@ -133,15 +133,17 @@ func (cmd *cmdWrapper) Output() ([]byte, error) {
 // Stop is part of the Cmd interface.
 func (cmd *cmdWrapper) Stop() {
 	c := (*osexec.Cmd)(cmd)
-	if c.ProcessState.Exited() {
+
+	if c.Process == nil {
 		return
 	}
+
 	c.Process.Signal(syscall.SIGTERM)
+
 	time.AfterFunc(10*time.Second, func() {
-		if c.ProcessState.Exited() {
-			return
+		if !c.ProcessState.Exited() {
+			c.Process.Signal(syscall.SIGKILL)
 		}
-		c.Process.Signal(syscall.SIGKILL)
 	})
 }
 

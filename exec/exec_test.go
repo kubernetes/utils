@@ -95,10 +95,23 @@ func TestLookPath(t *testing.T) {
 
 func TestExecutableNotFound(t *testing.T) {
 	exec := New()
+
 	cmd := exec.Command("fake_executable_name")
 	_, err := cmd.CombinedOutput()
 	if err != ErrExecutableNotFound {
-		t.Errorf("Expected error ErrExecutableNotFound but got %v", err)
+		t.Errorf("cmd.CombinedOutput(): Expected error ErrExecutableNotFound but got %v", err)
+	}
+
+	cmd = exec.Command("fake_executable_name")
+	_, err = cmd.Output()
+	if err != ErrExecutableNotFound {
+		t.Errorf("cmd.Output(): Expected error ErrExecutableNotFound but got %v", err)
+	}
+
+	cmd = exec.Command("fake_executable_name")
+	err = cmd.Run()
+	if err != ErrExecutableNotFound {
+		t.Errorf("cmd.Run(): Expected error ErrExecutableNotFound but got %v", err)
 	}
 }
 

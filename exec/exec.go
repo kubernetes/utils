@@ -110,24 +110,19 @@ func (cmd *cmdWrapper) SetStderr(out io.Writer) {
 
 // Run is part of the Cmd interface.
 func (cmd *cmdWrapper) Run() error {
-	return (*osexec.Cmd)(cmd).Run()
+	err := (*osexec.Cmd)(cmd).Run()
+	return handleError(err)
 }
 
 // CombinedOutput is part of the Cmd interface.
 func (cmd *cmdWrapper) CombinedOutput() ([]byte, error) {
 	out, err := (*osexec.Cmd)(cmd).CombinedOutput()
-	if err != nil {
-		return out, handleError(err)
-	}
-	return out, nil
+	return out, handleError(err)
 }
 
 func (cmd *cmdWrapper) Output() ([]byte, error) {
 	out, err := (*osexec.Cmd)(cmd).Output()
-	if err != nil {
-		return out, handleError(err)
-	}
-	return out, nil
+	return out, handleError(err)
 }
 
 // Stop is part of the Cmd interface.
@@ -148,16 +143,19 @@ func (cmd *cmdWrapper) Stop() {
 }
 
 func handleError(err error) error {
-	if ee, ok := err.(*osexec.ExitError); ok {
-		// Force a compile fail if exitErrorWrapper can't convert to ExitError.
-		var x ExitError = &ExitErrorWrapper{ee}
-		return x
+	if err == nil {
+		return nil
 	}
-	if ee, ok := err.(*osexec.Error); ok {
-		if ee.Err == osexec.ErrNotFound {
+
+	switch e := err.(type) {
+	case *osexec.ExitError:
+		return &ExitErrorWrapper{e}
+	case *osexec.Error:
+		if e.Err == osexec.ErrNotFound {
 			return ErrExecutableNotFound
 		}
 	}
+
 	return err
 }
 
@@ -167,7 +165,7 @@ type ExitErrorWrapper struct {
 	*osexec.ExitError
 }
 
-var _ ExitError = ExitErrorWrapper{}
+var _ ExitError = &ExitErrorWrapper{}
 
 // ExitStatus is part of the ExitError interface.
 func (eew ExitErrorWrapper) ExitStatus() int {

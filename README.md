@@ -36,6 +36,9 @@ an existing package to this repository.
 
 ## Libraries
 
+- [Clock](/clock) provides an interface for time-based operations.  It allows
+  mocking time for testing.
+
 - [Exec](/exec) provides an interface for `os/exec`. It makes it easier
   to mock and replace in tests, especially with
   the [FakeExec](exec/testing/fake_exec.go) struct.
@@ -43,8 +46,6 @@ an existing package to this repository.
 - [Temp](/temp) provides an interface to create temporary directories. It also
   provides a [FakeDir](temp/temptesting) implementation to replace in tests.
 
-- [Clock](/clock) provides an interface for time-based operations.  It allows
-  mocking time for testing.
 
 [Build Status]: https://travis-ci.org/kubernetes/utils.svg?branch=master
 [Go standard libs]: https://golang.org/pkg/#stdlib

@@ -46,6 +46,8 @@ an existing package to this repository.
 - [Temp](/temp) provides an interface to create temporary directories. It also
   provides a [FakeDir](temp/temptesting) implementation to replace in tests.
 
+- [Unstructured](/unstructured) provide utility structures utility functions to
+  walk through, and modify unstructured json/yaml `interface{}` objects.
 
 [Build Status]: https://travis-ci.org/kubernetes/utils.svg?branch=master
 [Go standard libs]: https://golang.org/pkg/#stdlib

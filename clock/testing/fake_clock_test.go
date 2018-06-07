@@ -182,3 +182,15 @@ func TestFakeTick(t *testing.T) {
 		t.Errorf("unexpected number of accumulated ticks: %d", accumulatedTicks)
 	}
 }
+
+func TestFakeStop(t *testing.T) {
+	tc := NewFakeClock(time.Now())
+	timer := tc.NewTimer(time.Second)
+	if !tc.HasWaiters() {
+		t.Errorf("expected a waiter to be present, but it is not")
+	}
+	timer.Stop()
+	if tc.HasWaiters() {
+		t.Errorf("expected existing waiter to be cleaned up, but it is still present")
+	}
+}

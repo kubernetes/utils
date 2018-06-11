@@ -27,8 +27,8 @@ import (
 
 	"github.com/golang/glog"
 	"golang.org/x/sys/unix"
-	utilfile "k8s.io/kubernetes/pkg/util/file"
-	"k8s.io/kubernetes/pkg/util/nsenter"
+
+	"k8s.io/utils/nsenter"
 )
 
 const (
@@ -284,7 +284,7 @@ func (mounter *NsenterMounter) ExistsPath(pathname string) (bool, error) {
 		return false, err
 	}
 	kubeletpath := mounter.ne.KubeletPath(hostPath)
-	return utilfile.FileExists(kubeletpath)
+	return fileExists(kubeletpath)
 }
 
 func (mounter *NsenterMounter) CleanSubPaths(podDir string, volumeName string) error {

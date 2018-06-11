@@ -29,8 +29,6 @@ import (
 	"syscall"
 
 	"github.com/golang/glog"
-
-	utilfile "k8s.io/kubernetes/pkg/util/file"
 )
 
 // Mounter provides the default implementation of mount.Interface
@@ -239,7 +237,7 @@ func (mounter *Mounter) MakeFile(pathname string) error {
 
 // ExistsPath checks whether the path exists
 func (mounter *Mounter) ExistsPath(pathname string) (bool, error) {
-	return utilfile.FileExists(pathname)
+	return fileExists(pathname)
 }
 
 // check whether hostPath is within volume path

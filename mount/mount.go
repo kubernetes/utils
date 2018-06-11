@@ -19,7 +19,9 @@ limitations under the License.
 package mount
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -379,4 +381,36 @@ func getFileType(pathname string) (FileType, error) {
 	}
 
 	return pathType, fmt.Errorf("only recognise file, directory, socket, block device and character device")
+}
+
+// fileExists checks if specified file exists.
+func fileExists(filename string) (bool, error) {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// consistentRead repeatedly reads a file until it gets the same content twice.
+// This is useful when reading files in /proc that are larger than page size
+// and kernel may modify them between individual read() syscalls.
+func consistentRead(filename string, attempts int) ([]byte, error) {
+	oldContent, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < attempts; i++ {
+		newContent, err := ioutil.ReadFile(filename)
+		if err != nil {
+			return nil, err
+		}
+		if bytes.Compare(oldContent, newContent) == 0 {
+			return newContent, nil
+		}
+		// Files are different, continue reading
+		oldContent = newContent
+	}
+	return nil, fmt.Errorf("could not get consistent content of %s after %d attempts", filename, attempts)
 }

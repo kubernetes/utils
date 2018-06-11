@@ -32,9 +32,7 @@ import (
 
 	"github.com/golang/glog"
 	"golang.org/x/sys/unix"
-	"k8s.io/apimachinery/pkg/util/sets"
-	utilfile "k8s.io/kubernetes/pkg/util/file"
-	utilio "k8s.io/kubernetes/pkg/util/io"
+
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -98,7 +96,7 @@ func (mounter *Mounter) Mount(source string, target string, fstype string, optio
 		return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindRemountOpts)
 	}
 	// The list of filesystems that require containerized mounter on GCI image cluster
-	fsTypesNeedMounter := sets.NewString("nfs", "glusterfs", "ceph", "cifs")
+	fsTypesNeedMounter := NewString("nfs", "glusterfs", "ceph", "cifs")
 	if fsTypesNeedMounter.Has(fstype) {
 		mounterPath = mounter.mounterPath
 	}
@@ -377,7 +375,7 @@ func getDeviceNameFromMount(mounter Interface, mountPath, pluginDir string) (str
 }
 
 func listProcMounts(mountFilePath string) ([]MountPoint, error) {
-	content, err := utilio.ConsistentRead(mountFilePath, maxListTries)
+	content, err := consistentRead(mountFilePath, maxListTries)
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +449,7 @@ func (mounter *Mounter) MakeFile(pathname string) error {
 }
 
 func (mounter *Mounter) ExistsPath(pathname string) (bool, error) {
-	return utilfile.FileExists(pathname)
+	return fileExists(pathname)
 }
 
 // formatAndMount uses unix utils to format and mount the given disk
@@ -635,7 +633,7 @@ type mountInfo struct {
 
 // parseMountInfo parses /proc/xxx/mountinfo.
 func parseMountInfo(filename string) ([]mountInfo, error) {
-	content, err := utilio.ConsistentRead(filename, maxListTries)
+	content, err := consistentRead(filename, maxListTries)
 	if err != nil {
 		return []mountInfo{}, err
 	}

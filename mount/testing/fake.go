@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mount
+package testingmount
 
 import (
 	"errors"
@@ -23,18 +23,37 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+
+	"k8s.io/utils/mount"
 )
+
+// Fake for testing.
+type FakeExec struct {
+	runHook runHook
+}
+type runHook func(cmd string, args ...string) ([]byte, error)
+
+func (f *FakeExec) Run(cmd string, args ...string) ([]byte, error) {
+	if f.runHook != nil {
+		return f.runHook(cmd, args...)
+	}
+	return nil, nil
+}
+
+func NewFakeExec(run runHook) *FakeExec {
+	return &FakeExec{runHook: run}
+}
 
 // FakeMounter implements mount.Interface for tests.
 type FakeMounter struct {
-	MountPoints []MountPoint
+	MountPoints []mount.MountPoint
 	Log         []FakeAction
 	// Some tests run things in parallel, make sure the mounter does not produce
 	// any golang's DATA RACE warnings.
 	mutex sync.Mutex
 }
 
-var _ Interface = &FakeMounter{}
+var _ mount.Interface = &FakeMounter{}
 
 // Values for FakeAction.Action
 const FakeActionMount = "mount"
@@ -95,7 +114,7 @@ func (f *FakeMounter) Mount(source string, target string, fstype string, options
 		absTarget = target
 	}
 
-	f.MountPoints = append(f.MountPoints, MountPoint{Device: source, Path: absTarget, Type: fstype, Opts: opts})
+	f.MountPoints = append(f.MountPoints, mount.MountPoint{Device: source, Path: absTarget, Type: fstype, Opts: opts})
 	glog.V(5).Infof("Fake mounter: mounted %s to %s", source, absTarget)
 	f.Log = append(f.Log, FakeAction{Action: FakeActionMount, Target: absTarget, Source: source, FSType: fstype})
 	return nil
@@ -111,33 +130,33 @@ func (f *FakeMounter) Unmount(target string) error {
 		absTarget = target
 	}
 
-	newMountpoints := []MountPoint{}
+	newMountpoints := []mount.MountPoint{}
 	for _, mp := range f.MountPoints {
 		if mp.Path == absTarget {
 			glog.V(5).Infof("Fake mounter: unmounted %s from %s", mp.Device, absTarget)
 			// Don't copy it to newMountpoints
 			continue
 		}
-		newMountpoints = append(newMountpoints, MountPoint{Device: mp.Device, Path: mp.Path, Type: mp.Type})
+		newMountpoints = append(newMountpoints, mount.MountPoint{Device: mp.Device, Path: mp.Path, Type: mp.Type})
 	}
 	f.MountPoints = newMountpoints
 	f.Log = append(f.Log, FakeAction{Action: FakeActionUnmount, Target: absTarget})
 	return nil
 }
 
-func (f *FakeMounter) List() ([]MountPoint, error) {
+func (f *FakeMounter) List() ([]mount.MountPoint, error) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 
 	return f.MountPoints, nil
 }
 
-func (f *FakeMounter) IsMountPointMatch(mp MountPoint, dir string) bool {
+func (f *FakeMounter) IsMountPointMatch(mp mount.MountPoint, dir string) bool {
 	return mp.Path == dir
 }
 
 func (f *FakeMounter) IsNotMountPoint(dir string) (bool, error) {
-	return IsNotMountPoint(f, dir)
+	return mount.IsNotMountPoint(f, dir)
 }
 
 func (f *FakeMounter) IsLikelyNotMountPoint(file string) (bool, error) {
@@ -189,8 +208,8 @@ func (f *FakeMounter) MakeRShared(path string) error {
 	return nil
 }
 
-func (f *FakeMounter) GetFileType(pathname string) (FileType, error) {
-	return FileType("fake"), nil
+func (f *FakeMounter) GetFileType(pathname string) (mount.FileType, error) {
+	return mount.FileType("fake"), nil
 }
 
 func (f *FakeMounter) MakeDir(pathname string) error {
@@ -205,7 +224,7 @@ func (f *FakeMounter) ExistsPath(pathname string) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
-func (f *FakeMounter) PrepareSafeSubpath(subPath Subpath) (newHostPath string, cleanupAction func(), err error) {
+func (f *FakeMounter) PrepareSafeSubpath(subPath mount.Subpath) (newHostPath string, cleanupAction func(), err error) {
 	return subPath.Path, nil, nil
 }
 
@@ -223,6 +242,36 @@ func (f *FakeMounter) GetMountRefs(pathname string) ([]string, error) {
 		realpath = pathname
 	}
 	return getMountRefsByDev(f, realpath)
+}
+
+// getMountRefsByDev finds all references to the device provided
+// by mountPath; returns a list of paths.
+// Note that mountPath should be path after the evaluation of any symblolic links.
+func getMountRefsByDev(mounter mount.Interface, mountPath string) ([]string, error) {
+	mps, err := mounter.List()
+	if err != nil {
+		return nil, err
+	}
+
+	// Finding the device mounted to mountPath
+	diskDev := ""
+	for i := range mps {
+		if mountPath == mps[i].Path {
+			diskDev = mps[i].Device
+			break
+		}
+	}
+
+	// Find all references to the device.
+	var refs []string
+	for i := range mps {
+		if mps[i].Device == diskDev || mps[i].Device == mountPath {
+			if mps[i].Path != mountPath {
+				refs = append(refs, mps[i].Path)
+			}
+		}
+	}
+	return refs, nil
 }
 
 func (f *FakeMounter) GetFSGroup(pathname string) (int64, error) {

@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,20 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mount
+package testingmount
 
-import "k8s.io/utils/exec"
+import (
+	"errors"
 
-func NewOsExec() Exec {
-	return &osExec{}
-}
+	"k8s.io/utils/mount"
+)
 
-// Real implementation of Exec interface that uses simple util.Exec
-type osExec struct{}
-
-var _ Exec = &osExec{}
-
-func (e *osExec) Run(cmd string, args ...string) ([]byte, error) {
-	exe := exec.New()
-	return exe.Command(cmd, args...).CombinedOutput()
+// getDeviceNameFromMount find the device(drive) name in which
+// the mount path reference should match the given plugin directory. In case no mount path reference
+// matches, returns the volume name taken from its given mountPath
+func getDeviceNameFromMount(mounter mount.Interface, mountPath, pluginDir string) (string, error) {
+	return "", errors.New("util/mount on this platform is not supported")
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mount
+package testingmount
 
 import (
 	"fmt"
@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	fakeexec "k8s.io/utils/exec/testing"
+	"k8s.io/utils/mount"
 )
 
 type ErrorMounter struct {
@@ -209,7 +210,7 @@ func TestSafeFormatAndMount(t *testing.T) {
 
 		fakeMounter := ErrorMounter{&FakeMounter{}, 0, test.mountErrs}
 		fakeExec := NewFakeExec(execCallback)
-		mounter := SafeFormatAndMount{
+		mounter := mount.SafeFormatAndMount{
 			Interface: &fakeMounter,
 			Exec:      fakeExec,
 		}
@@ -229,7 +230,7 @@ func TestSafeFormatAndMount(t *testing.T) {
 			}
 
 			//check that the correct device was mounted
-			mountedDevice, _, err := GetDeviceNameFromMount(fakeMounter.FakeMounter, dest)
+			mountedDevice, _, err := mount.GetDeviceNameFromMount(fakeMounter.FakeMounter, dest)
 			if err != nil || mountedDevice != device {
 				t.Errorf("test \"%s\" the correct device was not mounted", test.description)
 			}

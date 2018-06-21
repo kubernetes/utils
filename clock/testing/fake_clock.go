@@ -34,7 +34,7 @@ type FakeClock struct {
 	time time.Time
 
 	// waiters are waiting for the fake time to pass their specified time
-	waiters []fakeClockWaiter
+	waiters []*fakeClockWaiter
 }
 
 type fakeClockWaiter struct {
@@ -71,7 +71,7 @@ func (f *FakeClock) After(d time.Duration) <-chan time.Time {
 	defer f.lock.Unlock()
 	stopTime := f.time.Add(d)
 	ch := make(chan time.Time, 1) // Don't block!
-	f.waiters = append(f.waiters, fakeClockWaiter{
+	f.waiters = append(f.waiters, &fakeClockWaiter{
 		targetTime: stopTime,
 		destChan:   ch,
 	})
@@ -91,7 +91,7 @@ func (f *FakeClock) NewTimer(d time.Duration) clock.Timer {
 			destChan:   ch,
 		},
 	}
-	f.waiters = append(f.waiters, timer.waiter)
+	f.waiters = append(f.waiters, &timer.waiter)
 	return timer
 }
 
@@ -100,7 +100,7 @@ func (f *FakeClock) Tick(d time.Duration) <-chan time.Time {
 	defer f.lock.Unlock()
 	tickTime := f.time.Add(d)
 	ch := make(chan time.Time, 1) // hold one tick
-	f.waiters = append(f.waiters, fakeClockWaiter{
+	f.waiters = append(f.waiters, &fakeClockWaiter{
 		targetTime:    tickTime,
 		stepInterval:  d,
 		skipIfBlocked: true,
@@ -127,9 +127,9 @@ func (f *FakeClock) SetTime(t time.Time) {
 // Actually changes the time and checks any waiters. f must be write-locked.
 func (f *FakeClock) setTimeLocked(t time.Time) {
 	f.time = t
-	newWaiters := make([]fakeClockWaiter, 0, len(f.waiters))
+	newWaiters := make([]*fakeClockWaiter, 0, len(f.waiters))
 	for i := range f.waiters {
-		w := &f.waiters[i]
+		w := f.waiters[i]
 		if !w.targetTime.After(t) {
 
 			if w.skipIfBlocked {
@@ -147,7 +147,7 @@ func (f *FakeClock) setTimeLocked(t time.Time) {
 				for !w.targetTime.After(t) {
 					w.targetTime = w.targetTime.Add(w.stepInterval)
 				}
-				newWaiters = append(newWaiters, *w)
+				newWaiters = append(newWaiters, w)
 			}
 
 		} else {
@@ -226,11 +226,11 @@ func (f *fakeTimer) Stop() bool {
 	f.fakeClock.lock.Lock()
 	defer f.fakeClock.lock.Unlock()
 
-	newWaiters := make([]fakeClockWaiter, 0, len(f.fakeClock.waiters))
+	newWaiters := make([]*fakeClockWaiter, 0, len(f.fakeClock.waiters))
 	for i := range f.fakeClock.waiters {
-		w := &f.fakeClock.waiters[i]
+		w := f.fakeClock.waiters[i]
 		if w != &f.waiter {
-			newWaiters = append(newWaiters, *w)
+			newWaiters = append(newWaiters, w)
 		}
 	}
 

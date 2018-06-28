@@ -250,5 +250,17 @@ func (f *fakeTimer) Reset(d time.Duration) bool {
 	f.waiter.fired = false
 	f.waiter.targetTime = f.fakeClock.time.Add(d)
 
+	var isWaiting bool
+	for i := range f.fakeClock.waiters {
+		w := f.fakeClock.waiters[i]
+		if w == &f.waiter {
+			isWaiting = true
+			break
+		}
+	}
+	if !isWaiting {
+		f.fakeClock.waiters = append(f.fakeClock.waiters, &f.waiter)
+	}
+
 	return active
 }

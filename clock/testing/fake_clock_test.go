@@ -240,6 +240,18 @@ func TestTimerNegative(t *testing.T) {
 	}
 }
 
+func TestTickNegative(t *testing.T) {
+	// The stdlib 'Tick' returns nil for negative and zero values, so our fake
+	// should too.
+	tc := NewFakeClock(time.Now())
+	if tick := tc.Tick(-1 * time.Second); tick != nil {
+		t.Errorf("expected negative tick to be nil: %v", tick)
+	}
+	if tick := tc.Tick(0); tick != nil {
+		t.Errorf("expected negative tick to be nil: %v", tick)
+	}
+}
+
 // assertReadTime asserts that the channel can be read and returns the time it
 // reads from the channel.
 func assertReadTime(t testing.TB, c <-chan time.Time) time.Time {

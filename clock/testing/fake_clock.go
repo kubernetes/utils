@@ -96,6 +96,9 @@ func (f *FakeClock) NewTimer(d time.Duration) clock.Timer {
 }
 
 func (f *FakeClock) Tick(d time.Duration) <-chan time.Time {
+	if d <= 0 {
+		return nil
+	}
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	tickTime := f.time.Add(d)

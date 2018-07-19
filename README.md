@@ -55,3 +55,7 @@ an existing package to this repository.
 [kubeadm]: https://github.com/kubernetes/kubeadm
 [kubectl]: https://github.com/kubernetes/kubectl
 [instructions for moving]: ./HOWTOMOVE.md
+
+## Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on how to contribute.

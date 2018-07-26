@@ -45,6 +45,8 @@ an existing package to this repository.
 
 - [Clock](/clock) provides an interface for time-based operations.  It allows
   mocking time for testing.
+  
+- [Pointers](/pointers) provides some functions for pointer-based operations.
 
 [Build Status]: https://travis-ci.org/kubernetes/utils.svg?branch=master
 [Go standard libs]: https://golang.org/pkg/#stdlib

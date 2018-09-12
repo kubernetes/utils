@@ -17,5 +17,6 @@ limitations under the License.
 // Package interrupt provides a wrapper for handling signals from
 // the operating system that guarantee cleanup and exit semantics.
 // This allows a command to intercept CTRL+C or SIGTERM and do
-// the right thing before exiting.
+// the right thing before exiting. See `New()` for more information
+// about what signals are caught and how to handle them.
 package interrupt

@@ -23,7 +23,7 @@ import (
 	"syscall"
 )
 
-// terminationSignals are signals that cause the program to exit in the
+// terminationSignals are the default signals that cause the program to exit in the
 // supported platforms (linux, darwin, windows).
 var terminationSignals = []os.Signal{syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT}
 
@@ -50,7 +50,9 @@ func Chain(handler *Handler, notify ...func()) *Handler {
 // New creates a new handler that guarantees all notify functions are run after the critical
 // section exits (or is interrupted by the OS), then invokes the final handler. If no final
 // handler is specified, the default final is `os.Exit(1)`. A handler can only be used for
-// one critical section.
+// one critical section. The final handler is given complete control over reacting to the
+// signal - it may exit the process or ignore the signal as needed. The following signals
+// are watched: SIGHUP, SIGINT, SIGTERM, and SIGQUIT.
 func New(final func(os.Signal), notify ...func()) *Handler {
 	return &Handler{
 		final:  final,

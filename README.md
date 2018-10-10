@@ -45,8 +45,12 @@ an existing package to this repository.
 
 - [Clock](/clock) provides an interface for time-based operations.  It allows
   mocking time for testing.
-  
+
 - [Pointers](/pointers) provides some functions for pointer-based operations.
+
+- [Netsets](/netsets) Netsets is a util package providing a map of "net.IPNet".
+  It is used in various placed in k8s.io/kubernetes to manage IP addresses
+  for services and loadbalancers.
 
 [Build Status]: https://travis-ci.org/kubernetes/utils.svg?branch=master
 [Go standard libs]: https://golang.org/pkg/#stdlib

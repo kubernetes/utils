@@ -65,6 +65,7 @@ type FakeCmd struct {
 	Stdin                io.Reader
 	Stdout               io.Writer
 	Stderr               io.Writer
+	Env                  []string
 }
 
 var _ exec.Cmd = &FakeCmd{}
@@ -91,6 +92,10 @@ func (fake *FakeCmd) SetStdout(out io.Writer) {
 
 func (fake *FakeCmd) SetStderr(out io.Writer) {
 	fake.Stderr = out
+}
+
+func (fake *FakeCmd) SetEnv(env []string) {
+	fake.Env = env
 }
 
 func (fake *FakeCmd) Run() error {

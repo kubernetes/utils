@@ -16,11 +16,11 @@ limitations under the License.
 
 package path
 
-import (
-	"os"
-)
+import "os"
 
-// Exists checks if specified file exists. It will read through symlinks.
+// Exists checks if specified file, directory, or symlink target exists. If
+// filename is a symlink the symlink will be followed and Exists reports the
+// existence of the symlink target.
 func Exists(filename string) (bool, error) {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return false, nil
@@ -30,7 +30,9 @@ func Exists(filename string) (bool, error) {
 	return true, nil
 }
 
-// ExistsOrSymlink checks if specified file or symlink exists.
+// ExistsOrSymlink checks if specified file, directory, or symlink exists. If
+// filename is a symlink the symlink is not followed and ExistsOrSymlink
+// reports only the presence of the symlink, not its target.
 func ExistsOrSymlink(filename string) (bool, error) {
 	if _, err := os.Lstat(filename); os.IsNotExist(err) {
 		return false, nil

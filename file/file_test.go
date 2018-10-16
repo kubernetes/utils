@@ -73,7 +73,7 @@ func TestFileUtils(t *testing.T) {
 	// recover test environment
 	defer RecoverEnv(currentDir, tmpDir)
 
-	t.Run("TestFileExists", func(t *testing.T) {
+	t.Run("TestExists", func(t *testing.T) {
 		tests := []struct {
 			name          string
 			fileName      string
@@ -85,7 +85,7 @@ func TestFileUtils(t *testing.T) {
 		}
 
 		for _, test := range tests {
-			realValued, realError := FileExists(test.fileName)
+			realValued, realError := Exists(test.fileName)
 			if test.expectedError {
 				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.fileName, test.name)
 			} else {
@@ -107,7 +107,7 @@ func TestFileUtils(t *testing.T) {
 		}
 
 		for _, test := range tests {
-			realValued, realError := FileOrSymlinkExists(test.fileName)
+			realValued, realError := ExistsOrSymlink(test.fileName)
 			if test.expectedError {
 				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.fileName, test.name)
 			} else {

@@ -26,11 +26,21 @@ import (
 // This is useful when reading files in /proc that are larger than page size
 // and kernel may modify them between individual read() syscalls.
 func ConsistentRead(filename string, attempts int) ([]byte, error) {
+	return consistentReadSync(filename, attempts, nil)
+}
+
+// consistentReadSync is the main functionality of ConsistentRead but
+// introduces a sync callback that can be used by the tests to mutate the file
+// from which the test data is being read
+func consistentReadSync(filename string, attempts int, sync func(int)) ([]byte, error) {
 	oldContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 	for i := 0; i < attempts; i++ {
+		if sync != nil {
+			sync(i)
+		}
 		newContent, err := ioutil.ReadFile(filename)
 		if err != nil {
 			return nil, err

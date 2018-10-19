@@ -51,11 +51,11 @@ func TestEscapeQualifiedNameForDisk(t *testing.T) {
 		{"kubernetes.io", "kubernetes.io"},
 	}
 	for i, tc := range testCases {
-		escapee := EscapeQualifiedNameForDisk(tc.input)
+		escapee := EscapeQualifiedName(tc.input)
 		if escapee != tc.output {
 			t.Errorf("case[%d]: expected (%q), got (%q)", i, tc.output, escapee)
 		}
-		original := UnescapeQualifiedNameForDisk(escapee)
+		original := UnescapeQualifiedName(escapee)
 		if original != tc.input {
 			t.Errorf("case[%d]: expected (%q), got (%q)", i, tc.input, original)
 		}

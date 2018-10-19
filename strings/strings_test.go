@@ -71,27 +71,3 @@ func TestShortenString(t *testing.T) {
 		}
 	}
 }
-
-func TestIsVowel(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  rune
-		want bool
-	}{
-		{
-			name: "yes",
-			arg:  'E',
-			want: true,
-		},
-		{
-			name: "no",
-			arg:  'n',
-			want: false,
-		},
-	}
-	for _, tt := range tests {
-		if got := isVowel(tt.arg); got != tt.want {
-			t.Errorf("%q. IsVowel() = %v, want %v", tt.name, got, tt.want)
-		}
-	}
-}

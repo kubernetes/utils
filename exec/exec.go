@@ -211,10 +211,12 @@ func (e CodeExitError) String() string {
 	return e.Err.Error()
 }
 
+// Exited is to check if the process has finished
 func (e CodeExitError) Exited() bool {
 	return true
 }
 
+// ExitStatus is for checking the error code
 func (e CodeExitError) ExitStatus() int {
 	return e.Code
 }

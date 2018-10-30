@@ -16,9 +16,7 @@ limitations under the License.
 
 package net
 
-import (
-	"net"
-)
+import "net"
 
 // IsIPv6 returns if netIP is IPv6.
 func IsIPv6(netIP net.IP) bool {

@@ -83,7 +83,7 @@ func TestFileUtils(t *testing.T) {
 		}
 
 		for _, test := range tests {
-			realValued, realError := Exists(test.fileName)
+			realValued, realError := Exists(CheckFollowSymlink, test.fileName)
 			if test.expectedError {
 				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.fileName, test.name)
 			} else {
@@ -105,7 +105,7 @@ func TestFileUtils(t *testing.T) {
 		}
 
 		for _, test := range tests {
-			realValued, realError := ExistsOrSymlink(test.fileName)
+			realValued, realError := Exists(CheckSymlinkOnly, test.fileName)
 			if test.expectedError {
 				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.fileName, test.name)
 			} else {

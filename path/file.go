@@ -16,25 +16,44 @@ limitations under the License.
 
 package path
 
-import "os"
+import (
+	"errors"
+	"os"
+)
 
-// Exists checks if specified file, directory, or symlink target exists. If
-// filename is a symlink the symlink will be followed and Exists reports the
-// existence of the symlink target.
-func Exists(filename string) (bool, error) {
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return false, nil
-	} else if err != nil {
-		return false, err
+// LinkTreatment is the base type for constants used by Exists that indicate
+// how symlinks are treated for existence checks.
+type LinkTreatment int
+
+const (
+	// CheckFollowSymlink follows the symlink and verifies that the target of
+	// the symlink exists.
+	CheckFollowSymlink LinkTreatment = iota
+
+	// CheckSymlinkOnly does not follow the symlink and verfies only that they
+	// symlink itself exists.
+	CheckSymlinkOnly
+)
+
+// ErrInvalidLinkTreatment indicates that the link treatment behavior requested
+// is not a valid behavior.
+var ErrInvalidLinkTreatment = errors.New("unknown link behavior")
+
+// Exists checks if specified file, directory, or symlink exists. The behavior
+// of the test depends on the linkBehaviour argument. See LinkTreatment for
+// more details.
+func Exists(linkBehavior LinkTreatment, filename string) (bool, error) {
+	var err error
+
+	if linkBehavior == CheckFollowSymlink {
+		_, err = os.Stat(filename)
+	} else if linkBehavior == CheckSymlinkOnly {
+		_, err = os.Lstat(filename)
+	} else {
+		return false, ErrInvalidLinkTreatment
 	}
-	return true, nil
-}
 
-// ExistsOrSymlink checks if specified file, directory, or symlink exists. If
-// filename is a symlink the symlink is not followed and ExistsOrSymlink
-// reports only the presence of the symlink, not its target.
-func ExistsOrSymlink(filename string) (bool, error) {
-	if _, err := os.Lstat(filename); os.IsNotExist(err) {
+	if os.IsNotExist(err) {
 		return false, nil
 	} else if err != nil {
 		return false, err

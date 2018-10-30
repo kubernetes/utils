@@ -26,11 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func RecoverEnv(wd, tmpDir string) {
-	os.Chdir(wd)
-	os.RemoveAll(tmpDir)
-}
-
 func TestFileUtils(t *testing.T) {
 	fs := &afero.Afero{Fs: afero.NewOsFs()}
 	// Create tmp dir
@@ -71,7 +66,10 @@ func TestFileUtils(t *testing.T) {
 	}
 
 	// recover test environment
-	defer RecoverEnv(currentDir, tmpDir)
+	defer func() {
+		os.Chdir(currentDir)
+		os.RemoveAll(tmpDir)
+	}()
 
 	t.Run("TestExists", func(t *testing.T) {
 		tests := []struct {

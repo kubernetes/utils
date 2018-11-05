@@ -21,12 +21,12 @@ import (
 	"strings"
 )
 
-// IPNet maps string to net.IPNet.
-type IPNet map[string]*net.IPNet
+// IPNetSet maps string to net.IPNet.
+type IPNetSet map[string]*net.IPNet
 
-// ParseIPNets parses string slice to IPNet.
-func ParseIPNets(specs ...string) (IPNet, error) {
-	ipnetset := make(IPNet)
+// ParseIPNets parses string slice to IPNetSet.
+func ParseIPNets(specs ...string) (IPNetSet, error) {
+	ipnetset := make(IPNetSet)
 	for _, spec := range specs {
 		spec = strings.TrimSpace(spec)
 		_, ipnet, err := net.ParseCIDR(spec)
@@ -40,27 +40,27 @@ func ParseIPNets(specs ...string) (IPNet, error) {
 }
 
 // Insert adds items to the set.
-func (s IPNet) Insert(items ...*net.IPNet) {
+func (s IPNetSet) Insert(items ...*net.IPNet) {
 	for _, item := range items {
 		s[item.String()] = item
 	}
 }
 
 // Delete removes all items from the set.
-func (s IPNet) Delete(items ...*net.IPNet) {
+func (s IPNetSet) Delete(items ...*net.IPNet) {
 	for _, item := range items {
 		delete(s, item.String())
 	}
 }
 
 // Has returns true if and only if item is contained in the set.
-func (s IPNet) Has(item *net.IPNet) bool {
+func (s IPNetSet) Has(item *net.IPNet) bool {
 	_, contained := s[item.String()]
 	return contained
 }
 
 // HasAll returns true if and only if all items are contained in the set.
-func (s IPNet) HasAll(items ...*net.IPNet) bool {
+func (s IPNetSet) HasAll(items ...*net.IPNet) bool {
 	for _, item := range items {
 		if !s.Has(item) {
 			return false
@@ -75,8 +75,8 @@ func (s IPNet) HasAll(items ...*net.IPNet) bool {
 // s2 = {a1, a2, a4, a5}
 // s1.Difference(s2) = {a3}
 // s2.Difference(s1) = {a4, a5}
-func (s IPNet) Difference(s2 IPNet) IPNet {
-	result := make(IPNet)
+func (s IPNetSet) Difference(s2 IPNetSet) IPNetSet {
+	result := make(IPNetSet)
 	for k, i := range s {
 		_, found := s2[k]
 		if found {
@@ -89,7 +89,7 @@ func (s IPNet) Difference(s2 IPNet) IPNet {
 
 // StringSlice returns a []string with the String representation of each element in the set.
 // Order is undefined.
-func (s IPNet) StringSlice() []string {
+func (s IPNetSet) StringSlice() []string {
 	a := make([]string, 0, len(s))
 	for k := range s {
 		a = append(a, k)
@@ -98,7 +98,7 @@ func (s IPNet) StringSlice() []string {
 }
 
 // IsSuperset returns true if and only if s1 is a superset of s2.
-func (s IPNet) IsSuperset(s2 IPNet) bool {
+func (s IPNetSet) IsSuperset(s2 IPNetSet) bool {
 	for k := range s2 {
 		_, found := s[k]
 		if !found {
@@ -111,11 +111,11 @@ func (s IPNet) IsSuperset(s2 IPNet) bool {
 // Equal returns true if and only if s1 is equal (as a set) to s2.
 // Two sets are equal if their membership is identical.
 // (In practice, this means same elements, order doesn't matter)
-func (s IPNet) Equal(s2 IPNet) bool {
+func (s IPNetSet) Equal(s2 IPNetSet) bool {
 	return len(s) == len(s2) && s.IsSuperset(s2)
 }
 
 // Len returns the size of the set.
-func (s IPNet) Len() int {
+func (s IPNetSet) Len() int {
 	return len(s)
 }

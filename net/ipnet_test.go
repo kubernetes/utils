@@ -32,8 +32,8 @@ func parseIPNet(s string) *net.IPNet {
 }
 
 func TestIPNets(t *testing.T) {
-	s := IPNet{}
-	s2 := IPNet{}
+	s := IPNetSet{}
+	s2 := IPNetSet{}
 	if len(s) != 0 {
 		t.Errorf("Expected len=0: %d", len(s))
 	}
@@ -75,7 +75,7 @@ func TestIPNets(t *testing.T) {
 }
 
 func TestIPNetSetDeleteMultiples(t *testing.T) {
-	s := IPNet{}
+	s := IPNetSet{}
 	a := parseIPNet("1.0.0.0/8")
 	b := parseIPNet("2.0.0.0/8")
 	c := parseIPNet("3.0.0.0/8")

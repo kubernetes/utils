@@ -70,6 +70,10 @@ type FakeCmd struct {
 	Stdout               io.Writer
 	Stderr               io.Writer
 	Env                  []string
+	StdoutPipeResponse   FakeStdIOPipeResponse
+	StderrPipeResponse   FakeStdIOPipeResponse
+	WaitResponse         error
+	StartResponse        error
 }
 
 var _ exec.Cmd = &FakeCmd{}
@@ -78,6 +82,13 @@ var _ exec.Cmd = &FakeCmd{}
 func InitFakeCmd(fake *FakeCmd, cmd string, args ...string) exec.Cmd {
 	fake.Argv = append([]string{cmd}, args...)
 	return fake
+}
+
+// FakeStdIOPipeResponse holds responses to use as fakes for the StdoutPipe and
+// StderrPipe method calls
+type FakeStdIOPipeResponse struct {
+	ReadCloser io.ReadCloser
+	Error      error
 }
 
 // FakeCombinedOutputAction is a function type
@@ -109,6 +120,30 @@ func (fake *FakeCmd) SetStderr(out io.Writer) {
 // SetEnv sets the environment variables
 func (fake *FakeCmd) SetEnv(env []string) {
 	fake.Env = env
+}
+
+// StdoutPipe returns an injected ReadCloser & error (via StdoutPipeResponse)
+// to be able to inject an output stream on Stdout
+func (fake *FakeCmd) StdoutPipe() (io.ReadCloser, error) {
+	return fake.StdoutPipeResponse.ReadCloser, fake.StdoutPipeResponse.Error
+}
+
+// StderrPipe returns an injected ReadCloser & error (via StderrPipeResponse)
+// to be able to inject an output stream on Stderr
+func (fake *FakeCmd) StderrPipe() (io.ReadCloser, error) {
+	return fake.StderrPipeResponse.ReadCloser, fake.StderrPipeResponse.Error
+}
+
+// Start mimicks starting the process (in the background) and returns the
+// injected StartResponse
+func (fake *FakeCmd) Start() error {
+	return fake.StartResponse
+}
+
+// Wait mimicks waiting for the process to exit returns the
+// injected WaitResponse
+func (fake *FakeCmd) Wait() error {
+	return fake.WaitResponse
 }
 
 // Run sets runs the command

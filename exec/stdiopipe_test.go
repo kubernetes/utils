@@ -23,7 +23,7 @@ import (
 	"k8s.io/utils/exec"
 )
 
-func ExampleCmd_StderrPipe() {
+func ExampleNew_stderrPipe() {
 	cmd := exec.New().Command("/bin/sh", "-c", "echo 'We can read from stderr via pipe!' >&2")
 
 	stderrPipe, err := cmd.StderrPipe()

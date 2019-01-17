@@ -151,7 +151,7 @@ func TestIsIPv6CIDR(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		res := IsIPv6CIDR(tc.cidr)
+		res := IsIPv6CIDRString(tc.cidr)
 		if res != tc.expectResult {
 			t.Errorf("%v: want IsIPv6CIDR=%v, got %v", tc.desc, tc.expectResult, res)
 		}

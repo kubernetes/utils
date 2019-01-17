@@ -29,9 +29,9 @@ func IsIPv6String(ip string) bool {
 	return IsIPv6(netIP)
 }
 
-// IsIPv6CIDR returns if cidr is IPv6.
+// IsIPv6CIDRString returns if cidr is IPv6.
 // This assumes cidr is a valid CIDR.
-func IsIPv6CIDR(cidr string) bool {
+func IsIPv6CIDRString(cidr string) bool {
 	ip, _, _ := net.ParseCIDR(cidr)
 	return IsIPv6(ip)
 }

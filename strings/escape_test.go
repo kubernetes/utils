@@ -20,27 +20,6 @@ import (
 	"testing"
 )
 
-func TestEscapePluginName(t *testing.T) {
-	testCases := []struct {
-		input  string
-		output string
-	}{
-		{"kubernetes.io/blah", "kubernetes.io~blah"},
-		{"blah/blerg/borg", "blah~blerg~borg"},
-		{"kubernetes.io", "kubernetes.io"},
-	}
-	for i, tc := range testCases {
-		escapee := EscapePluginName(tc.input)
-		if escapee != tc.output {
-			t.Errorf("case[%d]: expected (%q), got (%q)", i, tc.output, escapee)
-		}
-		original := UnescapePluginName(escapee)
-		if original != tc.input {
-			t.Errorf("case[%d]: expected (%q), got (%q)", i, tc.input, original)
-		}
-	}
-}
-
 func TestEscapeQualifiedNameForDisk(t *testing.T) {
 	testCases := []struct {
 		input  string

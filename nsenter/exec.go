@@ -23,7 +23,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"k8s.io/klog"
+	"github.com/go-logr/klogr"
+	"github.com/go-logr/logr"
+
 	"k8s.io/utils/exec"
 )
 
@@ -33,35 +35,45 @@ type Executor struct {
 	executor exec.Interface
 	// Path to the host's root proc path
 	hostProcMountNsPath string
+	// How to log
+	log logr.Logger
 }
 
-// NewNsenterExecutor returns new nsenter based executor
+// NewNsenterExecutor returns new nsenter based executor.  Logs will be sent via
+// k8s.io/klog unless otherwise configured (see WithLogger).
 func NewNsenterExecutor(hostRootFsPath string, executor exec.Interface) *Executor {
 	hostProcMountNsPath := filepath.Join(hostRootFsPath, mountNsPath)
 	nsExecutor := &Executor{
 		hostProcMountNsPath: hostProcMountNsPath,
 		executor:            executor,
+		log:                 klogr.New().WithName("nsenter"),
 	}
 	return nsExecutor
 }
 
+// WithLogger returns the same executor, but configures logging
+func (e *Executor) WithLogger(log logr.Logger) *Executor {
+	e.log = log
+	return e
+}
+
 // Command returns a command wrapped with nenter
-func (nsExecutor *Executor) Command(cmd string, args ...string) exec.Cmd {
-	fullArgs := append([]string{fmt.Sprintf("--mount=%s", nsExecutor.hostProcMountNsPath), "--"},
+func (e *Executor) Command(cmd string, args ...string) exec.Cmd {
+	fullArgs := append([]string{fmt.Sprintf("--mount=%s", e.hostProcMountNsPath), "--"},
 		append([]string{cmd}, args...)...)
-	klog.V(5).Infof("Running nsenter command: %v %v", nsenterPath, fullArgs)
-	return nsExecutor.executor.Command(nsenterPath, fullArgs...)
+	e.log.V(5).Info("Running nsenter", "bin", nsenterPath, "args", fullArgs)
+	return e.executor.Command(nsenterPath, fullArgs...)
 }
 
 // CommandContext returns a CommandContext wrapped with nsenter
-func (nsExecutor *Executor) CommandContext(ctx context.Context, cmd string, args ...string) exec.Cmd {
-	fullArgs := append([]string{fmt.Sprintf("--mount=%s", nsExecutor.hostProcMountNsPath), "--"},
+func (e *Executor) CommandContext(ctx context.Context, cmd string, args ...string) exec.Cmd {
+	fullArgs := append([]string{fmt.Sprintf("--mount=%s", e.hostProcMountNsPath), "--"},
 		append([]string{cmd}, args...)...)
-	klog.V(5).Infof("Running nsenter command: %v %v", nsenterPath, fullArgs)
-	return nsExecutor.executor.CommandContext(ctx, nsenterPath, fullArgs...)
+	e.log.V(5).Info("Running nsenter", "bin", nsenterPath, "args", fullArgs)
+	return e.executor.CommandContext(ctx, nsenterPath, fullArgs...)
 }
 
 // LookPath returns a LookPath wrapped with nsenter
-func (nsExecutor *Executor) LookPath(file string) (string, error) {
+func (*Executor) LookPath(file string) (string, error) {
 	return "", fmt.Errorf("not implemented, error looking up : %s", file)
 }

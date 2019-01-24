@@ -26,7 +26,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/klog"
+	"github.com/go-logr/logr"
+
 	"k8s.io/utils/exec"
 )
 
@@ -74,18 +75,30 @@ type Nsenter struct {
 
 	// Exec implementation, used only for testing
 	executor exec.Interface
+
+	// Logger implementation
+	log logr.InfoLogger
 }
 
-// NewNsenter constructs a new instance of Nsenter
+// NewNsenter constructs a new instance of Nsenter.  If logging is enabled
+// (see WithLogger) Executor will log executions, but will return errors without
+// logging them.
 func NewNsenter(hostRootFsPath string, executor exec.Interface) (*Nsenter, error) {
 	ne := &Nsenter{
 		hostRootFsPath: hostRootFsPath,
 		executor:       executor,
+		log:            nil,
 	}
 	if err := ne.initPaths(); err != nil {
 		return nil, err
 	}
 	return ne, nil
+}
+
+// WithLogger returns the same executor, but configures it for logging.
+func (ne *Nsenter) WithLogger(log logr.InfoLogger) *Executor {
+	ne.log = log
+	return ne
 }
 
 func (ne *Nsenter) initPaths() error {
@@ -126,7 +139,7 @@ func (ne *Nsenter) Exec(cmd string, args []string) exec.Cmd {
 	hostProcMountNsPath := filepath.Join(ne.hostRootFsPath, mountNsPath)
 	fullArgs := append([]string{fmt.Sprintf("--mount=%s", hostProcMountNsPath), "--"},
 		append([]string{ne.AbsHostPath(cmd)}, args...)...)
-	klog.V(5).Infof("Running nsenter command: %v %v", nsenterPath, fullArgs)
+	ne.log.Info("Running nsenter", "bin", nsenterPath, "args", fullArgs)
 	return ne.executor.Command(nsenterPath, fullArgs...)
 }
 
@@ -169,8 +182,7 @@ func (ne *Nsenter) EvalSymlinks(pathname string, mustExist bool) (string, error)
 	}
 	outBytes, err := ne.Exec("realpath", args).CombinedOutput()
 	if err != nil {
-		klog.Infof("failed to resolve symbolic links on %s: %v", pathname, err)
-		return "", err
+		return "", fmt.Errorf("failed to resolve symbolic links on %s: %v", pathname, err)
 	}
 	return strings.TrimSpace(string(outBytes)), nil
 }

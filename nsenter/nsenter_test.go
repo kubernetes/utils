@@ -52,7 +52,7 @@ func TestExec(t *testing.T) {
 		rootfsPath: "/rootfs",
 	}
 	for _, test := range tests {
-		ns := Nsenter{
+		ns := NSEnter{
 			hostRootFsPath: "/rootfs",
 			executor:       executor,
 		}
@@ -92,7 +92,7 @@ func TestKubeletPath(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		ns := Nsenter{
+		ns := NSEnter{
 			hostRootFsPath: test.rootfs,
 		}
 		out := ns.KubeletPath(test.hostpath)
@@ -236,7 +236,7 @@ func TestEvalSymlinks(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		ns := Nsenter{
+		ns := NSEnter{
 			hostRootFsPath: "/rootfs",
 			executor: fakeExec{
 				rootfsPath: "/rootfs",

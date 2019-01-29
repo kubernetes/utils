@@ -20,8 +20,6 @@ import (
 	"hash/fnv"
 	"runtime"
 	"sync"
-
-	"github.com/golang/glog"
 )
 
 // NewHashed returns a new instance of KeyMutex which hashes arbitrary keys to
@@ -44,16 +42,12 @@ type hashedKeyMutex struct {
 
 // Acquires a lock associated with the specified ID.
 func (km *hashedKeyMutex) LockKey(id string) {
-	glog.V(5).Infof("hashedKeyMutex.LockKey(...) called for id %q\r\n", id)
 	km.mutexes[km.hash(id)%len(km.mutexes)].Lock()
-	glog.V(5).Infof("hashedKeyMutex.LockKey(...) for id %q completed.\r\n", id)
 }
 
 // Releases the lock associated with the specified ID.
 func (km *hashedKeyMutex) UnlockKey(id string) error {
-	glog.V(5).Infof("hashedKeyMutex.UnlockKey(...) called for id %q\r\n", id)
 	km.mutexes[km.hash(id)%len(km.mutexes)].Unlock()
-	glog.V(5).Infof("hashedKeyMutex.UnlockKey(...) for id %q completed.\r\n", id)
 	return nil
 }
 

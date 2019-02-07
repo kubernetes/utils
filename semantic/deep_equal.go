@@ -32,7 +32,9 @@ type Equality interface {
 	// DeepEqual is like reflect.DeepEqual, but by applying the registered equality funcs
 	// and identifies nil and empty slices and maps (if not disabled by options).
 	//
-	// Unexported field members cannot be compared and will cause an imformative panic.
+	// By default unexported field members cannot be compared and will cause an imformative
+	// panic. It is possible to add pointer type equality funcs to structs with unexpected
+	// fields to allow comparison.
 	DeepEqual(a1, a2 interface{}) bool
 	// DeepDerivative is similar to DeepEqual except that unset fields in a1 are
 	// ignored (not compared). This allows us to focus on the fields that matter to

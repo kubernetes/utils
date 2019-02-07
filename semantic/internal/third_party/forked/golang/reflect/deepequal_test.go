@@ -5,6 +5,7 @@
 package reflect
 
 import (
+	"net/url"
 	"testing"
 )
 
@@ -16,6 +17,11 @@ func TestEqualities(t *testing.T) {
 	type Baz struct {
 		Y Bar
 	}
+	type Address struct {
+		URL url.URL
+	}
+	httpA, _ := url.Parse("http://a")
+	httpB, _ := url.Parse("http://b")
 	err := e.AddFuncs(
 		func(a, b int) bool {
 			return a+1 == b
@@ -66,6 +72,8 @@ func TestEqualities(t *testing.T) {
 		{[]string{}, []string{"1", "2", "3"}, false},
 		{[]string{"1"}, []string{"1", "2", "3"}, false},
 		{[]string{"1", "2", "3"}, []string{}, false},
+		{Address{URL: *httpA}, Address{URL: *httpB}, false},
+		{Address{URL: *httpA}, Address{URL: *httpA}, true},
 	}
 
 	for _, item := range table {
@@ -92,6 +100,9 @@ func TestDisableNilEmptyIdentification(t *testing.T) {
 		},
 		func(a, b Bar) bool {
 			return a.X*10 == b.X
+		},
+		func(a, b *url.URL) bool {
+			return a.String() == b.String()
 		},
 	)
 	if err != nil {

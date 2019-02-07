@@ -93,6 +93,8 @@ func makeUsefulPanic(v goreflect.Value) {
 		if u, ok := x.(unexportedTypePanic); ok {
 			u = append(unexportedTypePanic{v.Type()}, u...)
 			x = u
+		} else if strings.Contains(fmt.Sprintf("%s", x), "using value obtained using unexported field") {
+			x = unexportedTypePanic{v.Type()}
 		}
 		panic(x)
 	}
@@ -112,6 +114,17 @@ func (e *Equalities) deepValueEqual(v1, v2 goreflect.Value, visited map[visit]bo
 	}
 	if fv, ok := e.funcs[v1.Type()]; ok {
 		return fv.Call([]goreflect.Value{v1, v2})[0].Bool()
+	}
+	if fv, ok := e.funcs[goreflect.PtrTo(v1.Type())]; ok {
+		if v1.CanAddr() {
+			return fv.Call([]goreflect.Value{v1.Addr(), v2.Addr()})[0].Bool()
+		}
+		// clone none-addressable values and call equality func on clones
+		v1Clone := goreflect.New(v1.Type())
+		v2Clone := goreflect.New(v2.Type())
+		v1Clone.Elem().Set(v1)
+		v2Clone.Elem().Set(v2)
+		return fv.Call([]goreflect.Value{v1Clone, v2Clone})[0].Bool()
 	}
 
 	hard := func(k goreflect.Kind) bool {
@@ -255,6 +268,17 @@ func (e *Equalities) deepValueDerive(v1, v2 goreflect.Value, visited map[visit]b
 	}
 	if fv, ok := e.funcs[v1.Type()]; ok {
 		return fv.Call([]goreflect.Value{v1, v2})[0].Bool()
+	}
+	if fv, ok := e.funcs[goreflect.PtrTo(v1.Type())]; ok {
+		if v1.CanAddr() {
+			return fv.Call([]goreflect.Value{v1.Addr(), v2.Addr()})[0].Bool()
+		}
+		// clone none-addressable values and call equality func on clones
+		v1Clone := goreflect.New(v1.Type())
+		v2Clone := goreflect.New(v2.Type())
+		v1Clone.Elem().Set(v1)
+		v2Clone.Elem().Set(v2)
+		return fv.Call([]goreflect.Value{v1Clone, v2Clone})[0].Bool()
 	}
 
 	hard := func(k goreflect.Kind) bool {

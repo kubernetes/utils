@@ -17,14 +17,48 @@ limitations under the License.
 package semantic
 
 import (
-	"k8s.io/utils/third_party/forked/golang/reflect"
+	"k8s.io/utils/semantic/internal/third_party/forked/golang/reflect"
 )
 
-// Equalities is a map from type to a function comparing two values of
-// that type.
-type Equalities = reflect.Equalities
+// Equality provides an extensible semantic deep-equal equality. Semantic here means that
+// empty and nil slices and maps are identified.
+type Equality interface {
+	// AddFuncs is a shortcut for multiple calls to AddFunc.
+	AddFuncs(funcs ...interface{}) error
+	// AddFunc uses func as an equality function: it must take
+	// two parameters of the same type, and return a boolean.
+	AddFunc(eqFunc interface{}) error
+	// DeepEqual is like reflect.DeepEqual, but focused on semantic equality
+	// instead of memory equality.
+	//
+	// It will uses the registered equality functions if it finds types that match.
+	//
+	// An empty slice *is* equal to a nil slice for our purposes; same for maps.
+	//
+	// Unexported field members cannot be compared and will cause an imformative panic.
+	DeepEqual(a1, a2 interface{}) bool
+	// DeepDerivative is similar to DeepEqual except that unset fields in a1 are
+	// ignored (not compared). This allows us to focus on the fields that matter to
+	// the semantic comparison.
+	//
+	// The unset fields include a nil pointer and an empty string.
+	DeepDerivative(a1, a2 interface{}) bool
+}
 
-// EqualitiesOrDie adds the given funcs and panics on any error.
-func EqualitiesOrDie(funcs ...interface{}) Equalities {
-	return reflect.EqualitiesOrDie(funcs...)
+// NewEquality creates a semantic equality object with the given equality funcs.
+func NewEquality(funcs ...interface{}) (Equality, error) {
+	eq := reflect.Equalities{}
+	if err := eq.AddFuncs(funcs...); err != nil {
+		return nil, err
+	}
+	return eq, nil
+}
+
+// NewEqualityOrDie creates a semantic equality object with the given equality funcs and panics on errors.
+func NewEqualityOrDie(funcs ...interface{}) Equality {
+	eq, err := NewEquality(funcs...)
+	if err != nil {
+		panic(err)
+	}
+	return eq
 }

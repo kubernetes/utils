@@ -2,56 +2,130 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Deep equality test via reflection
-
+// Package reflect is a fork of go's standard library reflection package, which
+// allows for deep equal with equality functions defined.
 package reflect
 
-import "unsafe"
+import (
+	"fmt"
+	goreflect "reflect"
+	"strings"
+)
+
+// Equalities is a map from type to a function comparing two values of
+// that type.
+type Equalities map[goreflect.Type]goreflect.Value
+
+// AddFuncs is a shortcut for multiple calls to AddFunc.
+func (e Equalities) AddFuncs(funcs ...interface{}) error {
+	for _, f := range funcs {
+		if err := e.AddFunc(f); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// AddFunc uses func as an equality function: it must take
+// two parameters of the same type, and return a boolean.
+func (e Equalities) AddFunc(eqFunc interface{}) error {
+	fv := goreflect.ValueOf(eqFunc)
+	ft := fv.Type()
+	if ft.Kind() != goreflect.Func {
+		return fmt.Errorf("expected func, got: %v", ft)
+	}
+	if ft.NumIn() != 2 {
+		return fmt.Errorf("expected two 'in' params, got: %v", ft)
+	}
+	if ft.NumOut() != 1 {
+		return fmt.Errorf("expected one 'out' param, got: %v", ft)
+	}
+	if ft.In(0) != ft.In(1) {
+		return fmt.Errorf("expected arg 1 and 2 to have same type, but got %v", ft)
+	}
+	var forReturnType bool
+	boolType := goreflect.TypeOf(forReturnType)
+	if ft.Out(0) != boolType {
+		return fmt.Errorf("expected bool return, got: %v", ft)
+	}
+	e[ft.In(0)] = fv
+	return nil
+}
+
+// Below here is forked from go's reflect/deepequal.go
 
 // During deepValueEqual, must keep track of checks that are
-// in progress. The comparison algorithm assumes that all
+// in progress.  The comparison algorithm assumes that all
 // checks in progress are true when it reencounters them.
 // Visited comparisons are stored in a map indexed by visit.
 type visit struct {
-	a1  unsafe.Pointer
-	a2  unsafe.Pointer
-	typ Type
+	a1  uintptr
+	a2  uintptr
+	typ goreflect.Type
 }
 
-// Tests for deep equality using reflected types. The map argument tracks
+// unexportedTypePanic is thrown when you use this DeepEqual on something that has an
+// unexported type. It indicates a programmer error, so should not occur at runtime,
+// which is why it's not public and thus impossible to catch.
+type unexportedTypePanic []goreflect.Type
+
+func (u unexportedTypePanic) Error() string { return u.String() }
+func (u unexportedTypePanic) String() string {
+	strs := make([]string, len(u))
+	for i, t := range u {
+		strs[i] = fmt.Sprintf("%v", t)
+	}
+	return "an unexported field was encountered, nested like this: " + strings.Join(strs, " -> ")
+}
+
+func makeUsefulPanic(v goreflect.Value) {
+	if x := recover(); x != nil {
+		if u, ok := x.(unexportedTypePanic); ok {
+			u = append(unexportedTypePanic{v.Type()}, u...)
+			x = u
+		}
+		panic(x)
+	}
+}
+
+// deepValueEqual tests for deep equality using reflected types. The map argument tracks
 // comparisons that have already been seen, which allows short circuiting on
 // recursive types.
-func deepValueEqual(v1, v2 Value, visited map[visit]bool, depth int) bool {
+func (e Equalities) deepValueEqual(v1, v2 goreflect.Value, visited map[visit]bool, depth int) bool {
+	defer makeUsefulPanic(v1)
+
 	if !v1.IsValid() || !v2.IsValid() {
 		return v1.IsValid() == v2.IsValid()
 	}
 	if v1.Type() != v2.Type() {
 		return false
 	}
+	if fv, ok := e[v1.Type()]; ok {
+		return fv.Call([]goreflect.Value{v1, v2})[0].Bool()
+	}
 
-	// if depth > 10 { panic("deepValueEqual") }	// for debugging
-
-	// We want to avoid putting more in the visited map than we need to.
-	// For any possible reference cycle that might be encountered,
-	// hard(t) needs to return true for at least one of the types in the cycle.
-	hard := func(k Kind) bool {
+	hard := func(k goreflect.Kind) bool {
 		switch k {
-		case Map, Slice, Ptr, Interface:
+		case goreflect.Array, goreflect.Map, goreflect.Slice, goreflect.Struct:
 			return true
 		}
 		return false
 	}
 
 	if v1.CanAddr() && v2.CanAddr() && hard(v1.Kind()) {
-		addr1 := unsafe.Pointer(v1.UnsafeAddr())
-		addr2 := unsafe.Pointer(v2.UnsafeAddr())
-		if uintptr(addr1) > uintptr(addr2) {
+		addr1 := v1.UnsafeAddr()
+		addr2 := v2.UnsafeAddr()
+		if addr1 > addr2 {
 			// Canonicalize order to reduce number of entries in visited.
-			// Assumes non-moving garbage collector.
 			addr1, addr2 = addr2, addr1
 		}
 
-		// Short circuit if references are already seen.
+		// Short circuit if references are identical ...
+		if addr1 == addr2 {
+			return true
+		}
+
+		// ... or already seen
 		typ := v1.Type()
 		v := visit{addr1, addr2, typ}
 		if visited[v] {
@@ -63,16 +137,21 @@ func deepValueEqual(v1, v2 Value, visited map[visit]bool, depth int) bool {
 	}
 
 	switch v1.Kind() {
-	case Array:
+	case goreflect.Array:
+		// We don't need to check length here because length is part of
+		// an array's type, which has already been filtered for.
 		for i := 0; i < v1.Len(); i++ {
-			if !deepValueEqual(v1.Index(i), v2.Index(i), visited, depth+1) {
+			if !e.deepValueEqual(v1.Index(i), v2.Index(i), visited, depth+1) {
 				return false
 			}
 		}
 		return true
-	case Slice:
-		if v1.IsNil() != v2.IsNil() {
+	case goreflect.Slice:
+		if (v1.IsNil() || v1.Len() == 0) != (v2.IsNil() || v2.Len() == 0) {
 			return false
+		}
+		if v1.IsNil() || v1.Len() == 0 {
+			return true
 		}
 		if v1.Len() != v2.Len() {
 			return false
@@ -81,31 +160,31 @@ func deepValueEqual(v1, v2 Value, visited map[visit]bool, depth int) bool {
 			return true
 		}
 		for i := 0; i < v1.Len(); i++ {
-			if !deepValueEqual(v1.Index(i), v2.Index(i), visited, depth+1) {
+			if !e.deepValueEqual(v1.Index(i), v2.Index(i), visited, depth+1) {
 				return false
 			}
 		}
 		return true
-	case Interface:
+	case goreflect.Interface:
 		if v1.IsNil() || v2.IsNil() {
 			return v1.IsNil() == v2.IsNil()
 		}
-		return deepValueEqual(v1.Elem(), v2.Elem(), visited, depth+1)
-	case Ptr:
-		if v1.Pointer() == v2.Pointer() {
-			return true
-		}
-		return deepValueEqual(v1.Elem(), v2.Elem(), visited, depth+1)
-	case Struct:
+		return e.deepValueEqual(v1.Elem(), v2.Elem(), visited, depth+1)
+	case goreflect.Ptr:
+		return e.deepValueEqual(v1.Elem(), v2.Elem(), visited, depth+1)
+	case goreflect.Struct:
 		for i, n := 0, v1.NumField(); i < n; i++ {
-			if !deepValueEqual(v1.Field(i), v2.Field(i), visited, depth+1) {
+			if !e.deepValueEqual(v1.Field(i), v2.Field(i), visited, depth+1) {
 				return false
 			}
 		}
 		return true
-	case Map:
-		if v1.IsNil() != v2.IsNil() {
+	case goreflect.Map:
+		if (v1.IsNil() || v1.Len() == 0) != (v2.IsNil() || v2.Len() == 0) {
 			return false
+		}
+		if v1.IsNil() || v1.Len() == 0 {
+			return true
 		}
 		if v1.Len() != v2.Len() {
 			return false
@@ -114,14 +193,12 @@ func deepValueEqual(v1, v2 Value, visited map[visit]bool, depth int) bool {
 			return true
 		}
 		for _, k := range v1.MapKeys() {
-			val1 := v1.MapIndex(k)
-			val2 := v2.MapIndex(k)
-			if !val1.IsValid() || !val2.IsValid() || !deepValueEqual(val1, val2, visited, depth+1) {
+			if !e.deepValueEqual(v1.MapIndex(k), v2.MapIndex(k), visited, depth+1) {
 				return false
 			}
 		}
 		return true
-	case Func:
+	case goreflect.Func:
 		if v1.IsNil() && v2.IsNil() {
 			return true
 		}
@@ -129,69 +206,174 @@ func deepValueEqual(v1, v2 Value, visited map[visit]bool, depth int) bool {
 		return false
 	default:
 		// Normal equality suffices
-		return valueInterface(v1, false) == valueInterface(v2, false)
+		if !v1.CanInterface() || !v2.CanInterface() {
+			panic(unexportedTypePanic{})
+		}
+		return v1.Interface() == v2.Interface()
 	}
 }
 
-// DeepEqual reports whether x and y are ``deeply equal,'' defined as follows.
-// Two values of identical type are deeply equal if one of the following cases applies.
-// Values of distinct types are never deeply equal.
+// DeepEqual is like reflect.DeepEqual, but focused on semantic equality
+// instead of memory equality.
 //
-// Array values are deeply equal when their corresponding elements are deeply equal.
+// It will use e's equality functions if it finds types that match.
 //
-// Struct values are deeply equal if their corresponding fields,
-// both exported and unexported, are deeply equal.
+// An empty slice *is* equal to a nil slice for our purposes; same for maps.
 //
-// Func values are deeply equal if both are nil; otherwise they are not deeply equal.
-//
-// Interface values are deeply equal if they hold deeply equal concrete values.
-//
-// Map values are deeply equal when all of the following are true:
-// they are both nil or both non-nil, they have the same length,
-// and either they are the same map object or their corresponding keys
-// (matched using Go equality) map to deeply equal values.
-//
-// Pointer values are deeply equal if they are equal using Go's == operator
-// or if they point to deeply equal values.
-//
-// Slice values are deeply equal when all of the following are true:
-// they are both nil or both non-nil, they have the same length,
-// and either they point to the same initial entry of the same underlying array
-// (that is, &x[0] == &y[0]) or their corresponding elements (up to length) are deeply equal.
-// Note that a non-nil empty slice and a nil slice (for example, []byte{} and []byte(nil))
-// are not deeply equal.
-//
-// Other values - numbers, bools, strings, and channels - are deeply equal
-// if they are equal using Go's == operator.
-//
-// In general DeepEqual is a recursive relaxation of Go's == operator.
-// However, this idea is impossible to implement without some inconsistency.
-// Specifically, it is possible for a value to be unequal to itself,
-// either because it is of func type (uncomparable in general)
-// or because it is a floating-point NaN value (not equal to itself in floating-point comparison),
-// or because it is an array, struct, or interface containing
-// such a value.
-// On the other hand, pointer values are always equal to themselves,
-// even if they point at or contain such problematic values,
-// because they compare equal using Go's == operator, and that
-// is a sufficient condition to be deeply equal, regardless of content.
-// DeepEqual has been defined so that the same short-cut applies
-// to slices and maps: if x and y are the same slice or the same map,
-// they are deeply equal regardless of content.
-//
-// As DeepEqual traverses the data values it may find a cycle. The
-// second and subsequent times that DeepEqual compares two pointer
-// values that have been compared before, it treats the values as
-// equal rather than examining the values to which they point.
-// This ensures that DeepEqual terminates.
-func DeepEqual(x, y interface{}) bool {
-	if x == nil || y == nil {
-		return x == y
+// Unexported field members cannot be compared and will cause an imformative panic; you must add an Equality
+// function for these types.
+func (e Equalities) DeepEqual(a1, a2 interface{}) bool {
+	if a1 == nil || a2 == nil {
+		return a1 == a2
 	}
-	v1 := ValueOf(x)
-	v2 := ValueOf(y)
+	v1 := goreflect.ValueOf(a1)
+	v2 := goreflect.ValueOf(a2)
 	if v1.Type() != v2.Type() {
 		return false
 	}
-	return deepValueEqual(v1, v2, make(map[visit]bool), 0)
+	return e.deepValueEqual(v1, v2, make(map[visit]bool), 0)
+}
+
+func (e Equalities) deepValueDerive(v1, v2 goreflect.Value, visited map[visit]bool, depth int) bool {
+	defer makeUsefulPanic(v1)
+
+	if !v1.IsValid() || !v2.IsValid() {
+		return v1.IsValid() == v2.IsValid()
+	}
+	if v1.Type() != v2.Type() {
+		return false
+	}
+	if fv, ok := e[v1.Type()]; ok {
+		return fv.Call([]goreflect.Value{v1, v2})[0].Bool()
+	}
+
+	hard := func(k goreflect.Kind) bool {
+		switch k {
+		case goreflect.Array, goreflect.Map, goreflect.Slice, goreflect.Struct:
+			return true
+		}
+		return false
+	}
+
+	if v1.CanAddr() && v2.CanAddr() && hard(v1.Kind()) {
+		addr1 := v1.UnsafeAddr()
+		addr2 := v2.UnsafeAddr()
+		if addr1 > addr2 {
+			// Canonicalize order to reduce number of entries in visited.
+			addr1, addr2 = addr2, addr1
+		}
+
+		// Short circuit if references are identical ...
+		if addr1 == addr2 {
+			return true
+		}
+
+		// ... or already seen
+		typ := v1.Type()
+		v := visit{addr1, addr2, typ}
+		if visited[v] {
+			return true
+		}
+
+		// Remember for later.
+		visited[v] = true
+	}
+
+	switch v1.Kind() {
+	case goreflect.Array:
+		// We don't need to check length here because length is part of
+		// an array's type, which has already been filtered for.
+		for i := 0; i < v1.Len(); i++ {
+			if !e.deepValueDerive(v1.Index(i), v2.Index(i), visited, depth+1) {
+				return false
+			}
+		}
+		return true
+	case goreflect.Slice:
+		if v1.IsNil() || v1.Len() == 0 {
+			return true
+		}
+		if v1.Len() > v2.Len() {
+			return false
+		}
+		if v1.Pointer() == v2.Pointer() {
+			return true
+		}
+		for i := 0; i < v1.Len(); i++ {
+			if !e.deepValueDerive(v1.Index(i), v2.Index(i), visited, depth+1) {
+				return false
+			}
+		}
+		return true
+	case goreflect.String:
+		if v1.Len() == 0 {
+			return true
+		}
+		if v1.Len() > v2.Len() {
+			return false
+		}
+		return v1.String() == v2.String()
+	case goreflect.Interface:
+		if v1.IsNil() {
+			return true
+		}
+		return e.deepValueDerive(v1.Elem(), v2.Elem(), visited, depth+1)
+	case goreflect.Ptr:
+		if v1.IsNil() {
+			return true
+		}
+		return e.deepValueDerive(v1.Elem(), v2.Elem(), visited, depth+1)
+	case goreflect.Struct:
+		for i, n := 0, v1.NumField(); i < n; i++ {
+			if !e.deepValueDerive(v1.Field(i), v2.Field(i), visited, depth+1) {
+				return false
+			}
+		}
+		return true
+	case goreflect.Map:
+		if v1.IsNil() || v1.Len() == 0 {
+			return true
+		}
+		if v1.Len() > v2.Len() {
+			return false
+		}
+		if v1.Pointer() == v2.Pointer() {
+			return true
+		}
+		for _, k := range v1.MapKeys() {
+			if !e.deepValueDerive(v1.MapIndex(k), v2.MapIndex(k), visited, depth+1) {
+				return false
+			}
+		}
+		return true
+	case goreflect.Func:
+		if v1.IsNil() && v2.IsNil() {
+			return true
+		}
+		// Can't do better than this:
+		return false
+	default:
+		// Normal equality suffices
+		if !v1.CanInterface() || !v2.CanInterface() {
+			panic(unexportedTypePanic{})
+		}
+		return v1.Interface() == v2.Interface()
+	}
+}
+
+// DeepDerivative is similar to DeepEqual except that unset fields in a1 are
+// ignored (not compared). This allows us to focus on the fields that matter to
+// the semantic comparison.
+//
+// The unset fields include a nil pointer and an empty string.
+func (e Equalities) DeepDerivative(a1, a2 interface{}) bool {
+	if a1 == nil {
+		return true
+	}
+	v1 := goreflect.ValueOf(a1)
+	v2 := goreflect.ValueOf(a2)
+	if v1.Type() != v2.Type() {
+		return false
+	}
+	return e.deepValueDerive(v1, v2, make(map[visit]bool), 0)
 }

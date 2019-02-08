@@ -21,19 +21,16 @@ import (
 )
 
 // Equality provides an extensible semantic deep-equal equality. Semantic here means that
-// empty and nil slices and maps are identified.
+// empty and nil slices and maps are identified (by default, can be disabled) and custom
+// equality funcs can be added to follow custom equality semantics.
 type Equality interface {
 	// AddFuncs is a shortcut for multiple calls to AddFunc.
 	AddFuncs(funcs ...interface{}) error
-	// AddFunc uses func as an equality function: it must take
-	// two parameters of the same type, and return a boolean.
+	// AddFunc uses func as an equality function: it must take two parameters of the same
+	// type, and return a boolean.
 	AddFunc(eqFunc interface{}) error
-	// DeepEqual is like reflect.DeepEqual, but focused on semantic equality
-	// instead of memory equality.
-	//
-	// It will uses the registered equality functions if it finds types that match.
-	//
-	// An empty slice *is* equal to a nil slice for our purposes; same for maps.
+	// DeepEqual is like reflect.DeepEqual, but by applying the registered equality funcs
+	// and identifies nil and empty slices and maps (if not disabled by options).
 	//
 	// Unexported field members cannot be compared and will cause an imformative panic.
 	DeepEqual(a1, a2 interface{}) bool
@@ -45,18 +42,29 @@ type Equality interface {
 	DeepDerivative(a1, a2 interface{}) bool
 }
 
+// EqualityOptions configures a semantic equality object.
+type EqualityOptions struct {
+	// DisableSemanticMaps set to true disables identification of nil and empty maps.
+	DisableSemanticMaps bool
+	// DisableSemanticSlices set to true disables identification of nil and empty slices.
+	DisableSemanticSlices bool
+}
+
 // NewEquality creates a semantic equality object with the given equality funcs.
-func NewEquality(funcs ...interface{}) (Equality, error) {
-	eq := reflect.Equalities{}
+func NewEquality(opt EqualityOptions, funcs ...interface{}) (Equality, error) {
+	eq := reflect.Equalities{
+		DisableSemanticMaps:   opt.DisableSemanticMaps,
+		DisableSemanticSlices: opt.DisableSemanticSlices,
+	}
 	if err := eq.AddFuncs(funcs...); err != nil {
 		return nil, err
 	}
-	return eq, nil
+	return &eq, nil
 }
 
 // NewEqualityOrDie creates a semantic equality object with the given equality funcs and panics on errors.
-func NewEqualityOrDie(funcs ...interface{}) Equality {
-	eq, err := NewEquality(funcs...)
+func NewEqualityOrDie(opt EqualityOptions, funcs ...interface{}) Equality {
+	eq, err := NewEquality(opt, funcs...)
 	if err != nil {
 		panic(err)
 	}

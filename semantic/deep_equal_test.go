@@ -20,7 +20,7 @@ import (
 	"testing"
 )
 
-var mod2Equal = EqualitiesOrDie(func(a, b int) bool {
+var mod2Equal = NewEqualityOrDie(EqualityOptions{}, func(a, b int) bool {
 	return a%2 == b%2
 })
 

@@ -14,10 +14,17 @@ import (
 
 // Equalities is a map from type to a function comparing two values of
 // that type.
-type Equalities map[goreflect.Type]goreflect.Value
+type Equalities struct {
+	funcs map[goreflect.Type]goreflect.Value
+
+	// DisableSemanticMaps set to true disables identification of nil and empty maps.
+	DisableSemanticMaps bool
+	// DisableSemanticSlices set to true disables identification of nil and empty slices.
+	DisableSemanticSlices bool
+}
 
 // AddFuncs is a shortcut for multiple calls to AddFunc.
-func (e Equalities) AddFuncs(funcs ...interface{}) error {
+func (e *Equalities) AddFuncs(funcs ...interface{}) error {
 	for _, f := range funcs {
 		if err := e.AddFunc(f); err != nil {
 			return err
@@ -28,7 +35,7 @@ func (e Equalities) AddFuncs(funcs ...interface{}) error {
 
 // AddFunc uses func as an equality function: it must take
 // two parameters of the same type, and return a boolean.
-func (e Equalities) AddFunc(eqFunc interface{}) error {
+func (e *Equalities) AddFunc(eqFunc interface{}) error {
 	fv := goreflect.ValueOf(eqFunc)
 	ft := fv.Type()
 	if ft.Kind() != goreflect.Func {
@@ -48,7 +55,10 @@ func (e Equalities) AddFunc(eqFunc interface{}) error {
 	if ft.Out(0) != boolType {
 		return fmt.Errorf("expected bool return, got: %v", ft)
 	}
-	e[ft.In(0)] = fv
+	if e.funcs == nil {
+		e.funcs = map[goreflect.Type]goreflect.Value{}
+	}
+	e.funcs[ft.In(0)] = fv
 	return nil
 }
 
@@ -91,7 +101,7 @@ func makeUsefulPanic(v goreflect.Value) {
 // deepValueEqual tests for deep equality using reflected types. The map argument tracks
 // comparisons that have already been seen, which allows short circuiting on
 // recursive types.
-func (e Equalities) deepValueEqual(v1, v2 goreflect.Value, visited map[visit]bool, depth int) bool {
+func (e *Equalities) deepValueEqual(v1, v2 goreflect.Value, visited map[visit]bool, depth int) bool {
 	defer makeUsefulPanic(v1)
 
 	if !v1.IsValid() || !v2.IsValid() {
@@ -100,7 +110,7 @@ func (e Equalities) deepValueEqual(v1, v2 goreflect.Value, visited map[visit]boo
 	if v1.Type() != v2.Type() {
 		return false
 	}
-	if fv, ok := e[v1.Type()]; ok {
+	if fv, ok := e.funcs[v1.Type()]; ok {
 		return fv.Call([]goreflect.Value{v1, v2})[0].Bool()
 	}
 
@@ -147,17 +157,17 @@ func (e Equalities) deepValueEqual(v1, v2 goreflect.Value, visited map[visit]boo
 		}
 		return true
 	case goreflect.Slice:
-		if (v1.IsNil() || v1.Len() == 0) != (v2.IsNil() || v2.Len() == 0) {
-			return false
-		}
-		if v1.IsNil() || v1.Len() == 0 {
+		if v1.Pointer() == v2.Pointer() {
 			return true
 		}
 		if v1.Len() != v2.Len() {
 			return false
 		}
-		if v1.Pointer() == v2.Pointer() {
-			return true
+		if v1.Len() == 0 && v2.Len() == 0 {
+			if !e.DisableSemanticSlices {
+				return true
+			}
+			return v1.IsNil() == v2.IsNil()
 		}
 		for i := 0; i < v1.Len(); i++ {
 			if !e.deepValueEqual(v1.Index(i), v2.Index(i), visited, depth+1) {
@@ -180,17 +190,17 @@ func (e Equalities) deepValueEqual(v1, v2 goreflect.Value, visited map[visit]boo
 		}
 		return true
 	case goreflect.Map:
-		if (v1.IsNil() || v1.Len() == 0) != (v2.IsNil() || v2.Len() == 0) {
-			return false
-		}
-		if v1.IsNil() || v1.Len() == 0 {
+		if v1.Pointer() == v2.Pointer() {
 			return true
 		}
 		if v1.Len() != v2.Len() {
 			return false
 		}
-		if v1.Pointer() == v2.Pointer() {
-			return true
+		if v1.Len() == 0 && v2.Len() == 0 {
+			if !e.DisableSemanticMaps {
+				return true
+			}
+			return v1.IsNil() == v2.IsNil()
 		}
 		for _, k := range v1.MapKeys() {
 			if !e.deepValueEqual(v1.MapIndex(k), v2.MapIndex(k), visited, depth+1) {
@@ -222,7 +232,7 @@ func (e Equalities) deepValueEqual(v1, v2 goreflect.Value, visited map[visit]boo
 //
 // Unexported field members cannot be compared and will cause an imformative panic; you must add an Equality
 // function for these types.
-func (e Equalities) DeepEqual(a1, a2 interface{}) bool {
+func (e *Equalities) DeepEqual(a1, a2 interface{}) bool {
 	if a1 == nil || a2 == nil {
 		return a1 == a2
 	}
@@ -234,7 +244,7 @@ func (e Equalities) DeepEqual(a1, a2 interface{}) bool {
 	return e.deepValueEqual(v1, v2, make(map[visit]bool), 0)
 }
 
-func (e Equalities) deepValueDerive(v1, v2 goreflect.Value, visited map[visit]bool, depth int) bool {
+func (e *Equalities) deepValueDerive(v1, v2 goreflect.Value, visited map[visit]bool, depth int) bool {
 	defer makeUsefulPanic(v1)
 
 	if !v1.IsValid() || !v2.IsValid() {
@@ -243,7 +253,7 @@ func (e Equalities) deepValueDerive(v1, v2 goreflect.Value, visited map[visit]bo
 	if v1.Type() != v2.Type() {
 		return false
 	}
-	if fv, ok := e[v1.Type()]; ok {
+	if fv, ok := e.funcs[v1.Type()]; ok {
 		return fv.Call([]goreflect.Value{v1, v2})[0].Bool()
 	}
 
@@ -366,7 +376,7 @@ func (e Equalities) deepValueDerive(v1, v2 goreflect.Value, visited map[visit]bo
 // the semantic comparison.
 //
 // The unset fields include a nil pointer and an empty string.
-func (e Equalities) DeepDerivative(a1, a2 interface{}) bool {
+func (e *Equalities) DeepDerivative(a1, a2 interface{}) bool {
 	if a1 == nil {
 		return true
 	}

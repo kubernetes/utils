@@ -44,11 +44,12 @@ func Chain(handler *Handler, notify ...func()) *Handler {
 	if handler == nil {
 		return New(nil, notify...)
 	}
-	return New(handler.Signal, append(notify, handler.Close)...)
+	return New(handler.signal, append(notify, handler.close)...)
 }
 
 // New creates a new handler that guarantees all notify functions are run after the critical
-// section exits (or is interrupted by the OS), then invokes the final handler. If no final
+// section exits (or is interrupted by the OS), then invokes the final handler. Notify
+// functions are invoked serially in the order passed to New method. If no final
 // handler is specified, the default final is `os.Exit(1)`. A handler can only be used for
 // one critical section. The final handler is given complete control over reacting to the
 // signal - it may exit the process or ignore the signal as needed. The following signals
@@ -60,8 +61,8 @@ func New(final func(os.Signal), notify ...func()) *Handler {
 	}
 }
 
-// Close executes all the notification handlers if they have not yet been executed.
-func (h *Handler) Close() {
+// close executes all the notification handlers if they have not yet been executed.
+func (h *Handler) close() {
 	h.once.Do(func() {
 		for _, fn := range h.notify {
 			fn()
@@ -69,10 +70,10 @@ func (h *Handler) Close() {
 	})
 }
 
-// Signal is called when an os.Signal is received, and guarantees that all notifications
+// signal is called when an os.Signal is received, and guarantees that all notifications
 // are executed, then the final handler is executed. This function should only be called once
 // per Handler instance.
-func (h *Handler) Signal(s os.Signal) {
+func (h *Handler) signal(s os.Signal) {
 	h.once.Do(func() {
 		for _, fn := range h.notify {
 			fn()
@@ -99,8 +100,8 @@ func (h *Handler) Run(fn func() error) error {
 		if !ok {
 			return
 		}
-		h.Signal(sig)
+		h.signal(sig)
 	}()
-	defer h.Close()
+	defer h.close()
 	return fn()
 }

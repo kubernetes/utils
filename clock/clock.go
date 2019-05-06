@@ -95,3 +95,13 @@ func (r *realTimer) Stop() bool {
 func (r *realTimer) Reset(d time.Duration) bool {
 	return r.timer.Reset(d)
 }
+
+// SinceInMicroseconds gets the time since the specified start in microseconds.
+func SinceInMicroseconds(start time.Time) float64 {
+	return float64(time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds())
+}
+
+// SinceInSeconds gets the time since the specified start in seconds.
+func SinceInSeconds(start time.Time) float64 {
+	return time.Since(start).Seconds()
+}

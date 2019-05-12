@@ -22,6 +22,8 @@ import (
 	"sync"
 )
 
+const threshold = 1e6
+
 // NewHashed returns a new instance of KeyMutex which hashes arbitrary keys to
 // a fixed set of locks. `n` specifies number of locks, if n <= 0, we use
 // number of cpus.
@@ -30,6 +32,9 @@ import (
 func NewHashed(n int) KeyMutex {
 	if n <= 0 {
 		n = runtime.NumCPU()
+	}
+	if n > threshold {
+		n = threshold
 	}
 	return &hashedKeyMutex{
 		mutexes: make([]sync.Mutex, n),

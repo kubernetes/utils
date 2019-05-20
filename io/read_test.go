@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 )
@@ -90,5 +91,33 @@ func TestConsistentReadFlakyReader(t *testing.T) {
 
 	if _, err := consistentReadSync(pipe, 3, func(i int) { prog <- i }); err == nil {
 		t.Fatal("flaky reader returned consistent results")
+	}
+}
+
+func TestReadAtMost(t *testing.T) {
+	testCases := []struct {
+		limit  int64
+		data   string
+		errMsg string
+	}{
+		{4, "hell", "the read limit is reached"},
+		{5, "hello", "the read limit is reached"},
+		{6, "hello", ""},
+	}
+
+	for _, tc := range testCases {
+		r := strings.NewReader("hello")
+		data, err := ReadAtMost(r, tc.limit)
+		if string(data) != tc.data {
+			t.Errorf("Read limit %d: expected \"%s\", got \"%s\"", tc.limit, tc.data, string(data))
+		}
+
+		if err == nil && tc.errMsg != "" {
+			t.Errorf("Read limit %d: expected error with message \"%s\", got no error", tc.limit, tc.errMsg)
+		}
+
+		if err != nil && err.Error() != tc.errMsg {
+			t.Errorf("Read limit %d: expected error with message \"%s\", got error with message \"%s\"", tc.limit, tc.errMsg, err.Error())
+		}
 	}
 }

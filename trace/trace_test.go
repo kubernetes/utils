@@ -82,6 +82,34 @@ func TestTotalTime(t *testing.T) {
 	})
 }
 
+func TestForEmptyOutput(t *testing.T) {
+	test := struct {
+		name        string
+		sampleTrace *Trace
+	}{
+		name: "Check there is no log output written",
+	}
+
+	t.Run(test.name, func(t *testing.T) {
+		var buf bytes.Buffer
+
+		trace := NewWithOutput("testoutputopts", &buf)
+
+		trace.steps = []traceStep{
+			{time.Now(), "msg1"},
+			{time.Now(), "msg2"},
+			{time.Now(), "msg3"},
+		}
+
+		trace.Log()
+
+		if buf.Len() == 0 {
+			t.Errorf("\nLogs writen to buffer were not found. %v", buf.Len())
+		}
+	})
+
+}
+
 func TestLog(t *testing.T) {
 	test := struct {
 		name             string

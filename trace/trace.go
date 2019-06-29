@@ -19,6 +19,7 @@ package trace
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"math/rand"
 	"time"
 
@@ -41,6 +42,13 @@ type Trace struct {
 // New creates a Trace with the specified name
 func New(name string) *Trace {
 	return &Trace{name, time.Now(), nil}
+}
+
+// NewWithOutput creates a Trace with the specified name and klog output options defined
+func NewWithOutput(name string, writer io.Writer) *Trace {
+	// allows libraries to apply tracing and view output without declaring klog
+	klog.SetOutput(writer)
+	return New(name)
 }
 
 // Step adds a new step with a specific message. Call this at the end of an

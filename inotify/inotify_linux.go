@@ -24,7 +24,7 @@ Example:
     }
 
 */
-package inotify // import "github.com/sigma/go-inotify"
+package inotify // import "k8s.io/utils/inotify"
 
 import (
 	"errors"

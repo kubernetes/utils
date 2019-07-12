@@ -44,7 +44,7 @@ func TestInotifyEvents(t *testing.T) {
 
 	// Receive events on the event channel on a separate goroutine
 	eventstream := watcher.Event
-	var eventsReceived int32 = 0
+	var eventsReceived int32
 	done := make(chan bool)
 	go func() {
 		for event := range eventstream {

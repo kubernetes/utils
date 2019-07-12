@@ -1,4 +1,6 @@
-# Copyright 2018 The Kubernetes Authors.
+#!/bin/bash
+
+# Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,26 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: verify
-verify: depend verify-fmt verify-lint vet
-	go test -v -race ./...
+# For use with Go 1.12+
 
-.PHONY: depend
-depend:
-	go get -t -v ./...
+set -o errexit
+set -o nounset
+set -o pipefail
 
-.PHONY: verify-fmt
-verify-fmt:
-	./hack/verify-gofmt.sh
+GO_VERSION=${TRAVIS_GO_VERSION:-$(go version | cut -d ' ' -f 3)}
 
-.PHONY: verify-lint
-verify-lint:
-	./hack/verify-golint.sh
-
-.PHONY: vet
-vet:
-	./hack/verify-govet.sh
-
-.PHONY: update-fmt
-update-fmt:
-	gofmt -s -w .
+if [[ ${GO_VERSION} =~ ^(go)?1\.(9|10|11) ]]; then
+    go tool vet .
+else
+  go vet ./...
+fi

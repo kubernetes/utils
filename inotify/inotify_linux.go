@@ -62,7 +62,7 @@ type Watcher struct {
 
 // NewWatcher creates and returns a new inotify instance using inotify_init(2)
 func NewWatcher() (*Watcher, error) {
-	fd, errno := syscall.InotifyInit()
+	fd, errno := syscall.InotifyInit1(syscall.IN_CLOEXEC)
 	if fd == -1 {
 		return nil, os.NewSyscallError("inotify_init", errno)
 	}

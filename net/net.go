@@ -17,8 +17,11 @@ limitations under the License.
 package net
 
 import (
+	"errors"
 	"fmt"
 	"net"
+	"os"
+	"strings"
 )
 
 // ParseCIDRs parses a list of cidrs and return error if any is invalid.
@@ -131,4 +134,24 @@ func IsIPv6CIDRString(cidr string) bool {
 func IsIPv6CIDR(cidr *net.IPNet) bool {
 	ip := cidr.IP
 	return IsIPv6(ip)
+}
+
+// GetHostname returns OS's hostname if 'hostnameOverride' is empty; otherwise, return 'hostnameOverride'
+func GetHostname(hostnameOverride string) (string, error) {
+	hostName := hostnameOverride
+	if len(hostName) == 0 {
+		nodeName, err := os.Hostname()
+		if err != nil {
+			return "", fmt.Errorf("couldn't determine hostname: %v", err)
+		}
+		hostName = nodeName
+	}
+
+	// Trim whitespaces first to avoid getting an empty hostname
+	// For linux, the hostname is read from file /proc/sys/kernel/hostname directly
+	hostName = strings.TrimSpace(hostName)
+	if len(hostName) == 0 {
+		return "", errors.New("empty hostname is invalid")
+	}
+	return strings.ToLower(hostName), nil
 }

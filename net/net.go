@@ -19,6 +19,7 @@ package net
 import (
 	"fmt"
 	"net"
+	"strconv"
 )
 
 // ParseCIDRs parses a list of cidrs and return error if any is invalid.
@@ -131,4 +132,17 @@ func IsIPv6CIDRString(cidr string) bool {
 func IsIPv6CIDR(cidr *net.IPNet) bool {
 	ip := cidr.IP
 	return IsIPv6(ip)
+}
+
+// ParsePort parses a string representing an IP port.  If the string is not a
+// valid port number, this returns an error.
+func ParsePort(port string) (int, error) {
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return 0, err
+	}
+	if !(0 < portInt && portInt <= 65535) {
+		return 0, fmt.Errorf("%d is not a valid port: must be between 1 and 65535, inclusive", portInt)
+	}
+	return portInt, nil
 }

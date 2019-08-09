@@ -447,3 +447,66 @@ func TestIsIPv6CIDR(t *testing.T) {
 		}
 	}
 }
+
+func TestParsePort(t *testing.T) {
+	var tests = []struct {
+		name          string
+		port          string
+		expectedPort  int
+		expectedError bool
+	}{
+		{
+			name:         "valid port: 1",
+			port:         "1",
+			expectedPort: 1,
+		},
+		{
+			name:         "valid port: 1234",
+			port:         "1234",
+			expectedPort: 1234,
+		},
+		{
+			name:         "valid port: 65535",
+			port:         "65535",
+			expectedPort: 65535,
+		},
+		{
+			name:          "invalid port: not a number",
+			port:          "a",
+			expectedError: true,
+		},
+		{
+			name:          "invalid port: too small",
+			port:          "0",
+			expectedError: true,
+		},
+		{
+			name:          "invalid port: negative",
+			port:          "-10",
+			expectedError: true,
+		},
+		{
+			name:          "invalid port: too big",
+			port:          "65536",
+			expectedError: true,
+		},
+	}
+
+	for _, rt := range tests {
+		t.Run(rt.name, func(t *testing.T) {
+			actualPort, actualError := ParsePort(rt.port)
+
+			if actualError != nil && !rt.expectedError {
+				t.Errorf("%s unexpected failure: %v", rt.name, actualError)
+				return
+			}
+			if actualError == nil && rt.expectedError {
+				t.Errorf("%s passed when expected to fail", rt.name)
+				return
+			}
+			if actualPort != rt.expectedPort {
+				t.Errorf("%s returned wrong port: got %d, expected %d", rt.name, actualPort, rt.expectedPort)
+			}
+		})
+	}
+}

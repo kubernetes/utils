@@ -17,6 +17,7 @@ limitations under the License.
 package net
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -136,10 +137,13 @@ func IsIPv6CIDR(cidr *net.IPNet) bool {
 
 // ParsePort parses a string representing an IP port.  If the string is not a
 // valid port number, this returns an error.
-func ParsePort(port string) (int, error) {
+func ParsePort(port string, allowZero bool) (int, error) {
 	portInt, err := strconv.ParseUint(port, 10, 16)
 	if err != nil {
 		return 0, err
+	}
+	if int(portInt) == 0 && !allowZero {
+		errors.New("Port 0 is not allowed, provide non 0 port or make allowZero true")
 	}
 	return int(portInt), nil
 }

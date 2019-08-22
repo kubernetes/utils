@@ -142,8 +142,8 @@ func ParsePort(port string, allowZero bool) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if int(portInt) == 0 && !allowZero {
-		errors.New("Port 0 is not allowed, provide non 0 port or make allowZero true")
+	if portInt == 0 && !allowZero {
+		errors.New("0 is not a valid port number")
 	}
 	return int(portInt), nil
 }

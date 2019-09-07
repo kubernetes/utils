@@ -452,6 +452,7 @@ func TestParsePort(t *testing.T) {
 	var tests = []struct {
 		name          string
 		port          string
+		allowZero     bool
 		expectedPort  int
 		expectedError bool
 	}{
@@ -474,6 +475,7 @@ func TestParsePort(t *testing.T) {
 			name:          "invalid port: not a number",
 			port:          "a",
 			expectedError: true,
+			allowZero:     false,
 		},
 		{
 			name:          "invalid port: too small",
@@ -490,11 +492,21 @@ func TestParsePort(t *testing.T) {
 			port:          "65536",
 			expectedError: true,
 		},
+		{
+			name:      "zero port: allowed",
+			port:      "0",
+			allowZero: true,
+		},
+		{
+			name:          "zero port: not allowed",
+			port:          "0",
+			expectedError: true,
+		},
 	}
 
 	for _, rt := range tests {
 		t.Run(rt.name, func(t *testing.T) {
-			actualPort, actualError := ParsePort(rt.port)
+			actualPort, actualError := ParsePort(rt.port, rt.allowZero)
 
 			if actualError != nil && !rt.expectedError {
 				t.Errorf("%s unexpected failure: %v", rt.name, actualError)

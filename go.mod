@@ -6,5 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/spf13/afero v1.2.2
 	github.com/stretchr/testify v1.3.0
-	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.0.0
 )
+
+replace k8s.io/klog/v2 => k8s.io/klog/v2 v2.0.0-20190919134220-6084f89080e3

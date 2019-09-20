@@ -522,3 +522,86 @@ func TestParsePort(t *testing.T) {
 		})
 	}
 }
+
+func TestRangeSize(t *testing.T) {
+	testCases := []struct {
+		name  string
+		cidr  string
+		addrs int64
+	}{
+		{
+			name:  "supported IPv4 cidr",
+			cidr:  "192.168.1.0/24",
+			addrs: 256,
+		},
+		{
+			name:  "unsupported IPv4 cidr",
+			cidr:  "192.168.1.0/1",
+			addrs: 0,
+		},
+		{
+			name:  "unsupported IPv6 mask",
+			cidr:  "2001:db8::/1",
+			addrs: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, cidr, err := net.ParseCIDR(tc.cidr)
+		if err != nil {
+			t.Errorf("failed to parse cidr for test %s, unexpected error: '%s'", tc.name, err)
+		}
+		if size := RangeSize(cidr); size != tc.addrs {
+			t.Errorf("test %s failed. %s should have a range size of %d, got %d",
+				tc.name, tc.cidr, tc.addrs, size)
+		}
+	}
+}
+
+func TestGetIndexedIP(t *testing.T) {
+	testCases := []struct {
+		cidr        string
+		index       int
+		expectError bool
+		expectedIP  string
+	}{
+		{
+			cidr:        "192.168.1.0/24",
+			index:       20,
+			expectError: false,
+			expectedIP:  "192.168.1.20",
+		},
+		{
+			cidr:        "192.168.1.0/30",
+			index:       10,
+			expectError: true,
+		},
+		{
+			cidr:        "192.168.1.0/24",
+			index:       255,
+			expectError: false,
+			expectedIP:  "192.168.1.255",
+		},
+	}
+
+	for _, tc := range testCases {
+		_, subnet, err := net.ParseCIDR(tc.cidr)
+		if err != nil {
+			t.Errorf("failed to parse cidr %s, unexpected error: '%s'", tc.cidr, err)
+		}
+
+		ip, err := GetIndexedIP(subnet, tc.index)
+		if err == nil && tc.expectError || err != nil && !tc.expectError {
+			t.Errorf("expectedError is %v and err is %s", tc.expectError, err)
+			continue
+		}
+
+		if err == nil {
+			ipString := ip.String()
+			if ipString != tc.expectedIP {
+				t.Errorf("expected %s but instead got %s", tc.expectedIP, ipString)
+			}
+		}
+
+	}
+}

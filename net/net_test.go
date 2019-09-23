@@ -56,9 +56,9 @@ func TestParseCIDRs(t *testing.T) {
 			t.Errorf("%v error:%v", tc.errString, err)
 		}
 
-		// validate lengthes
+		// validate lengths
 		if len(cidrs) != len(tc.cidrs) {
-			t.Errorf("cidrs should be of the same lengthes %v != %v", len(cidrs), len(tc.cidrs))
+			t.Errorf("cidrs should be of the same lengths %v != %v", len(cidrs), len(tc.cidrs))
 		}
 
 	}

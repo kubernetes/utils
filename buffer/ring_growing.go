@@ -34,19 +34,14 @@ func NewRingGrowing(initialSize int) *RingGrowing {
 }
 
 // ReadOne reads (consumes) first item from the buffer if it is available, otherwise returns false.
-func (r *RingGrowing) ReadOne() (data interface{}, ok bool) {
+func (r *RingGrowing) ReadOne() (interface{}, bool) {
 	if r.readable == 0 {
 		return nil, false
 	}
 	r.readable--
 	element := r.data[r.beg]
 	r.data[r.beg] = nil // Remove reference to the object to help GC
-	if r.beg == r.n-1 {
-		// Was the last element
-		r.beg = 0
-	} else {
-		r.beg++
-	}
+	r.beg = (r.beg + 1) % r.n
 	return element, true
 }
 
@@ -56,13 +51,8 @@ func (r *RingGrowing) WriteOne(data interface{}) {
 		// Time to grow
 		newN := r.n * 2
 		newData := make([]interface{}, newN)
-		to := r.beg + r.readable
-		if to <= r.n {
-			copy(newData, r.data[r.beg:to])
-		} else {
-			copied := copy(newData, r.data[r.beg:])
-			copy(newData[copied:], r.data[:(to%r.n)])
-		}
+		copied := copy(newData, r.data[r.beg:])
+		copy(newData[copied:], r.data[:r.beg])
 		r.beg = 0
 		r.data = newData
 		r.n = newN

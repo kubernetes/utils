@@ -46,7 +46,6 @@ unset IFS
 errors=()
 not_failing=()
 for p in "${all_packages[@]}"; do
-  failing_packages="${failing_packages:-}"
   # Run golint on package/*.go file explicitly to validate all go files
   # and not just the ones for the current platform. This also will ensure that
   # _test.go files are linted.
@@ -90,26 +89,26 @@ else
   exit 1
 fi
 
-# if [[ ${#not_failing[@]} -gt 0 ]]; then
-#   {
-#     echo "Some packages in hack/.golint_failures are passing golint. Please remove them."
-#     echo
-#     for p in "${not_failing[@]}"; do
-#       echo "  $p"
-#     done
-#     echo
-#   } >&2
-#   exit 1
-# fi
-#
-# if [[ ${#gone[@]} -gt 0 ]]; then
-#   {
-#     echo "Some packages in hack/.golint_failures do not exist anymore. Please remove them."
-#     echo
-#     for p in "${gone[@]}"; do
-#       echo "  $p"
-#     done
-#     echo
-#   } >&2
-#   exit 1
-# fi
+if [[ ${#not_failing[@]} -gt 0 ]]; then
+  {
+    echo "Some packages in hack/.golint_failures are passing golint. Please remove them."
+    echo
+    for p in "${not_failing[@]}"; do
+      echo "  $p"
+    done
+    echo
+  } >&2
+  exit 1
+fi
+
+if [[ ${#gone[@]} -gt 0 ]]; then
+  {
+    echo "Some packages in hack/.golint_failures do not exist anymore. Please remove them."
+    echo
+    for p in "${gone[@]}"; do
+      echo "  $p"
+    done
+    echo
+  } >&2
+  exit 1
+fi

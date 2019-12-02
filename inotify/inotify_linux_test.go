@@ -118,12 +118,13 @@ func TestInotifyFdLeak(t *testing.T) {
 	if err != nil {
 		t.Fatalf("exec sleep failed: %v", err)
 	}
-	defer func() {
-		_ = child.Process.Kill()
+	go func() {
+		_ = child.Wait()
 	}()
 
 	pid := child.Process.Pid
 	fds, err := ioutil.ReadDir(fmt.Sprintf("/proc/%d/fd", pid))
+	_ = child.Process.Kill()
 	if err != nil {
 		t.Fatalf("read procfs of %d failed: %v", pid, err)
 	}

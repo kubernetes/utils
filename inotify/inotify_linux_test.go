@@ -7,9 +7,13 @@
 package inotify
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"reflect"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -103,5 +107,33 @@ func TestInotifyClose(t *testing.T) {
 	err := watcher.Watch(os.TempDir())
 	if err == nil {
 		t.Fatal("expected error on Watch() after Close(), got nil")
+	}
+}
+
+func TestInotifyFdLeak(t *testing.T) {
+	watcher, _ := NewWatcher()
+	defer watcher.Close()
+
+	child := exec.Command("sleep", "1")
+	err := child.Start()
+	if err != nil {
+		t.Fatalf("exec sleep failed: %v", err)
+	}
+
+	pid := child.Process.Pid
+	fds, err := ioutil.ReadDir(fmt.Sprintf("/proc/%d/fd", pid))
+	_ = syscall.Kill(pid, syscall.SIGTERM)
+	if err != nil {
+		t.Fatalf("read procfs of %d failed: %v", pid, err)
+	}
+	var actualFds []string
+	for _, fd := range fds {
+		actualFds = append(actualFds, fd.Name())
+	}
+
+	// stdin, stdout, stderr
+	expectFds := []string{"0", "1", "2"}
+	if !reflect.DeepEqual(expectFds, actualFds) {
+		t.Fatalf("expected fds: %+v, actual fds %+v", expectFds, actualFds)
 	}
 }

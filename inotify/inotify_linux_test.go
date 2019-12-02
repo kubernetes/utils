@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"reflect"
 	"sync/atomic"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -114,15 +113,17 @@ func TestInotifyFdLeak(t *testing.T) {
 	watcher, _ := NewWatcher()
 	defer watcher.Close()
 
-	child := exec.Command("sleep", "1")
+	child := exec.Command("sleep", "10")
 	err := child.Start()
 	if err != nil {
 		t.Fatalf("exec sleep failed: %v", err)
 	}
+	defer func() {
+		_ = child.Process.Kill()
+	}()
 
 	pid := child.Process.Pid
 	fds, err := ioutil.ReadDir(fmt.Sprintf("/proc/%d/fd", pid))
-	_ = syscall.Kill(pid, syscall.SIGTERM)
 	if err != nil {
 		t.Fatalf("read procfs of %d failed: %v", pid, err)
 	}

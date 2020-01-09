@@ -70,3 +70,21 @@ func (r *RingGrowing) WriteOne(data interface{}) {
 	r.data[(r.readable+r.beg)%r.n] = data
 	r.readable++
 }
+
+// reset makes the buffer forget about stored data. Use only for testing.
+func (r *RingGrowing) reset() {
+	r.beg = 0
+	r.readable = 0
+}
+
+// setReadOffset increases the index to start reading at by +`offset`. Use only for testing.
+func (r *RingGrowing) setReadOffset(offset int) {
+	r.beg = offset
+}
+
+// fillWithInts fills the buffer with ints. Use only for testing.
+func (r *RingGrowing) fillWithInts() {
+	for i := 0; i < r.n; i++ {
+		r.WriteOne(i)
+	}
+}

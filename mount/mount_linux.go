@@ -20,6 +20,7 @@ package mount
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,6 +44,10 @@ const (
 	fsckErrorsCorrected = 1
 	// 'fsck' found errors but exited without correcting them
 	fsckErrorsUncorrected = 4
+	// 'xfs_repair' found errors but exited without correcting them
+	xfsRepairErrorsUncorrected = 1
+	// 'xfs_repair' was unable to proceed due to a dirty log
+	xfsRepairErrorsDirtyLogs = 2
 )
 
 // Mounter provides the default implementation of mount.Interface
@@ -292,16 +297,69 @@ func (mounter *SafeFormatAndMount) checkAndRepairXfsFilesystem(source string) er
 			return nil
 		} else {
 			klog.Warningf("Filesystem corruption was detected for %s, running xfs_repair to repair", source)
-			out, err := mounter.Exec.Command("xfs_repair", args...).CombinedOutput()
-			if err != nil {
-				return NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, out)
-			} else {
-				klog.Infof("Device %s has errors which were corrected by xfs_repair.", source)
-				return nil
+			var uncorrectedErr error
+
+			// If xfs_repair fails to repair the file system successfully, try giving the same xfs_repair
+			// command twice more; xfs_repair may be able to make more repairs on successive runs.
+			for i := 0; i < 3; i++ {
+				out, err := mounter.Exec.Command("xfs_repair", args...).CombinedOutput()
+				if err != nil {
+					if e, isExitError := err.(utilexec.ExitError); isExitError {
+						switch e.ExitStatus() {
+						case xfsRepairErrorsUncorrected:
+							uncorrectedErr = NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
+						// If the exit status is 2, do not retry, replay the dirty logs instead.
+						case xfsRepairErrorsDirtyLogs:
+							return mounter.replayXfsDirtyLogs(source)
+						default:
+							return NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
+						}
+					} else {
+						return NewMountError(HasFilesystemErrors, "failed to run 'xfs_repair' on device %s: %v\n", source, err)
+					}
+				} else {
+					klog.Infof("Device %s has errors which were corrected by xfs_repair.", source)
+					return nil
+				}
+			}
+			if uncorrectedErr != nil {
+				return uncorrectedErr
 			}
 		}
 	}
 	return nil
+}
+
+// replayXfsDirtyLogs tries to replay dirty logs by by mounting and
+// immediately unmounting the filesystem on the same class of machine
+// that crashed.
+func (mounter *SafeFormatAndMount) replayXfsDirtyLogs(source string) error {
+	klog.V(4).Infof("Attempting to replay the dirty logs on device %s", source)
+	msg := fmt.Sprintf("failed to replay dirty logs on device %s", source)
+	target, err := ioutil.TempDir("", "")
+	if err != nil {
+		return NewMountError(HasFilesystemErrors, "%s: %v\n", msg, err)
+	}
+	defer os.RemoveAll(target)
+
+	klog.V(4).Infof("Attempting to mount disk %s at %s", source, target)
+	if err := mounter.Interface.Mount(source, target, "", []string{"defaults"}); err != nil {
+		return NewMountError(HasFilesystemErrors, "%s: %v\n", msg, err)
+	}
+
+	klog.V(4).Infof("Unmounting %s", target)
+	if err := mounter.Interface.Unmount(target); err != nil {
+		return NewMountError(HasFilesystemErrors, "%s: %v\n", msg, err)
+	}
+
+	klog.V(4).Infof("Checking for issues with xfs_repair on disk %s again", source)
+	out, err := mounter.Exec.Command("xfs_repair", source).CombinedOutput()
+	if err != nil {
+		return NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, out)
+	} else {
+		klog.Infof("Device %s has errors which were corrected by xfs_repair.", source)
+		return nil
+	}
 }
 
 // formatAndMount uses unix utils to format and mount the given disk

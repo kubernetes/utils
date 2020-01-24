@@ -315,12 +315,12 @@ func (mounter *SafeFormatAndMount) formatAndMount(source string, target string, 
 	}
 
 	options = append(options, "defaults")
-	var mountErrorValue MountErrorType
+	mountErrorValue := UnknownMountError
 
 	// Check if the disk is already formatted
 	existingFormat, err := mounter.GetDiskFormat(source)
 	if err != nil {
-		return err
+		return NewMountError(GetDiskFormatFailed, "failed to get disk format of disk %s: %v", source, err)
 	}
 
 	// Use 'ext4' as the default
@@ -345,10 +345,11 @@ func (mounter *SafeFormatAndMount) formatAndMount(source string, target string, 
 		}
 
 		klog.Infof("Disk %q appears to be unformatted, attempting to format as type: %q with options: %v", source, fstype, args)
-		_, err := mounter.Exec.Command("mkfs."+fstype, args...).CombinedOutput()
+		output, err := mounter.Exec.Command("mkfs."+fstype, args...).CombinedOutput()
 		if err != nil {
-			klog.Errorf("format of disk %q failed: type:(%q) target:(%q) options:(%q)error:(%v)", source, fstype, target, options, err)
-			return NewMountError(FormatFailed, err.Error())
+			detailedErr := fmt.Sprintf("format of disk %q failed: type:(%q) target:(%q) options:(%q) errcode:(%v) output:(%v) ", source, fstype, target, options, err, string(output))
+			klog.Error(detailedErr)
+			return NewMountError(FormatFailed, detailedErr)
 		}
 
 		klog.Infof("Disk successfully formatted (mkfs): %s - %s %s", fstype, source, target)

@@ -24,6 +24,15 @@ import (
 	"k8s.io/klog"
 )
 
+// IPFamily refers to a specific family if not empty, i.e. "4" or "6"
+type IPFamily string
+
+// Constants refering to IPv4 and IPv6
+const (
+	IPv4 IPFamily = "4"
+	IPv6          = "6"
+)
+
 // LocalPort describes a port on specific IP address and protocol
 type LocalPort struct {
 	// Description is the identity message of a given local port.
@@ -31,6 +40,8 @@ type LocalPort struct {
 	// IP is the IP address part of a given local port.
 	// If this string is empty, the port binds to all local IP addresses.
 	IP string
+	// If IPFamily is not empty, the port binds only to addresses of this family
+	IPFamily IPFamily
 	// Port is the port part of a given local port.
 	Port int
 	// Protocol is the protocol part of a given local port.
@@ -40,7 +51,7 @@ type LocalPort struct {
 
 func (lp *LocalPort) String() string {
 	ipPort := net.JoinHostPort(lp.IP, strconv.Itoa(lp.Port))
-	return fmt.Sprintf("%q (%s/%s)", lp.Description, ipPort, lp.Protocol)
+	return fmt.Sprintf("%q (%s/%s%s)", lp.Description, ipPort, lp.Protocol, lp.IPFamily)
 }
 
 // Closeable is an interface around closing a port.
@@ -76,19 +87,21 @@ func openLocalPort(lp *LocalPort) (Closeable, error) {
 	// bind()ed but not listen()ed, and at least the default debian netcat
 	// has no way to avoid about 10 seconds of retries.
 	var socket Closeable
+	network := lp.Protocol + string(lp.IPFamily)
+	hostPort := net.JoinHostPort(lp.IP, strconv.Itoa(lp.Port))
 	switch lp.Protocol {
 	case "tcp":
-		listener, err := net.Listen("tcp", net.JoinHostPort(lp.IP, strconv.Itoa(lp.Port)))
+		listener, err := net.Listen(network, hostPort)
 		if err != nil {
 			return nil, err
 		}
 		socket = listener
 	case "udp":
-		addr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(lp.IP, strconv.Itoa(lp.Port)))
+		addr, err := net.ResolveUDPAddr(network, hostPort)
 		if err != nil {
 			return nil, err
 		}
-		conn, err := net.ListenUDP("udp", addr)
+		conn, err := net.ListenUDP(network, addr)
 		if err != nil {
 			return nil, err
 		}

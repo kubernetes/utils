@@ -233,7 +233,6 @@ func TestSafeFormatAndMount(t *testing.T) {
 				{"xfs_repair", []string{"/dev/foo"}, "\nAn error occurred\n", &testingexec.FakeExitError{Status: 1}},
 				{"xfs_repair", []string{"/dev/foo"}, "\ndone\n", nil},
 			},
-			expectedError: nil,
 		},
 		{
 			description: "Test that 'xfs_repair' is called four times and repair the filesystem",
@@ -245,7 +244,6 @@ func TestSafeFormatAndMount(t *testing.T) {
 				{"xfs_repair", []string{"/dev/foo"}, "\nAn error occurred\n", &testingexec.FakeExitError{Status: 1}},
 				{"xfs_repair", []string{"/dev/foo"}, "\ndone\n", nil},
 			},
-			expectedError: nil,
 		},
 		{
 			description: "Test that 'xfs_repair' is called twice but exit with bad code and could not repair the filesystem",
@@ -255,7 +253,7 @@ func TestSafeFormatAndMount(t *testing.T) {
 				{"xfs_repair", []string{"-n", "/dev/foo"}, "", &testingexec.FakeExitError{Status: 1}},
 				{"xfs_repair", []string{"/dev/foo"}, "\nAn error occurred\n", &testingexec.FakeExitError{Status: 10}},
 			},
-			expectedError: fmt.Errorf("'xfs_repair' found errors on device %s but could not correct them: %v", "/dev/foo", "\nAn error occurred\n"),
+			expErrorType: HasFilesystemErrors,
 		},
 		{
 			description: "Test that 'xfs_repair' is called twice but exit with bad error and could not repair the filesystem",
@@ -265,7 +263,7 @@ func TestSafeFormatAndMount(t *testing.T) {
 				{"xfs_repair", []string{"-n", "/dev/foo"}, "", &testingexec.FakeExitError{Status: 1}},
 				{"xfs_repair", []string{"/dev/foo"}, "\nAn error occurred\n", fmt.Errorf("An error occurred")},
 			},
-			expectedError: fmt.Errorf("failed to run 'xfs_repair' on device %s: %v\n", "/dev/foo", "An error occurred"),
+			expErrorType: HasFilesystemErrors,
 		},
 		{
 			description: "Test that 'xfs_repair' is called three times and replay dirty logs",
@@ -276,7 +274,6 @@ func TestSafeFormatAndMount(t *testing.T) {
 				{"xfs_repair", []string{"/dev/foo"}, "\nAn error occurred\n", &testingexec.FakeExitError{Status: 2}},
 				{"xfs_repair", []string{"/dev/foo"}, "\ndone\n", nil},
 			},
-			expectedError: nil,
 		},
 		{
 			description: "Test that 'xfs_repair' is called three times and replay dirty logs, but final 'xfs_repair' is failed",
@@ -287,7 +284,7 @@ func TestSafeFormatAndMount(t *testing.T) {
 				{"xfs_repair", []string{"/dev/foo"}, "\nAn error occurred\n", &testingexec.FakeExitError{Status: 2}},
 				{"xfs_repair", []string{"/dev/foo"}, "\nAn error occurred\n", &testingexec.FakeExitError{Status: 1}},
 			},
-			expectedError: fmt.Errorf("'xfs_repair' found errors on device %s but could not correct them: %v", "/dev/foo", "\nAn error occurred\n"),
+			expErrorType: HasFilesystemErrors,
 		},
 		{
 			description: "Test that 'xfs_repair' is called four times but could not repair the filesystem",

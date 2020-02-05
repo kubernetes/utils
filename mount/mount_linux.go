@@ -20,7 +20,6 @@ package mount
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -264,7 +263,7 @@ func (mounter *Mounter) GetMountRefs(pathname string) ([]string, error) {
 }
 
 // checkAndRepairFileSystem checks and repairs filesystems using command fsck.
-func (mounter *SafeFormatAndMount) checkAndRepairFilesystem(source string) error {
+func (mounter *SafeFormatAndMount) checkAndRepairFilesystem(source, target string) error {
 	klog.V(4).Infof("Checking for issues with fsck on disk: %s", source)
 	args := []string{"-a", source}
 	out, err := mounter.Exec.Command("fsck", args...).CombinedOutput()
@@ -285,7 +284,7 @@ func (mounter *SafeFormatAndMount) checkAndRepairFilesystem(source string) error
 }
 
 // checkAndRepairXfsFilesystem checks and repairs xfs filesystem using command xfs_repair.
-func (mounter *SafeFormatAndMount) checkAndRepairXfsFilesystem(source string) error {
+func (mounter *SafeFormatAndMount) checkAndRepairXfsFilesystem(source, target string) error {
 	klog.V(4).Infof("Checking for issues with xfs_repair on disk: %s", source)
 
 	args := []string{source}
@@ -319,7 +318,7 @@ func (mounter *SafeFormatAndMount) checkAndRepairXfsFilesystem(source string) er
 					uncorrectedErr = NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
 					// If the exit status is 2, do not retry, replay the dirty logs instead.
 				case xfsRepairErrorsDirtyLogs:
-					return mounter.replayXfsDirtyLogs(source)
+					return mounter.replayXfsDirtyLogs(source, target)
 				default:
 					return NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
 				}
@@ -335,14 +334,9 @@ func (mounter *SafeFormatAndMount) checkAndRepairXfsFilesystem(source string) er
 // replayXfsDirtyLogs tries to replay dirty logs by by mounting and
 // immediately unmounting the filesystem on the same class of machine
 // that crashed.
-func (mounter *SafeFormatAndMount) replayXfsDirtyLogs(source string) error {
+func (mounter *SafeFormatAndMount) replayXfsDirtyLogs(source, target string) error {
 	klog.V(4).Infof("Attempting to replay the dirty logs on device %s", source)
 	msg := fmt.Sprintf("failed to replay dirty logs on device %s", source)
-	target, err := ioutil.TempDir("", "")
-	if err != nil {
-		return NewMountError(HasFilesystemErrors, "%s: %v\n", msg, err)
-	}
-	defer os.RemoveAll(target)
 
 	klog.V(4).Infof("Attempting to mount disk %s at %s", source, target)
 	if err := mounter.Interface.Mount(source, target, "", []string{"defaults"}); err != nil {
@@ -425,9 +419,9 @@ func (mounter *SafeFormatAndMount) formatAndMount(source string, target string, 
 			var err error
 			switch existingFormat {
 			case "xfs":
-				err = mounter.checkAndRepairXfsFilesystem(source)
+				err = mounter.checkAndRepairXfsFilesystem(source, target)
 			default:
-				err = mounter.checkAndRepairFilesystem(source)
+				err = mounter.checkAndRepairFilesystem(source, target)
 			}
 
 			if err != nil {

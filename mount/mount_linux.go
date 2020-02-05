@@ -48,6 +48,8 @@ const (
 	xfsRepairErrorsUncorrected = 1
 	// 'xfs_repair' was unable to proceed due to a dirty log
 	xfsRepairErrorsDirtyLogs = 2
+	// Retry 'xfs_repair' three times on failure to make more repairs on successive runs.
+	xfsRepairRetries = 3
 )
 
 // Mounter provides the default implementation of mount.Interface
@@ -301,25 +303,25 @@ func (mounter *SafeFormatAndMount) checkAndRepairXfsFilesystem(source string) er
 
 			// If xfs_repair fails to repair the file system successfully, try giving the same xfs_repair
 			// command twice more; xfs_repair may be able to make more repairs on successive runs.
-			for i := 0; i < 3; i++ {
+			for i := 0; i < xfsRepairRetries; i++ {
 				out, err := mounter.Exec.Command("xfs_repair", args...).CombinedOutput()
-				if err != nil {
-					if e, isExitError := err.(utilexec.ExitError); isExitError {
-						switch e.ExitStatus() {
-						case xfsRepairErrorsUncorrected:
-							uncorrectedErr = NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
-						// If the exit status is 2, do not retry, replay the dirty logs instead.
-						case xfsRepairErrorsDirtyLogs:
-							return mounter.replayXfsDirtyLogs(source)
-						default:
-							return NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
-						}
-					} else {
-						return NewMountError(HasFilesystemErrors, "failed to run 'xfs_repair' on device %s: %v\n", source, err)
-					}
-				} else {
+				if err == nil {
 					klog.Infof("Device %s has errors which were corrected by xfs_repair.", source)
 					return nil
+				}
+				e, isExitError := err.(utilexec.ExitError)
+				if !isExitError {
+					return NewMountError(HasFilesystemErrors, "failed to run 'xfs_repair' on device %s: %v\n", source, err)
+
+				}
+				switch e.ExitStatus() {
+				case xfsRepairErrorsUncorrected:
+					uncorrectedErr = NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
+					// If the exit status is 2, do not retry, replay the dirty logs instead.
+				case xfsRepairErrorsDirtyLogs:
+					return mounter.replayXfsDirtyLogs(source)
+				default:
+					return NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
 				}
 			}
 			if uncorrectedErr != nil {

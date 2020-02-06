@@ -74,18 +74,6 @@ func (l *listenPortOpener) OpenLocalPort(lp *LocalPort) (Closeable, error) {
 }
 
 func openLocalPort(lp *LocalPort) (Closeable, error) {
-	// For ports on node IPs, open the actual port and hold it, even though we
-	// use ipvs or iptables to redirect traffic.
-	// This ensures a) that it's safe to use that port and b) that (a) stays
-	// true.  The risk is that some process on the node (e.g. sshd or kubelet)
-	// is using a port and we give that same port out to a Service.  That would
-	// be bad because ipvs or iptables would silently claim the traffic
-	// but the process would never know.
-	// NOTE: We should not need to have a real listen()ing socket - bind()
-	// should be enough, but I can't figure out a way to e2e test without
-	// it.  Tools like 'ss' and 'netstat' do not show sockets that are
-	// bind()ed but not listen()ed, and at least the default debian netcat
-	// has no way to avoid about 10 seconds of retries.
 	var socket Closeable
 	network := lp.Protocol + string(lp.IPFamily)
 	hostPort := net.JoinHostPort(lp.IP, strconv.Itoa(lp.Port))

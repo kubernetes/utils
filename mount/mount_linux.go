@@ -338,14 +338,22 @@ func (mounter *SafeFormatAndMount) replayXfsDirtyLogs(source, target string) err
 	klog.V(4).Infof("Attempting to replay the dirty logs on device %s", source)
 	msg := fmt.Sprintf("failed to replay dirty logs on device %s", source)
 
-	klog.V(4).Infof("Attempting to mount disk %s at %s", source, target)
-	if err := mounter.Interface.Mount(source, target, "", []string{"defaults"}); err != nil {
-		return NewMountError(HasFilesystemErrors, "%s: %v\n", msg, err)
-	}
-
-	klog.V(4).Infof("Unmounting %s", target)
-	if err := mounter.Interface.Unmount(target); err != nil {
-		return NewMountError(HasFilesystemErrors, "%s: %v\n", msg, err)
+	// make sure unmount is always called after mount.
+	err := func() (returnErr error) {
+		defer func() {
+			klog.V(4).Infof("Unmounting %s", target)
+			if err := mounter.Interface.Unmount(target); err != nil {
+				returnErr = NewMountError(HasFilesystemErrors, "%s: %v\n", msg, err)
+			}
+		}()
+		klog.V(4).Infof("Attempting to mount disk %s at %s", source, target)
+		if err := mounter.Interface.Mount(source, target, "", []string{"defaults"}); err != nil {
+			return NewMountError(HasFilesystemErrors, "%s: %v\n", msg, err)
+		}
+		return nil
+	}()
+	if err != nil {
+		return err
 	}
 
 	klog.V(4).Infof("Checking for issues with xfs_repair on disk %s again", source)

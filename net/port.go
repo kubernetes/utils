@@ -94,6 +94,11 @@ func openLocalPort(lp *LocalPort) (Closeable, error) {
 			return nil, err
 		}
 		socket = conn
+	case "sctp":
+		// SCTP ports are intentionally ignored, to ensure we don't cause the sctp
+		// kernel module to be loaded, which breaks userspace SCTP support (and
+		// may be considered a security risk by some administrators).
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("unknown protocol %q", lp.Protocol)
 	}

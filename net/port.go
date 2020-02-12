@@ -49,6 +49,27 @@ type LocalPort struct {
 	Protocol string
 }
 
+// NewLocalPort creates a new LocalPort struct
+func NewLocalPort(desc, ip string, ipFamily IPFamily, port int, protocol string) (*LocalPort, error) {
+	if protocol != "tcp" && protocol != "sctp" && protocol != "udp" {
+		return nil, fmt.Errorf("Unsupported protocol %s", protocol)
+	}
+	if ipFamily != "" && ipFamily != "4" && ipFamily != "6" {
+		return nil, fmt.Errorf("Invalid IP family %s", ipFamily)
+	}
+	if ip != "" {
+		parsedIP := net.ParseIP(ip)
+		if parsedIP == nil {
+			return nil, fmt.Errorf("invalid ip address %s", ip)
+		}
+		asIPv4 := parsedIP.To4()
+		if asIPv4 == nil && ipFamily == IPv4 || asIPv4 != nil && ipFamily == IPv6 {
+			return nil, fmt.Errorf("ip address and family mismatch %s, %s", ip, ipFamily)
+		}
+	}
+	return &LocalPort{Description: desc, IP: ip, IPFamily: ipFamily, Port: port, Protocol: protocol}, nil
+}
+
 func (lp *LocalPort) String() string {
 	ipPort := net.JoinHostPort(lp.IP, strconv.Itoa(lp.Port))
 	return fmt.Sprintf("%q (%s/%s%s)", lp.Description, ipPort, lp.Protocol, lp.IPFamily)

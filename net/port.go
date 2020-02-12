@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-
-	"k8s.io/klog"
 )
 
 // IPFamily refers to a specific family if not empty, i.e. "4" or "6"
@@ -123,6 +121,5 @@ func openLocalPort(lp *LocalPort) (Closeable, error) {
 	default:
 		return nil, fmt.Errorf("unknown protocol %q", lp.Protocol)
 	}
-	klog.V(2).Infof("Opened local port %s", lp.String())
 	return socket, nil
 }

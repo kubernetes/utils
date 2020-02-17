@@ -69,6 +69,50 @@ func TestStep(t *testing.T) {
 	}
 }
 
+func TestNestedTrace(t *testing.T) {
+	tests := []struct {
+		name          string
+		inputString   string
+		expectedTrace *Trace
+	}{
+		{
+			name:        "Empty string",
+			inputString: "",
+			expectedTrace: &Trace{
+				nestedTrace: []*Trace{
+					{startTime: time.Now(), name: ""},
+				},
+			},
+		},
+		{
+			name:        "Non-empty string",
+			inputString: "Inner trace",
+			expectedTrace: &Trace{
+				nestedTrace: []*Trace{
+					{
+						startTime: time.Now(),
+						name:      "Inner trace",
+						nestedTrace: []*Trace{
+							{name: "Inner trace"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sampleTrace := &Trace{}
+			innerSampleTrace := sampleTrace.Nest(tt.inputString)
+			innerSampleTrace.Nest(tt.inputString)
+			if sampleTrace.nestedTrace[0].name != tt.expectedTrace.nestedTrace[0].name {
+				t.Errorf("Expected %v \n Got %v \n", tt.expectedTrace, sampleTrace)
+			}
+		})
+	}
+}
+
 func TestTotalTime(t *testing.T) {
 	test := struct {
 		name       string
@@ -113,7 +157,7 @@ func TestLog(t *testing.T) {
 		{
 			name: "Check formatting",
 			expectedMessages: []string{
-				"URL:/api,count:3", "msg1 str:text,int:2,bool:false", "msg2 x:1",
+				"URL:/api,count:3", `"msg1" str:text,int:2,bool:false`, `"msg2" x:1`,
 			},
 			sampleTrace: &Trace{
 				name:   "Sample Trace",
@@ -127,7 +171,7 @@ func TestLog(t *testing.T) {
 		{
 			name: "Check fixture formatted",
 			expectedMessages: []string{
-				"URL:/api,count:3", "msg1 str:text,int:2,bool:false", "msg2 x:1",
+				"URL:/api,count:3", `"msg1" str:text,int:2,bool:false`, `"msg2" x:1`,
 			},
 			sampleTrace: fieldsTraceFixture(),
 		},

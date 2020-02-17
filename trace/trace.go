@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 
 	"k8s.io/klog/v2"
@@ -29,6 +30,36 @@ import (
 type Field struct {
 	Key   string
 	Value interface{}
+}
+
+type stepTraceTime interface {
+	time() time.Time
+}
+
+func (t *Trace) time() time.Time {
+	return t.startTime
+}
+
+func (s traceStep) time() time.Time {
+	return s.stepTime
+}
+
+func (t *Trace) sortStepTrace() []stepTraceTime {
+	var arr []stepTraceTime
+
+	for _, step := range t.steps {
+		arr = append(arr, step)
+	}
+
+	for _, trace := range t.nestedTrace {
+		arr = append(arr, trace)
+	}
+
+	sort.Slice(arr, func(i, j int) bool {
+		return arr[i].time().Before(arr[j].time())
+	})
+
+	return arr
 }
 
 func (f Field) format() string {
@@ -44,6 +75,20 @@ func writeFields(b *bytes.Buffer, l []Field) {
 	}
 }
 
+func writeMainLog(b *bytes.Buffer, msg string, totalTime time.Duration, startTime time.Time, fields []Field) {
+	b.WriteString(fmt.Sprintf("%q ", msg))
+	if len(fields) > 0 {
+		writeFields(b, fields)
+		b.WriteString(" ")
+	}
+
+	b.WriteString(fmt.Sprintf("%vms (%v)", durationToMilliseconds(totalTime), startTime.Format("15:04:00.000")))
+}
+
+func durationToMilliseconds(timeDuration time.Duration) int64 {
+	return timeDuration.Nanoseconds() / 1e6
+}
+
 type traceStep struct {
 	stepTime time.Time
 	msg      string
@@ -53,10 +98,11 @@ type traceStep struct {
 // Trace keeps track of a set of "steps" and allows us to log a specific
 // step if it took longer than its share of the total allowed time
 type Trace struct {
-	name      string
-	fields    []Field
-	startTime time.Time
-	steps     []traceStep
+	name        string
+	fields      []Field
+	startTime   time.Time
+	steps       []traceStep
+	nestedTrace []*Trace
 }
 
 // New creates a Trace with the specified name. The name identifies the operation to be traced. The
@@ -76,7 +122,14 @@ func (t *Trace) Step(msg string, fields ...Field) {
 	t.steps = append(t.steps, traceStep{stepTime: time.Now(), msg: msg, fields: fields})
 }
 
-// Log is used to dump all the steps in the Trace
+// Nest adds a nested trace with the given message and fields and returns it.
+func (t *Trace) Nest(msg string, fields ...Field) *Trace {
+	newTrace := New(msg, fields...)
+	t.nestedTrace = append(t.nestedTrace, newTrace)
+	return newTrace
+}
+
+// Log is used to dump all the steps in the Trace. It also logs the nested trace messages using indentation
 func (t *Trace) Log() {
 	// an explicit logging request should dump all the steps out at the higher level
 	t.logWithStepThreshold(0)
@@ -93,27 +146,39 @@ func (t *Trace) logWithStepThreshold(stepThreshold time.Duration) {
 		writeFields(&buffer, t.fields)
 		buffer.WriteString(" ")
 	}
-	buffer.WriteString(fmt.Sprintf("(started: %v) (total time: %v):\n", t.startTime, totalTime))
-	lastStepTime := t.startTime
-	for _, step := range t.steps {
-		stepDuration := step.stepTime.Sub(lastStepTime)
-		if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
-			buffer.WriteString(fmt.Sprintf("Trace[%d]: [%v] [%v] ", tracenum, step.stepTime.Sub(t.startTime), stepDuration))
-			buffer.WriteString(step.msg)
-			if len(step.fields) > 0 {
-				buffer.WriteString(" ")
-				writeFields(&buffer, step.fields)
-			}
-			buffer.WriteString("\n")
-		}
-		lastStepTime = step.stepTime
-	}
+	buffer.WriteString(fmt.Sprintf("(%v) (total time: %vms):", t.startTime.Format("02-Jan-2006 15:04:00.000"), totalTime.Milliseconds()))
+	lastStepTime := writeTrace(&buffer, t, fmt.Sprintf("\nTrace[%d]: ", tracenum), stepThreshold)
 	stepDuration := endTime.Sub(lastStepTime)
-	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
-		buffer.WriteString(fmt.Sprintf("Trace[%d]: [%v] [%v] END\n", tracenum, endTime.Sub(t.startTime), stepDuration))
+	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled()  {
+		buffer.WriteString(fmt.Sprintf("\nTrace[%d]: [%v] [%v] END\n", tracenum, endTime.Sub(t.startTime), stepDuration))
 	}
 
 	klog.Info(buffer.String())
+}
+
+func writeTrace(b *bytes.Buffer, t *Trace, formatter string, stepThreshold time.Duration) time.Time {
+	lastStepTime := t.startTime
+	stepAndTraces := t.sortStepTrace()
+	if len(stepAndTraces) == 0 {
+		return lastStepTime
+	}
+	for _, stepOrTrace := range stepAndTraces {
+		switch s := stepOrTrace.(type) {
+		case traceStep:
+			stepDuration := s.stepTime.Sub(lastStepTime)
+			if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
+				b.WriteString(fmt.Sprintf("%v---", formatter))
+				writeMainLog(b, s.msg, stepDuration, s.stepTime, s.fields)
+			}
+			lastStepTime = s.stepTime
+		case *Trace:
+			b.WriteString(fmt.Sprintf("%v[", formatter))
+			writeMainLog(b, s.name, s.TotalTime(), s.startTime, s.fields)
+			_ = writeTrace(b, s, formatter+" ", stepThreshold)
+			b.WriteString("]")
+		}
+	}
+	return lastStepTime
 }
 
 // LogIfLong is used to dump steps that took longer than its share

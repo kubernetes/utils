@@ -24,7 +24,7 @@ Then, you may need to restructure the package to make sure it has the following 
 ## Update the repos that refer the pkg
 
 You should update the import paths.
-Then follow [this doc](https://github.com/kubernetes/community/blob/master/contributors/devel/godep.md) to update `vendor/` and `Godeps/`.
+Then follow [this doc](https://github.com/kubernetes/community/blob/9258fa171f569a33b62a07239c10bce137598527/contributors/devel/sig-architecture/godep.md) to update `vendor/` and `Godeps/`.
 
 You may want to run `make bazel-test` to make sure all new references work.
 

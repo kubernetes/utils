@@ -43,6 +43,10 @@ const (
 	fsckErrorsCorrected = 1
 	// 'fsck' found errors but exited without correcting them
 	fsckErrorsUncorrected = 4
+	// 'xfs_repair' found errors but exited without correcting them
+	xfsRepairErrorsUncorrected = 1
+	// 'xfs_repair' was unable to proceed due to a dirty log
+	xfsRepairErrorsDirtyLogs = 2
 )
 
 // Mounter provides the default implementation of mount.Interface
@@ -330,11 +334,24 @@ func (mounter *SafeFormatAndMount) checkAndRepairXfsFilesystem(source string) er
 		} else {
 			klog.Warningf("Filesystem corruption was detected for %s, running xfs_repair to repair", source)
 			out, err := mounter.Exec.Command("xfs_repair", args...).CombinedOutput()
-			if err != nil {
-				return NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, out)
-			} else {
+			if err == nil {
 				klog.Infof("Device %s has errors which were corrected by xfs_repair.", source)
 				return nil
+			}
+			e, isExitError := err.(utilexec.ExitError)
+			if !isExitError {
+				return NewMountError(HasFilesystemErrors, "failed to run 'xfs_repair' on device %s: %v\n", source, err)
+
+			}
+			switch e.ExitStatus() {
+			case xfsRepairErrorsUncorrected:
+				return NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
+			case xfsRepairErrorsDirtyLogs:
+				// mark the a dirty log issue as a warning, do you replay it by default.
+				klog.Warningf("A dirty log is detected on this xfs disk.")
+				return nil
+			default:
+				return NewMountError(HasFilesystemErrors, "'xfs_repair' found errors on device %s but could not correct them: %s\n", source, string(out))
 			}
 		}
 	}

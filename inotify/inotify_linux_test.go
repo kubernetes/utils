@@ -7,11 +7,13 @@
 package inotify
 
 import (
-	"fmt"
+	"context"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"reflect"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -113,29 +115,32 @@ func TestInotifyFdLeak(t *testing.T) {
 	watcher, _ := NewWatcher()
 	defer watcher.Close()
 
-	child := exec.Command("sleep", "10")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	child := exec.CommandContext(ctx, "sleep", "10")
 	err := child.Start()
 	if err != nil {
 		t.Fatalf("exec sleep failed: %v", err)
 	}
-	go func() {
-		_ = child.Wait()
-	}()
+	go child.Wait()
 
-	pid := child.Process.Pid
-	fds, err := ioutil.ReadDir(fmt.Sprintf("/proc/%d/fd", pid))
-	_ = child.Process.Kill()
+	fdPath := filepath.Join("/proc", strconv.Itoa(child.Process.Pid), "fd")
+	infos, err := ioutil.ReadDir(fdPath)
 	if err != nil {
-		t.Fatalf("read procfs of %d failed: %v", pid, err)
-	}
-	var actualFds []string
-	for _, fd := range fds {
-		actualFds = append(actualFds, fd.Name())
+		t.Fatalf("read %s failed: %v", fdPath, err)
 	}
 
-	// stdin, stdout, stderr
-	expectFds := []string{"0", "1", "2"}
-	if !reflect.DeepEqual(expectFds, actualFds) {
-		t.Fatalf("expected fds: %+v, actual fds %+v", expectFds, actualFds)
+	for _, info := range infos {
+		path := filepath.Join(fdPath, info.Name())
+		if info.Mode()&os.ModeSymlink != 0 {
+			t.Logf("skipping %s", path)
+		}
+		target, err := os.Readlink(path)
+		if err != nil {
+			t.Errorf("readlink %s failed: %v", path, err)
+		}
+		if strings.Contains(target, "inotify") {
+			t.Errorf("leaked inotify file descriptor: %s -> %s", path, target)
+		}
 	}
 }

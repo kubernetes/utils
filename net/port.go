@@ -31,23 +31,28 @@ const (
 	IPv6          = "6"
 )
 
-// LocalPort describes a port on specific IP address and protocol
+// LocalPort represents an IP address and port pair along with a protocol
+// and potentially a specific IP family.
+// A LocalPort can be opened and subsequently closed.
 type LocalPort struct {
-	// Description is the identity message of a given local port.
+	// Description is an arbitrary string
 	Description string
 	// IP is the IP address part of a given local port.
 	// If this string is empty, the port binds to all local IP addresses.
 	IP string
 	// If IPFamily is not empty, the port binds only to addresses of this family
+	// IF empty along with IP, bind to local addresses of any family
 	IPFamily IPFamily
-	// Port is the port part of a given local port.
+	// Port is the port number
+	// A value of 0 causes a port to be automatically chosen
 	Port int
-	// Protocol is the protocol part of a given local port.
-	// The value is assumed to be lower-case. For example, "udp" not "UDP", "tcp" not "TCP".
+	// Protocol is the protocol, "tcp" or "udp"
+	// The value is assumed to be lower-case
 	Protocol string
 }
 
-// NewLocalPort creates a new LocalPort struct
+// NewLocalPort returns a LocalPort instance and ensures IPFamily and IP are
+// consistent and that the given protocol is valid
 func NewLocalPort(desc, ip string, ipFamily IPFamily, port int, protocol string) (*LocalPort, error) {
 	if protocol != "tcp" && protocol != "sctp" && protocol != "udp" {
 		return nil, fmt.Errorf("Unsupported protocol %s", protocol)
@@ -73,12 +78,12 @@ func (lp *LocalPort) String() string {
 	return fmt.Sprintf("%q (%s/%s%s)", lp.Description, ipPort, lp.Protocol, lp.IPFamily)
 }
 
-// Closeable is an interface around closing a port.
+// Closeable closes an opened LocalPort
 type Closeable interface {
 	Close() error
 }
 
-// PortOpener is an interface around port opening/closing.
+// PortOpener can open a LocalPort and allows later closing it
 // Abstracted out for testing.
 type PortOpener interface {
 	OpenLocalPort(lp *LocalPort) (Closeable, error)

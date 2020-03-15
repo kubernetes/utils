@@ -28,14 +28,14 @@ func TestLocalPortString(t *testing.T) {
 		expectedStr string
 		expectedErr bool
 	}{
-		{"IPv4 UDP", "1.2.3.4", "", 9999, "udp", "\"IPv4 UDP\" (1.2.3.4:9999/udp)", false},
-		{"IPv4 TCP", "5.6.7.8", "", 1053, "tcp", "\"IPv4 TCP\" (5.6.7.8:1053/tcp)", false},
-		{"IPv6 TCP", "2001:db8::1", "", 80, "tcp", "\"IPv6 TCP\" ([2001:db8::1]:80/tcp)", false},
-		{"IPv4 SCTP", "9.10.11.12", "", 7777, "sctp", "\"IPv4 SCTP\" (9.10.11.12:7777/sctp)", false},
-		{"IPv6 SCTP", "2001:db8::2", "", 80, "sctp", "\"IPv6 SCTP\" ([2001:db8::2]:80/sctp)", false},
-		{"IPv4 TCP, all addresses", "", IPv4, 1053, "tcp", "\"IPv4 TCP, all addresses\" (:1053/tcp4)", false},
-		{"IPv6 TCP, all addresses", "", IPv6, 80, "tcp", "\"IPv6 TCP, all addresses\" (:80/tcp6)", false},
-		{"No ip family TCP, all addresses", "", "", 80, "tcp", "\"No ip family TCP, all addresses\" (:80/tcp)", false},
+		{"IPv4 UDP", "1.2.3.4", "", 9999, "udp", `"IPv4 UDP" (1.2.3.4:9999/udp)`, false},
+		{"IPv4 TCP", "5.6.7.8", "", 1053, "tcp", `"IPv4 TCP" (5.6.7.8:1053/tcp)`, false},
+		{"IPv6 TCP", "2001:db8::1", "", 80, "tcp", `"IPv6 TCP" ([2001:db8::1]:80/tcp)`, false},
+		{"IPv4 SCTP", "9.10.11.12", "", 7777, "sctp", `"IPv4 SCTP" (9.10.11.12:7777/sctp)`, false},
+		{"IPv6 SCTP", "2001:db8::2", "", 80, "sctp", `"IPv6 SCTP" ([2001:db8::2]:80/sctp)`, false},
+		{"IPv4 TCP, all addresses", "", IPv4, 1053, "tcp", `"IPv4 TCP, all addresses" (:1053/tcp4)`, false},
+		{"IPv6 TCP, all addresses", "", IPv6, 80, "tcp", `"IPv6 TCP, all addresses" (:80/tcp6)`, false},
+		{"No ip family TCP, all addresses", "", "", 80, "tcp", `"No ip family TCP, all addresses" (:80/tcp)`, false},
 		{"IP family mismatch", "2001:db8::2", IPv4, 80, "sctp", "", true},
 		{"IP family mismatch", "1.2.3.4", IPv6, 80, "sctp", "", true},
 		{"Unsupported protocol", "2001:db8::2", "", 80, "http", "", true},

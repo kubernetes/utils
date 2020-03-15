@@ -31,6 +31,15 @@ const (
 	IPv6          = "6"
 )
 
+// Protocol is a network protocol support by LocalPort
+type Protocol string
+
+// Constants refering to TCP and UDP
+const (
+	TCP Protocol = "tcp"
+	UDP Protocol = "udp"
+)
+
 // LocalPort represents an IP address and port pair along with a protocol
 // and potentially a specific IP family.
 // A LocalPort can be opened and subsequently closed.
@@ -48,13 +57,13 @@ type LocalPort struct {
 	Port int
 	// Protocol is the protocol, "tcp" or "udp"
 	// The value is assumed to be lower-case
-	Protocol string
+	Protocol Protocol
 }
 
 // NewLocalPort returns a LocalPort instance and ensures IPFamily and IP are
 // consistent and that the given protocol is valid
-func NewLocalPort(desc, ip string, ipFamily IPFamily, port int, protocol string) (*LocalPort, error) {
-	if protocol != "tcp" && protocol != "sctp" && protocol != "udp" {
+func NewLocalPort(desc, ip string, ipFamily IPFamily, port int, protocol Protocol) (*LocalPort, error) {
+	if protocol != TCP && protocol != UDP {
 		return nil, fmt.Errorf("Unsupported protocol %s", protocol)
 	}
 	if ipFamily != "" && ipFamily != "4" && ipFamily != "6" {
@@ -99,7 +108,7 @@ func (l *listenPortOpener) OpenLocalPort(lp *LocalPort) (Closeable, error) {
 
 func openLocalPort(lp *LocalPort) (Closeable, error) {
 	var socket Closeable
-	network := lp.Protocol + string(lp.IPFamily)
+	network := string(lp.Protocol) + string(lp.IPFamily)
 	hostPort := net.JoinHostPort(lp.IP, strconv.Itoa(lp.Port))
 	switch lp.Protocol {
 	case "tcp":
@@ -118,11 +127,6 @@ func openLocalPort(lp *LocalPort) (Closeable, error) {
 			return nil, err
 		}
 		socket = conn
-	case "sctp":
-		// SCTP ports are intentionally ignored, to ensure we don't cause the sctp
-		// kernel module to be loaded, which breaks userspace SCTP support (and
-		// may be considered a security risk by some administrators).
-		return nil, nil
 	default:
 		return nil, fmt.Errorf("unknown protocol %q", lp.Protocol)
 	}

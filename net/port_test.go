@@ -16,7 +16,27 @@ limitations under the License.
 
 package net
 
-import "testing"
+import (
+	"testing"
+)
+
+func ExampleLocalPort() {
+	lp, err := NewLocalPort(
+		"TCP port",
+		"",
+		IPv4,
+		443,
+		TCP,
+	)
+	if err != nil {
+		panic(err)
+	}
+	port, err := ListenPortOpener.OpenLocalPort(lp)
+	if err != nil {
+		panic(err)
+	}
+	port.Close()
+}
 
 func TestLocalPortString(t *testing.T) {
 	testCases := []struct {

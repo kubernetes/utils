@@ -22,19 +22,19 @@ import (
 	"strconv"
 )
 
-// IPFamily refers to a specific family if not empty, i.e. "4" or "6"
+// IPFamily refers to a specific family if not empty, i.e. "4" or "6".
 type IPFamily string
 
-// Constants refering to IPv4 and IPv6
+// Constants for valid IPFamilys:
 const (
 	IPv4 IPFamily = "4"
 	IPv6          = "6"
 )
 
-// Protocol is a network protocol support by LocalPort
+// Protocol is a network protocol support by LocalPort.
 type Protocol string
 
-// Constants refering to TCP and UDP
+// Constants for valid protocols:
 const (
 	TCP Protocol = "tcp"
 	UDP Protocol = "udp"
@@ -44,24 +44,25 @@ const (
 // and potentially a specific IP family.
 // A LocalPort can be opened and subsequently closed.
 type LocalPort struct {
-	// Description is an arbitrary string
+	// Description is an arbitrary string.
 	Description string
 	// IP is the IP address part of a given local port.
 	// If this string is empty, the port binds to all local IP addresses.
 	IP string
-	// If IPFamily is not empty, the port binds only to addresses of this family
-	// IF empty along with IP, bind to local addresses of any family
+	// If IPFamily is not empty, the port binds only to addresses of this
+	// family.
+	// IF empty along with IP, bind to local addresses of any family.
 	IPFamily IPFamily
-	// Port is the port number
-	// A value of 0 causes a port to be automatically chosen
+	// Port is the port number.
+	// A value of 0 causes a port to be automatically chosen.
 	Port int
-	// Protocol is the protocol, "tcp" or "udp"
-	// The value is assumed to be lower-case
+	// Protocol is the protocol, "tcp" or "udp".
+	// The value is assumed to be lower-case.
 	Protocol Protocol
 }
 
 // NewLocalPort returns a LocalPort instance and ensures IPFamily and IP are
-// consistent and that the given protocol is valid
+// consistent and that the given protocol is valid.
 func NewLocalPort(desc, ip string, ipFamily IPFamily, port int, protocol Protocol) (*LocalPort, error) {
 	if protocol != TCP && protocol != UDP {
 		return nil, fmt.Errorf("Unsupported protocol %s", protocol)
@@ -87,13 +88,12 @@ func (lp *LocalPort) String() string {
 	return fmt.Sprintf("%q (%s/%s%s)", lp.Description, ipPort, lp.Protocol, lp.IPFamily)
 }
 
-// Closeable closes an opened LocalPort
+// Closeable closes an opened LocalPort.
 type Closeable interface {
 	Close() error
 }
 
-// PortOpener can open a LocalPort and allows later closing it
-// Abstracted out for testing.
+// PortOpener can open a LocalPort and allows later closing it.
 type PortOpener interface {
 	OpenLocalPort(lp *LocalPort) (Closeable, error)
 }

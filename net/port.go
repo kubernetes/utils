@@ -98,8 +98,10 @@ type PortOpener interface {
 	OpenLocalPort(lp *LocalPort) (Closeable, error)
 }
 
-// listenPortOpener opens ports by calling bind() and listen().
 type listenPortOpener struct{}
+
+// ListenPortOpener opens ports by calling bind() and listen().
+var ListenPortOpener listenPortOpener
 
 // OpenLocalPort holds the given local port open.
 func (l *listenPortOpener) OpenLocalPort(lp *LocalPort) (Closeable, error) {

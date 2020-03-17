@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 )
 
 // IPFamily refers to a specific family if not empty, i.e. "4" or "6".
@@ -36,8 +37,8 @@ type Protocol string
 
 // Constants for valid protocols:
 const (
-	TCP Protocol = "tcp"
-	UDP Protocol = "udp"
+	TCP Protocol = "TCP"
+	UDP Protocol = "UDP"
 )
 
 // LocalPort represents an IP address and port pair along with a protocol
@@ -56,8 +57,7 @@ type LocalPort struct {
 	// Port is the port number.
 	// A value of 0 causes a port to be automatically chosen.
 	Port int
-	// Protocol is the protocol, "tcp" or "udp".
-	// The value is assumed to be lower-case.
+	// Protocol is the protocol, e.g. TCP
 	Protocol Protocol
 }
 
@@ -85,7 +85,7 @@ func NewLocalPort(desc, ip string, ipFamily IPFamily, port int, protocol Protoco
 
 func (lp *LocalPort) String() string {
 	ipPort := net.JoinHostPort(lp.IP, strconv.Itoa(lp.Port))
-	return fmt.Sprintf("%q (%s/%s%s)", lp.Description, ipPort, lp.Protocol, lp.IPFamily)
+	return fmt.Sprintf("%q (%s/%s%s)", lp.Description, ipPort, strings.ToLower(string(lp.Protocol)), lp.IPFamily)
 }
 
 // Closeable closes an opened LocalPort.
@@ -110,16 +110,17 @@ func (l *listenPortOpener) OpenLocalPort(lp *LocalPort) (Closeable, error) {
 
 func openLocalPort(lp *LocalPort) (Closeable, error) {
 	var socket Closeable
-	network := string(lp.Protocol) + string(lp.IPFamily)
 	hostPort := net.JoinHostPort(lp.IP, strconv.Itoa(lp.Port))
 	switch lp.Protocol {
-	case "tcp":
+	case TCP:
+		network := "tcp" + string(lp.IPFamily)
 		listener, err := net.Listen(network, hostPort)
 		if err != nil {
 			return nil, err
 		}
 		socket = listener
-	case "udp":
+	case UDP:
+		network := "udp" + string(lp.IPFamily)
 		addr, err := net.ResolveUDPAddr(network, hostPort)
 		if err != nil {
 			return nil, err

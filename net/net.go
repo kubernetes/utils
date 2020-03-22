@@ -152,7 +152,7 @@ func ParsePort(port string, allowZero bool) (int, error) {
 
 // BigForIP creates a big.Int based on the provided net.IP
 func BigForIP(ip net.IP) *big.Int {
-	// NOTE: Convert to 16-byte representation so we don't can
+	// NOTE: Convert to 16-byte representation so we can
 	// handle v4 and v6 values the same way.
 	return big.NewInt(0).SetBytes(ip.To16())
 }

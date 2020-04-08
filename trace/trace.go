@@ -34,14 +34,7 @@ type Field struct {
 
 type stepTraceTime interface {
 	time() time.Time
-}
-
-func (t *Trace) time() time.Time {
-	return t.startTime
-}
-
-func (s traceStep) time() time.Time {
-	return s.stepTime
+	writeStep(b *bytes.Buffer, formatter string, stepDuration time.Duration, lastStepTime time.Time) time.Time
 }
 
 func (t *Trace) sortStepTrace() []stepTraceTime {
@@ -95,6 +88,20 @@ type traceStep struct {
 	fields   []Field
 }
 
+func (s traceStep) time() time.Time {
+	return s.stepTime
+}
+
+func (s traceStep) writeStep(b *bytes.Buffer, formatter string, stepThreshold time.Duration,
+	lastStepTime time.Time) time.Time {
+	stepDuration := s.stepTime.Sub(lastStepTime)
+	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
+		b.WriteString(fmt.Sprintf("%v---", formatter))
+		writeMainLog(b, s.msg, stepDuration, s.stepTime, s.fields)
+	}
+	return s.stepTime
+}
+
 // Trace keeps track of a set of "steps" and allows us to log a specific
 // step if it took longer than its share of the total allowed time
 type Trace struct {
@@ -103,6 +110,19 @@ type Trace struct {
 	startTime   time.Time
 	steps       []traceStep
 	nestedTrace []*Trace
+}
+
+func (t *Trace) time() time.Time {
+	return t.startTime
+}
+
+func (t *Trace) writeStep(b *bytes.Buffer, formatter string, stepThreshold time.Duration,
+	lastStepTime time.Time) time.Time {
+	b.WriteString(fmt.Sprintf("%v[", formatter))
+	writeMainLog(b, t.name, t.TotalTime(), t.startTime, t.fields)
+	_ = writeTrace(b, t, formatter+" ", stepThreshold)
+	b.WriteString("]")
+	return time.Time{}
 }
 
 // New creates a Trace with the specified name. The name identifies the operation to be traced. The
@@ -163,19 +183,10 @@ func writeTrace(b *bytes.Buffer, t *Trace, formatter string, stepThreshold time.
 		return lastStepTime
 	}
 	for _, stepOrTrace := range stepAndTraces {
-		switch s := stepOrTrace.(type) {
-		case traceStep:
-			stepDuration := s.stepTime.Sub(lastStepTime)
-			if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
-				b.WriteString(fmt.Sprintf("%v---", formatter))
-				writeMainLog(b, s.msg, stepDuration, s.stepTime, s.fields)
-			}
-			lastStepTime = s.stepTime
-		case *Trace:
-			b.WriteString(fmt.Sprintf("%v[", formatter))
-			writeMainLog(b, s.name, s.TotalTime(), s.startTime, s.fields)
-			_ = writeTrace(b, s, formatter+" ", stepThreshold)
-			b.WriteString("]")
+		blankTime := time.Time{}
+		stepTime := stepOrTrace.writeStep(b, formatter, stepThreshold, lastStepTime)
+		if stepTime != blankTime {
+			lastStepTime = stepTime
 		}
 	}
 	return lastStepTime

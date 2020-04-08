@@ -377,7 +377,7 @@ func TestSortedTrace(t *testing.T) {
 	tests := []struct {
 		name        string
 		inputTrace  *Trace
-		sortedTrace []stepTraceTime
+		sortedTrace []stepTrace
 	}{
 		{
 			name: "Sort trace and step",
@@ -392,7 +392,7 @@ func TestSortedTrace(t *testing.T) {
 					{stepTime: tenSecEarly, msg: "step"},
 				},
 			},
-			sortedTrace: []stepTraceTime{
+			sortedTrace: []stepTrace{
 				traceStep{stepTime: tenSecEarly, msg: "step"},
 				traceStep{stepTime: now, msg: "step"},
 				&Trace{name: "nested", startTime: fiveSecLater},

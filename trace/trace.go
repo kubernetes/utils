@@ -32,13 +32,13 @@ type Field struct {
 	Value interface{}
 }
 
-type stepTraceTime interface {
+type stepTrace interface {
 	time() time.Time
 	writeStep(b *bytes.Buffer, formatter string, stepDuration time.Duration, lastStepTime time.Time) time.Time
 }
 
-func (t *Trace) sortStepTrace() []stepTraceTime {
-	var arr []stepTraceTime
+func (t *Trace) sortStepTrace() []stepTrace {
+	var arr []stepTrace
 
 	for _, step := range t.steps {
 		arr = append(arr, step)

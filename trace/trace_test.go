@@ -42,8 +42,8 @@ func TestStep(t *testing.T) {
 			name:        "When string is empty",
 			inputString: "",
 			expectedTrace: &Trace{
-				steps: []traceStep{
-					{stepTime: time.Now(), msg: ""},
+				stepsTraces: []stepTrace{
+					traceStep{stepTime: time.Now(), msg: ""},
 				},
 			},
 		},
@@ -51,8 +51,8 @@ func TestStep(t *testing.T) {
 			name:        "When string is not empty",
 			inputString: "test2",
 			expectedTrace: &Trace{
-				steps: []traceStep{
-					{stepTime: time.Now(), msg: "test2"},
+				stepsTraces: []stepTrace{
+					traceStep{stepTime: time.Now(), msg: "test2"},
 				},
 			},
 		},
@@ -62,7 +62,7 @@ func TestStep(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			sampleTrace := &Trace{}
 			sampleTrace.Step(tt.inputString)
-			if sampleTrace.steps[0].msg != tt.expectedTrace.steps[0].msg {
+			if sampleTrace.stepsTraces[0].(traceStep).msg != tt.expectedTrace.stepsTraces[0].(traceStep).msg {
 				t.Errorf("Expected %v \n Got %v \n", tt.expectedTrace, sampleTrace)
 			}
 		})
@@ -79,8 +79,8 @@ func TestNestedTrace(t *testing.T) {
 			name:        "Empty string",
 			inputString: "",
 			expectedTrace: &Trace{
-				nestedTrace: []*Trace{
-					{startTime: time.Now(), name: ""},
+				stepsTraces: []stepTrace{
+					&Trace{startTime: time.Now(), name: ""},
 				},
 			},
 		},
@@ -88,12 +88,12 @@ func TestNestedTrace(t *testing.T) {
 			name:        "Non-empty string",
 			inputString: "Inner trace",
 			expectedTrace: &Trace{
-				nestedTrace: []*Trace{
-					{
+				stepsTraces: []stepTrace{
+					&Trace{
 						startTime: time.Now(),
 						name:      "Inner trace",
-						nestedTrace: []*Trace{
-							{name: "Inner trace"},
+						stepsTraces: []stepTrace{
+							&Trace{name: "Inner trace"},
 						},
 					},
 				},
@@ -106,7 +106,7 @@ func TestNestedTrace(t *testing.T) {
 			sampleTrace := &Trace{}
 			innerSampleTrace := sampleTrace.Nest(tt.inputString)
 			innerSampleTrace.Nest(tt.inputString)
-			if sampleTrace.nestedTrace[0].name != tt.expectedTrace.nestedTrace[0].name {
+			if sampleTrace.stepsTraces[0].(*Trace).name != tt.expectedTrace.stepsTraces[0].(*Trace).name {
 				t.Errorf("Expected %v \n Got %v \n", tt.expectedTrace, sampleTrace)
 			}
 		})
@@ -147,10 +147,10 @@ func TestLog(t *testing.T) {
 			},
 			sampleTrace: &Trace{
 				name: "Sample Trace",
-				steps: []traceStep{
-					{stepTime: time.Now(), msg: "msg1"},
-					{stepTime: time.Now(), msg: "msg2"},
-					{stepTime: time.Now(), msg: "msg3"},
+				stepsTraces: []stepTrace{
+					&traceStep{stepTime: time.Now(), msg: "msg1"},
+					&traceStep{stepTime: time.Now(), msg: "msg2"},
+					&traceStep{stepTime: time.Now(), msg: "msg3"},
 				},
 			},
 		},
@@ -162,9 +162,10 @@ func TestLog(t *testing.T) {
 			sampleTrace: &Trace{
 				name:   "Sample Trace",
 				fields: []Field{{"URL", "/api"}, {"count", 3}},
-				steps: []traceStep{
-					{stepTime: time.Now(), msg: "msg1", fields: []Field{{"str", "text"}, {"int", 2}, {"bool", false}}},
-					{stepTime: time.Now(), msg: "msg2", fields: []Field{{"x", "1"}}},
+				stepsTraces: []stepTrace{
+					&traceStep{stepTime: time.Now(), msg: "msg1", fields: []Field{{"str", "text"}, {"int", 2}, {"bool",
+						false}}},
+					&traceStep{stepTime: time.Now(), msg: "msg2", fields: []Field{{"x", "1"}}},
 				},
 			},
 		},
@@ -206,10 +207,10 @@ func TestNestedTraceLog(t *testing.T) {
 			},
 			sampleTrace: &Trace{
 				name: "Sample Trace",
-				nestedTrace: []*Trace{
-					{startTime: time.Now(), name: "msg1"},
-					{startTime: time.Now(), name: "msg2"},
-					{startTime: time.Now(), name: "msg3"},
+				stepsTraces: []stepTrace{
+					&Trace{startTime: time.Now(), name: "msg1"},
+					&Trace{startTime: time.Now(), name: "msg2"},
+					&Trace{startTime: time.Now(), name: "msg3"},
 				},
 			},
 		},
@@ -220,15 +221,13 @@ func TestNestedTraceLog(t *testing.T) {
 			},
 			sampleTrace: &Trace{
 				name: "Sample Trace",
-				nestedTrace: []*Trace{
-					{startTime: time.Now(), name: "msg1"},
-					{startTime: time.Now(), name: "msg2"},
-					{startTime: time.Now(), name: "msg3"},
-				},
-				steps: []traceStep{
-					{stepTime: time.Now(), msg: "step1"},
-					{stepTime: time.Now(), msg: "step2"},
-					{stepTime: time.Now(), msg: "step3"},
+				stepsTraces: []stepTrace{
+					&Trace{startTime: time.Now(), name: "msg1"},
+					&Trace{startTime: time.Now(), name: "msg2"},
+					&Trace{startTime: time.Now(), name: "msg3"},
+					&traceStep{stepTime: time.Now(), msg: "step1"},
+					&traceStep{stepTime: time.Now(), msg: "step2"},
+					&traceStep{stepTime: time.Now(), msg: "step3"},
 				},
 			},
 		},
@@ -239,8 +238,8 @@ func TestNestedTraceLog(t *testing.T) {
 			},
 			sampleTrace: &Trace{
 				name: "Sample Trace",
-				nestedTrace: []*Trace{
-					{startTime: time.Now(), name: "msg1", fields: []Field{{"str", "text"}, {"int", 2}, {"bool",
+				stepsTraces: []stepTrace{
+					&Trace{startTime: time.Now(), name: "msg1", fields: []Field{{"str", "text"}, {"int", 2}, {"bool",
 						false}}},
 				},
 			},
@@ -252,11 +251,11 @@ func TestNestedTraceLog(t *testing.T) {
 			},
 			sampleTrace: &Trace{
 				name: "Sample Trace",
-				nestedTrace: []*Trace{
-					{
+				stepsTraces: []stepTrace{
+					&Trace{
 						startTime:   time.Now(),
 						name:        "msg1",
-						nestedTrace: []*Trace{{name: "nested1", startTime: time.Now()}},
+						stepsTraces: []stepTrace{&Trace{name: "nested1", startTime: time.Now()}},
 					},
 				},
 			},
@@ -352,10 +351,9 @@ func TestLogIfLong(t *testing.T) {
 			klog.SetOutput(&buf)
 
 			tt.sampleTrace = New("Test trace")
-
-			for index, mod := range tt.mutateInfo {
-				tt.sampleTrace.Step(mod.msg)
-				tt.sampleTrace.steps[index].stepTime = currentTime.Add(mod.delay)
+			for _, mod := range tt.mutateInfo {
+				tt.sampleTrace.stepsTraces = append(tt.sampleTrace.stepsTraces,
+					&traceStep{stepTime: currentTime.Add(mod.delay), msg: mod.msg})
 			}
 
 			tt.sampleTrace.LogIfLong(tt.threshold)
@@ -363,55 +361,6 @@ func TestLogIfLong(t *testing.T) {
 			for _, msg := range tt.expectedMessages {
 				if msg != "" && !strings.Contains(buf.String(), msg) {
 					t.Errorf("Msg %q expected in trace log: \n%v\n", msg, buf.String())
-				}
-			}
-		})
-	}
-}
-
-func TestSortedTrace(t *testing.T) {
-	now := time.Now()
-	tenSecLater := now.Add(10 * time.Second)
-	fiveSecLater := now.Add(5 * time.Second)
-	tenSecEarly := now.Add(-10 * time.Second)
-	tests := []struct {
-		name        string
-		inputTrace  *Trace
-		sortedTrace []stepTrace
-	}{
-		{
-			name: "Sort trace and step",
-			inputTrace: &Trace{
-				name: "Sample Trace",
-				nestedTrace: []*Trace{
-					{name: "nested", startTime: tenSecLater},
-					{name: "nested", startTime: fiveSecLater},
-				},
-				steps: []traceStep{
-					{stepTime: now, msg: "step"},
-					{stepTime: tenSecEarly, msg: "step"},
-				},
-			},
-			sortedTrace: []stepTrace{
-				traceStep{stepTime: tenSecEarly, msg: "step"},
-				traceStep{stepTime: now, msg: "step"},
-				&Trace{name: "nested", startTime: fiveSecLater},
-				&Trace{name: "nested", startTime: tenSecLater},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sampleSortedTrace := tt.inputTrace.sortStepTrace()
-			if len(sampleSortedTrace) != len(tt.sortedTrace) {
-				t.Errorf("Expected trace %v of length %v but got trace %v of lenght %v", tt.sortedTrace,
-					len(tt.sortedTrace), sampleSortedTrace, len(sampleSortedTrace))
-			}
-
-			for i, s := range sampleSortedTrace {
-				if s.time() != tt.sortedTrace[i].time() {
-					t.Errorf("Wrong positions in sorted trace, expected %v but got %v", tt.sortedTrace[i], s)
 				}
 			}
 		})

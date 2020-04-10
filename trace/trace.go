@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
-	"sort"
 	"time"
 
 	"k8s.io/klog/v2"
@@ -34,25 +33,7 @@ type Field struct {
 
 type stepTrace interface {
 	time() time.Time
-	writeStep(b *bytes.Buffer, formatter string, stepDuration time.Duration, lastStepTime time.Time) time.Time
-}
-
-func (t *Trace) sortStepTrace() []stepTrace {
-	var arr []stepTrace
-
-	for _, step := range t.steps {
-		arr = append(arr, step)
-	}
-
-	for _, trace := range t.nestedTrace {
-		arr = append(arr, trace)
-	}
-
-	sort.Slice(arr, func(i, j int) bool {
-		return arr[i].time().Before(arr[j].time())
-	})
-
-	return arr
+	writeStep(b *bytes.Buffer, formatter string, t *Trace, stepDuration time.Duration, lastStepTime time.Time) time.Time
 }
 
 func (f Field) format() string {
@@ -92,7 +73,7 @@ func (s traceStep) time() time.Time {
 	return s.stepTime
 }
 
-func (s traceStep) writeStep(b *bytes.Buffer, formatter string, stepThreshold time.Duration,
+func (s traceStep) writeStep(b *bytes.Buffer, formatter string, parentTrace *Trace, stepThreshold time.Duration,
 	lastStepTime time.Time) time.Time {
 	stepDuration := s.stepTime.Sub(lastStepTime)
 	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
@@ -107,22 +88,32 @@ func (s traceStep) writeStep(b *bytes.Buffer, formatter string, stepThreshold ti
 type Trace struct {
 	name        string
 	fields      []Field
+	threshold   *time.Duration
 	startTime   time.Time
-	steps       []traceStep
-	nestedTrace []*Trace
+	stepsTraces []stepTrace
 }
 
 func (t *Trace) time() time.Time {
 	return t.startTime
 }
 
-func (t *Trace) writeStep(b *bytes.Buffer, formatter string, stepThreshold time.Duration,
+func (t *Trace) writeStep(b *bytes.Buffer, formatter string, parentTrace *Trace, stepThreshold time.Duration,
 	lastStepTime time.Time) time.Time {
-	b.WriteString(fmt.Sprintf("%v[", formatter))
-	writeMainLog(b, t.name, t.TotalTime(), t.startTime, t.fields)
-	_ = writeTrace(b, t, formatter+" ", stepThreshold)
-	b.WriteString("]")
-	return time.Time{}
+	stepDuration := t.startTime.Sub(lastStepTime)
+	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4) {
+		if t.threshold != nil {
+			stepThreshold = *parentTrace.threshold - *t.threshold
+			limitThreshold := *parentTrace.threshold / 4
+			if stepThreshold < limitThreshold {
+				stepThreshold = limitThreshold
+			}
+		}
+		b.WriteString(fmt.Sprintf("%v[", formatter))
+		writeMainLog(b, t.name, t.TotalTime(), t.startTime, t.fields)
+		_ = writeTrace(b, t, formatter+" ", stepThreshold)
+		b.WriteString("]")
+	}
+	return lastStepTime
 }
 
 // New creates a Trace with the specified name. The name identifies the operation to be traced. The
@@ -135,17 +126,17 @@ func New(name string, fields ...Field) *Trace {
 // how long it took. The Fields add key value pairs to provide additional details about the trace
 // step.
 func (t *Trace) Step(msg string, fields ...Field) {
-	if t.steps == nil {
+	if t.stepsTraces == nil {
 		// traces almost always have less than 6 steps, do this to avoid more than a single allocation
-		t.steps = make([]traceStep, 0, 6)
+		t.stepsTraces = make([]stepTrace, 0, 6)
 	}
-	t.steps = append(t.steps, traceStep{stepTime: time.Now(), msg: msg, fields: fields})
+	t.stepsTraces = append(t.stepsTraces, traceStep{stepTime: time.Now(), msg: msg, fields: fields})
 }
 
 // Nest adds a nested trace with the given message and fields and returns it.
 func (t *Trace) Nest(msg string, fields ...Field) *Trace {
 	newTrace := New(msg, fields...)
-	t.nestedTrace = append(t.nestedTrace, newTrace)
+	t.stepsTraces = append(t.stepsTraces, newTrace)
 	return newTrace
 }
 
@@ -178,25 +169,23 @@ func (t *Trace) logWithStepThreshold(stepThreshold time.Duration) {
 
 func writeTrace(b *bytes.Buffer, t *Trace, formatter string, stepThreshold time.Duration) time.Time {
 	lastStepTime := t.startTime
-	stepAndTraces := t.sortStepTrace()
+	stepAndTraces := t.stepsTraces
 	if len(stepAndTraces) == 0 {
 		return lastStepTime
 	}
 	for _, stepOrTrace := range stepAndTraces {
-		blankTime := time.Time{}
-		stepTime := stepOrTrace.writeStep(b, formatter, stepThreshold, lastStepTime)
-		if stepTime != blankTime {
-			lastStepTime = stepTime
-		}
+		stepTime := stepOrTrace.writeStep(b, formatter, t, stepThreshold, lastStepTime)
+		lastStepTime = stepTime
 	}
 	return lastStepTime
 }
 
 // LogIfLong is used to dump steps that took longer than its share
 func (t *Trace) LogIfLong(threshold time.Duration) {
+	t.threshold = &threshold
 	if time.Since(t.startTime) >= threshold {
 		// if any step took more than it's share of the total allowed time, it deserves a higher log level
-		stepThreshold := threshold / time.Duration(len(t.steps)+1)
+		stepThreshold := threshold / time.Duration(len(t.stepsTraces)+1)
 		t.logWithStepThreshold(stepThreshold)
 	}
 }

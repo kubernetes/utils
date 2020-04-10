@@ -41,7 +41,7 @@ func TestFakeDir(t *testing.T) {
 		t.Fatalf(`file content is %q, expected "Bonjour!"`, got)
 	}
 
-	f, err = d.NewFile("ONE")
+	_, err = d.NewFile("ONE")
 	if err == nil {
 		t.Fatal("Same file could be created twice.")
 	}
@@ -56,7 +56,7 @@ func TestFakeDir(t *testing.T) {
 		t.Fatal("FakeDir could be deleted twice.")
 	}
 
-	f, err = d.NewFile("TWO")
+	_, err = d.NewFile("TWO")
 	if err == nil {
 		t.Fatal("NewFile could be created in deleted dir")
 	}

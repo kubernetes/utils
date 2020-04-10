@@ -18,6 +18,7 @@ package trace
 
 import (
 	"bytes"
+	"flag"
 	"os"
 	"strings"
 	"testing"
@@ -25,6 +26,11 @@ import (
 
 	"k8s.io/klog/v2"
 )
+
+func init() {
+	klog.InitFlags(flag.CommandLine)
+	flag.CommandLine.Lookup("logtostderr").Value.Set("false")
+}
 
 func TestStep(t *testing.T) {
 	tests := []struct {

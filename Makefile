@@ -13,7 +13,10 @@
 # limitations under the License.
 
 .PHONY: verify
-verify: verify-fmt verify-lint vet
+verify: verify-fmt verify-lint vet test
+
+.PHONY: test
+test:
 	GO111MODULE=on go test -v -race ./...
 
 .PHONY: verify-fmt

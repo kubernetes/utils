@@ -91,6 +91,7 @@ type Trace struct {
 	threshold   *time.Duration
 	startTime   time.Time
 	stepsTraces []stepTrace
+	parentTrace *Trace
 }
 
 func (t *Trace) time() time.Time {
@@ -99,20 +100,13 @@ func (t *Trace) time() time.Time {
 
 func (t *Trace) writeStep(b *bytes.Buffer, formatter string, parentTrace *Trace, stepThreshold time.Duration,
 	lastStepTime time.Time) time.Time {
-	stepDuration := t.startTime.Sub(lastStepTime)
-	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4) {
-		if t.threshold != nil {
-			stepThreshold = *parentTrace.threshold - *t.threshold
-			limitThreshold := *parentTrace.threshold / 4
-			if stepThreshold < limitThreshold {
-				stepThreshold = limitThreshold
-			}
-		}
-		b.WriteString(fmt.Sprintf("%v[", formatter))
-		writeMainLog(b, t.name, t.TotalTime(), t.startTime, t.fields)
-		_ = writeTrace(b, t, formatter+" ", stepThreshold)
-		b.WriteString("]")
+	if t.threshold != nil {
+		stepThreshold = calculateStepThreshold(t)
 	}
+	b.WriteString(fmt.Sprintf("%v[", formatter))
+	writeMainLog(b, t.name, t.TotalTime(), t.startTime, t.fields)
+	_ = writeTrace(b, t, formatter+" ", stepThreshold)
+	b.WriteString("]")
 	return lastStepTime
 }
 
@@ -136,6 +130,7 @@ func (t *Trace) Step(msg string, fields ...Field) {
 // Nest adds a nested trace with the given message and fields and returns it.
 func (t *Trace) Nest(msg string, fields ...Field) *Trace {
 	newTrace := New(msg, fields...)
+	newTrace.parentTrace = t
 	t.stepsTraces = append(t.stepsTraces, newTrace)
 	return newTrace
 }
@@ -183,14 +178,43 @@ func writeTrace(b *bytes.Buffer, t *Trace, formatter string, stepThreshold time.
 // LogIfLong is used to dump steps that took longer than its share
 func (t *Trace) LogIfLong(threshold time.Duration) {
 	t.threshold = &threshold
-	if time.Since(t.startTime) >= threshold {
+	if time.Since(t.startTime) >= threshold || t.parentTrace == nil {
 		// if any step took more than it's share of the total allowed time, it deserves a higher log level
-		stepThreshold := threshold / time.Duration(len(t.stepsTraces)+1)
+		stepThreshold := calculateStepThreshold(t)
 		t.logWithStepThreshold(stepThreshold)
+	} else {
+		for _, s := range t.stepsTraces {
+			nestedTrace, ok := s.(*Trace)
+			if ok && nestedTrace.threshold != nil && time.Since(nestedTrace.startTime) >= *nestedTrace.threshold  {
+				stepThreshold := calculateStepThreshold(nestedTrace)
+				nestedTrace.logWithStepThreshold(stepThreshold)
+			}
+		}
 	}
 }
 
 // TotalTime can be used to figure out how long it took since the Trace was created
 func (t *Trace) TotalTime() time.Duration {
 	return time.Since(t.startTime)
+}
+
+func calculateStepThreshold(t *Trace) time.Duration {
+	lenTrace := len(t.stepsTraces) + 1
+	traceThreshold := *t.threshold
+	for _, s := range t.stepsTraces {
+		nestedTrace, ok := s.(*Trace)
+		if ok && nestedTrace.threshold != nil {
+			traceThreshold = traceThreshold - *nestedTrace.threshold
+			lenTrace--
+		}
+	}
+
+	limitThreshold := *t.threshold / 4
+	if traceThreshold < limitThreshold {
+		traceThreshold = limitThreshold
+		lenTrace = len(t.stepsTraces) + 1
+	}
+
+	stepThreshold := traceThreshold / time.Duration(lenTrace)
+	return stepThreshold
 }

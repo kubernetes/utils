@@ -155,7 +155,7 @@ func (t *Trace) logWithStepThreshold(stepThreshold time.Duration) {
 	buffer.WriteString(fmt.Sprintf("(%v) (total time: %vms):", t.startTime.Format("02-Jan-2006 15:04:00.000"), totalTime.Milliseconds()))
 	lastStepTime := writeTrace(&buffer, t, fmt.Sprintf("\nTrace[%d]: ", tracenum), stepThreshold)
 	stepDuration := endTime.Sub(lastStepTime)
-	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled()  {
+	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
 		buffer.WriteString(fmt.Sprintf("\nTrace[%d]: [%v] [%v] END\n", tracenum, endTime.Sub(t.startTime), stepDuration))
 	}
 
@@ -185,7 +185,7 @@ func (t *Trace) LogIfLong(threshold time.Duration) {
 	} else {
 		for _, s := range t.stepsTraces {
 			nestedTrace, ok := s.(*Trace)
-			if ok && nestedTrace.threshold != nil && time.Since(nestedTrace.startTime) >= *nestedTrace.threshold  {
+			if ok && nestedTrace.threshold != nil && time.Since(nestedTrace.startTime) >= *nestedTrace.threshold {
 				stepThreshold := calculateStepThreshold(nestedTrace)
 				nestedTrace.logWithStepThreshold(stepThreshold)
 			}

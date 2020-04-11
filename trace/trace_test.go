@@ -208,7 +208,7 @@ func TestNestedTraceLog(t *testing.T) {
 				"Sample Trace", "msg1", "msg2", "msg3",
 			},
 			sampleTrace: &Trace{
-				name: "Sample Trace",
+				name:      "Sample Trace",
 				threshold: &thousandMs,
 				stepsTraces: []stepTrace{
 					&Trace{startTime: time.Now(), name: "msg1"},
@@ -223,7 +223,7 @@ func TestNestedTraceLog(t *testing.T) {
 				"Sample Trace", "msg1", "msg2", "msg3", "step1", "step2", "step3",
 			},
 			sampleTrace: &Trace{
-				name: "Sample Trace",
+				name:      "Sample Trace",
 				threshold: &thousandMs,
 				stepsTraces: []stepTrace{
 					&Trace{startTime: time.Now(), name: "msg1"},
@@ -241,7 +241,7 @@ func TestNestedTraceLog(t *testing.T) {
 				"Sample Trace", `"msg1" str:text,int:2,bool:false`,
 			},
 			sampleTrace: &Trace{
-				name: "Sample Trace",
+				name:      "Sample Trace",
 				threshold: &thousandMs,
 				stepsTraces: []stepTrace{
 					&Trace{startTime: time.Now(), name: "msg1", fields: []Field{{"str", "text"}, {"int", 2}, {"bool",
@@ -255,7 +255,7 @@ func TestNestedTraceLog(t *testing.T) {
 				"Sample Trace", "msg1", "nested1",
 			},
 			sampleTrace: &Trace{
-				name: "Sample Trace",
+				name:      "Sample Trace",
 				threshold: &thousandMs,
 				stepsTraces: []stepTrace{
 					&Trace{
@@ -380,9 +380,9 @@ func TestStepThreshold(t *testing.T) {
 	hundredMs := 100 * time.Millisecond
 	twoThousandMs := 1200 * time.Millisecond
 
-	tests := []struct{
-		name string
-		inputTrace *Trace
+	tests := []struct {
+		name              string
+		inputTrace        *Trace
 		expectedThreshold time.Duration
 	}{
 		{
@@ -390,36 +390,36 @@ func TestStepThreshold(t *testing.T) {
 			inputTrace: &Trace{
 				threshold: &thousandMs,
 				stepsTraces: []stepTrace{
-					traceStep{ msg: "trace 1"},
-					traceStep{ msg: "trace 2"},
-					&Trace{ threshold:&sixHundred },
-					&Trace{ name: "msg 1" },
+					traceStep{msg: "trace 1"},
+					traceStep{msg: "trace 2"},
+					&Trace{threshold: &sixHundred},
+					&Trace{name: "msg 1"},
 				},
 			},
-			expectedThreshold: 100*time.Millisecond,
+			expectedThreshold: 100 * time.Millisecond,
 		},
 		{
 			name: "Trace with  nested traces",
 			inputTrace: &Trace{
 				threshold: &thousandMs,
 				stepsTraces: []stepTrace{
-					traceStep{ msg: "trace 1"},
-					traceStep{ msg: "trace 2"},
-					&Trace{ threshold:&sixHundred },
-					&Trace{ name: "msg 1", threshold: &hundredMs},
+					traceStep{msg: "trace 1"},
+					traceStep{msg: "trace 2"},
+					&Trace{threshold: &sixHundred},
+					&Trace{name: "msg 1", threshold: &hundredMs},
 				},
 			},
-			expectedThreshold: 100*time.Millisecond,
+			expectedThreshold: 100 * time.Millisecond,
 		},
 		{
 			name: "Trace with nested traces with a large threshold",
 			inputTrace: &Trace{
 				threshold: &thousandMs,
 				stepsTraces: []stepTrace{
-					&Trace{ threshold:&twoThousandMs },
+					&Trace{threshold: &twoThousandMs},
 				},
 			},
-			expectedThreshold: 125*time.Millisecond,
+			expectedThreshold: 125 * time.Millisecond,
 		},
 	}
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 .PHONY: verify
-verify: verify-fmt verify-lint vet test
+verify: verify-fmt verify-lint verify-apidiff vet test
 
 .PHONY: test
 test:
@@ -26,6 +26,10 @@ verify-fmt:
 .PHONY: verify-lint
 verify-lint:
 	GO111MODULE=on ./hack/verify-golint.sh
+
+.PHONY: verify-apidiff
+verify-apidiff:
+	GO111MODULE=on ./hack/verify-apidiff.sh -r master
 
 .PHONY: vet
 vet:

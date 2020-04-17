@@ -378,43 +378,43 @@ func TestLogNestedTrace(t *testing.T) {
 	five := 5 * time.Millisecond
 	currentTime := time.Now()
 
-	tests := []struct{
-		name string
-		expectedMsgs []string
+	tests := []struct {
+		name          string
+		expectedMsgs  []string
 		unexpectedMsg []string
-		trace *Trace
+		trace         *Trace
 	}{
 		{
-			name: "Log nested trace when it surpasses threshold",
-			expectedMsgs: []string{"inner1"},
+			name:          "Log nested trace when it surpasses threshold",
+			expectedMsgs:  []string{"inner1"},
 			unexpectedMsg: []string{"msg"},
 			trace: &Trace{
-				name: "msg",
+				name:      "msg",
 				startTime: currentTime.Add(10),
 				stepsTraces: []stepTrace{
 					&Trace{
-						name: "inner1",
+						name:      "inner1",
 						threshold: &five,
-						startTime: currentTime.Add(-10* time.Millisecond),
+						startTime: currentTime.Add(-10 * time.Millisecond),
 					},
 				},
 			},
 		},
 		{
-			name: "Log inner nested trace when it surpasses threshold",
-			expectedMsgs: []string{"inner inner"},
+			name:          "Log inner nested trace when it surpasses threshold",
+			expectedMsgs:  []string{"inner inner"},
 			unexpectedMsg: []string{"msg", "inner1"},
 			trace: &Trace{
-				name: "msg",
+				name:      "msg",
 				startTime: currentTime.Add(10),
 				stepsTraces: []stepTrace{
 					&Trace{
 						name: "inner1",
 						stepsTraces: []stepTrace{
 							&Trace{
-								name: "inner inner",
+								name:      "inner inner",
 								threshold: &five,
-								startTime: currentTime.Add(-10* time.Millisecond),
+								startTime: currentTime.Add(-10 * time.Millisecond),
 							},
 						},
 					},

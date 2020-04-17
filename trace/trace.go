@@ -33,7 +33,8 @@ type Field struct {
 
 type stepTrace interface {
 	time() time.Time
-	writeStep(b *bytes.Buffer, formatter string, t *Trace, stepDuration time.Duration, lastStepTime time.Time) time.Time
+	writeStep(b *bytes.Buffer, formatter string, stepDuration time.Duration,
+		lastStepTime time.Time) time.Time
 }
 
 func (f Field) format() string {
@@ -73,7 +74,7 @@ func (s traceStep) time() time.Time {
 	return s.stepTime
 }
 
-func (s traceStep) writeStep(b *bytes.Buffer, formatter string, parentTrace *Trace, stepThreshold time.Duration,
+func (s traceStep) writeStep(b *bytes.Buffer, formatter string, stepThreshold time.Duration,
 	lastStepTime time.Time) time.Time {
 	stepDuration := s.stepTime.Sub(lastStepTime)
 	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
@@ -98,7 +99,7 @@ func (t *Trace) time() time.Time {
 	return t.startTime
 }
 
-func (t *Trace) writeStep(b *bytes.Buffer, formatter string, parentTrace *Trace, stepThreshold time.Duration,
+func (t *Trace) writeStep(b *bytes.Buffer, formatter string, stepThreshold time.Duration,
 	lastStepTime time.Time) time.Time {
 	if t.threshold != nil {
 		stepThreshold = calculateStepThreshold(t)
@@ -169,7 +170,7 @@ func writeTrace(b *bytes.Buffer, t *Trace, formatter string, stepThreshold time.
 		return lastStepTime
 	}
 	for _, stepOrTrace := range stepAndTraces {
-		stepTime := stepOrTrace.writeStep(b, formatter, t, stepThreshold, lastStepTime)
+		stepTime := stepOrTrace.writeStep(b, formatter, stepThreshold, lastStepTime)
 		lastStepTime = stepTime
 	}
 	return lastStepTime
@@ -178,16 +179,24 @@ func writeTrace(b *bytes.Buffer, t *Trace, formatter string, stepThreshold time.
 // LogIfLong is used to dump steps that took longer than its share
 func (t *Trace) LogIfLong(threshold time.Duration) {
 	t.threshold = &threshold
-	if time.Since(t.startTime) >= threshold || t.parentTrace == nil {
+	if time.Since(t.startTime) >= threshold && t.parentTrace == nil {
 		// if any step took more than it's share of the total allowed time, it deserves a higher log level
 		stepThreshold := calculateStepThreshold(t)
 		t.logWithStepThreshold(stepThreshold)
 	} else {
-		for _, s := range t.stepsTraces {
-			nestedTrace, ok := s.(*Trace)
-			if ok && nestedTrace.threshold != nil && time.Since(nestedTrace.startTime) >= *nestedTrace.threshold {
+		recursiveLogIfLog(t)
+	}
+}
+
+func recursiveLogIfLog(t *Trace) {
+	for _, s := range t.stepsTraces {
+		nestedTrace, ok := s.(*Trace)
+		if ok {
+			if nestedTrace.threshold != nil && time.Since(nestedTrace.startTime) >= *nestedTrace.threshold {
 				stepThreshold := calculateStepThreshold(nestedTrace)
 				nestedTrace.logWithStepThreshold(stepThreshold)
+			} else {
+				recursiveLogIfLog(nestedTrace)
 			}
 		}
 	}
@@ -209,6 +218,8 @@ func calculateStepThreshold(t *Trace) time.Duration {
 		}
 	}
 
+	// the limit threshold is used when the threshold(
+	//remaining after subtracting that of the child trace) is getting very close to zero to prevent unnecessary logging
 	limitThreshold := *t.threshold / 4
 	if traceThreshold < limitThreshold {
 		traceThreshold = limitThreshold

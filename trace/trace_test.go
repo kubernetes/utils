@@ -373,6 +373,79 @@ func TestLogIfLong(t *testing.T) {
 	}
 }
 
+func TestLogNestedTrace(t *testing.T) {
+	twoHundred := 200 * time.Millisecond
+	five := 5 * time.Millisecond
+	currentTime := time.Now()
+
+	tests := []struct{
+		name string
+		expectedMsgs []string
+		unexpectedMsg []string
+		trace *Trace
+	}{
+		{
+			name: "Log nested trace when it surpasses threshold",
+			expectedMsgs: []string{"inner1"},
+			unexpectedMsg: []string{"msg"},
+			trace: &Trace{
+				name: "msg",
+				startTime: currentTime.Add(10),
+				stepsTraces: []stepTrace{
+					&Trace{
+						name: "inner1",
+						threshold: &five,
+						startTime: currentTime.Add(-10* time.Millisecond),
+					},
+				},
+			},
+		},
+		{
+			name: "Log inner nested trace when it surpasses threshold",
+			expectedMsgs: []string{"inner inner"},
+			unexpectedMsg: []string{"msg", "inner1"},
+			trace: &Trace{
+				name: "msg",
+				startTime: currentTime.Add(10),
+				stepsTraces: []stepTrace{
+					&Trace{
+						name: "inner1",
+						stepsTraces: []stepTrace{
+							&Trace{
+								name: "inner inner",
+								threshold: &five,
+								startTime: currentTime.Add(-10* time.Millisecond),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			klog.SetOutput(&buf)
+
+			tt.trace.LogIfLong(twoHundred)
+
+			for _, msg := range tt.expectedMsgs {
+				if msg != "" && !strings.Contains(buf.String(), msg) {
+					t.Errorf("Msg %q expected in trace log: \n%v\n", msg, buf.String())
+				}
+			}
+
+			for _, msg := range tt.unexpectedMsg {
+				if msg != "" && strings.Contains(buf.String(), msg) {
+					t.Errorf("Msg %q not expected in trace log: \n%v\n", msg, buf.String())
+				}
+			}
+		})
+
+	}
+}
+
 func TestStepThreshold(t *testing.T) {
 
 	thousandMs := 1000 * time.Millisecond

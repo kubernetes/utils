@@ -261,6 +261,11 @@ func (mounter *Mounter) IsLikelyNotMountPoint(file string) (bool, error) {
 	if err != nil {
 		return true, err
 	}
+	// This check is not applicable to files due to the fact that some filesystems like
+	// OverlayFS may show different devices for the file and its parent directory
+	if !stat.IsDir() {
+		return true, nil
+	}
 	rootStat, err := os.Stat(filepath.Dir(strings.TrimSuffix(file, "/")))
 	if err != nil {
 		return true, err

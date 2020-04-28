@@ -27,6 +27,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/google/uuid"
 	"k8s.io/klog/v2"
 	utilexec "k8s.io/utils/exec"
 	utilio "k8s.io/utils/io"
@@ -167,7 +168,12 @@ func detectSystemd() bool {
 	// to make sure that systemd is really running and not just installed,
 	// which happens when running in a container with a systemd-based image
 	// but with different pid 1.
-	cmd := exec.Command("systemd-run", "--description=Kubernetes systemd probe", "--scope", "true")
+	cmd := exec.Command(
+		"systemd-run",
+		"--description=Kubernetes systemd probe",
+		fmt.Sprintf("--unit=run-%s", uuid.New().String()),
+		"--scope",
+		"true")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		klog.V(2).Infof("Cannot run systemd-run, assuming non-systemd OS")
@@ -220,7 +226,8 @@ func MakeMountArgsSensitive(source, target, fstype string, options []string, sen
 // a safe to log string.
 func AddSystemdScope(systemdRunPath, mountName, command string, args []string) (string, []string) {
 	descriptionArg := fmt.Sprintf("--description=Kubernetes transient mount for %s", mountName)
-	systemdRunArgs := []string{descriptionArg, "--scope", "--", command}
+	scopeNameArg := fmt.Sprintf("--unit=run-%s", uuid.New().String())
+	systemdRunArgs := []string{descriptionArg, scopeNameArg, "--scope", "--", command}
 	return systemdRunPath, append(systemdRunArgs, args...)
 }
 
@@ -229,7 +236,8 @@ func AddSystemdScope(systemdRunPath, mountName, command string, args []string) (
 // and returns the string appended to the systemd command for logging.
 func AddSystemdScopeSensitive(systemdRunPath, mountName, command string, args []string, mountArgsLogStr string) (string, []string, string) {
 	descriptionArg := fmt.Sprintf("--description=Kubernetes transient mount for %s", mountName)
-	systemdRunArgs := []string{descriptionArg, "--scope", "--", command}
+	scopeNameArg := fmt.Sprintf("--unit=run-%s", uuid.New().String())
+	systemdRunArgs := []string{descriptionArg, scopeNameArg, "--scope", "--", command}
 	return systemdRunPath, append(systemdRunArgs, args...), strings.Join(systemdRunArgs, " ") + " " + mountArgsLogStr
 }
 

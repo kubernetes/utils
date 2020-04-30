@@ -31,12 +31,6 @@ type Field struct {
 	Value interface{}
 }
 
-type stepTrace interface {
-	time() time.Time
-	writeStep(b *bytes.Buffer, formatter string, stepDuration time.Duration,
-		lastStepTime time.Time) time.Time
-}
-
 func (f Field) format() string {
 	return fmt.Sprintf("%s:%v", f.Key, f.Value)
 }
@@ -50,7 +44,7 @@ func writeFields(b *bytes.Buffer, l []Field) {
 	}
 }
 
-func writeMainLog(b *bytes.Buffer, msg string, totalTime time.Duration, startTime time.Time, fields []Field) {
+func writeTraceItemSummary(b *bytes.Buffer, msg string, totalTime time.Duration, startTime time.Time, fields []Field) {
 	b.WriteString(fmt.Sprintf("%q ", msg))
 	if len(fields) > 0 {
 		writeFields(b, fields)
@@ -64,6 +58,14 @@ func durationToMilliseconds(timeDuration time.Duration) int64 {
 	return timeDuration.Nanoseconds() / 1e6
 }
 
+type traceItem interface {
+	// time returns when the trace was recorded as completed.
+	time() time.Time
+	// writeItem outputs the traceItem to the buffer. If stepThreshold is non-nil, only output the
+	// traceItem if its the duration exceeds the stepThreshold.
+	writeItem(b *bytes.Buffer, formatter string, startTime time.Time, stepThreshold *time.Duration)
+}
+
 type traceStep struct {
 	stepTime time.Time
 	msg      string
@@ -74,14 +76,12 @@ func (s traceStep) time() time.Time {
 	return s.stepTime
 }
 
-func (s traceStep) writeStep(b *bytes.Buffer, formatter string, stepThreshold time.Duration,
-	lastStepTime time.Time) time.Time {
-	stepDuration := s.stepTime.Sub(lastStepTime)
-	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
-		b.WriteString(fmt.Sprintf("%v---", formatter))
-		writeMainLog(b, s.msg, stepDuration, s.stepTime, s.fields)
+func (s traceStep) writeItem(b *bytes.Buffer, formatter string, startTime time.Time, stepThreshold *time.Duration) {
+	stepDuration := s.stepTime.Sub(startTime)
+	if stepThreshold == nil || *stepThreshold == 0 || stepDuration >= *stepThreshold {
+		b.WriteString(fmt.Sprintf("%s---", formatter))
+		writeTraceItemSummary(b, s.msg, stepDuration, s.stepTime, s.fields)
 	}
-	return s.stepTime
 }
 
 // Trace keeps track of a set of "steps" and allows us to log a specific
@@ -91,24 +91,35 @@ type Trace struct {
 	fields      []Field
 	threshold   *time.Duration
 	startTime   time.Time
-	stepsTraces []stepTrace
+	endTime     *time.Time
+	traceItems  []traceItem
 	parentTrace *Trace
 }
 
 func (t *Trace) time() time.Time {
-	return t.startTime
+	if t.endTime != nil {
+		return *t.endTime
+	}
+	return t.startTime // if the trace is incomplete, don't assume an end time
 }
 
-func (t *Trace) writeStep(b *bytes.Buffer, formatter string, stepThreshold time.Duration,
-	lastStepTime time.Time) time.Time {
-	if t.threshold != nil {
-		stepThreshold = calculateStepThreshold(t)
+func (t *Trace) writeItem(b *bytes.Buffer, formatter string, startTime time.Time, stepThreshold *time.Duration) {
+	if t.durationIsWithinThreshold() {
+		b.WriteString(fmt.Sprintf("%v[", formatter))
+		writeTraceItemSummary(b, t.name, t.TotalTime(), t.startTime, t.fields)
+		if st := t.calculateStepThreshold(); st != nil {
+			stepThreshold = st
+		}
+		t.writeTraceSteps(b, formatter+" ", stepThreshold)
+		b.WriteString("]")
+		return
 	}
-	b.WriteString(fmt.Sprintf("%v[", formatter))
-	writeMainLog(b, t.name, t.TotalTime(), t.startTime, t.fields)
-	_ = writeTrace(b, t, formatter+" ", stepThreshold)
-	b.WriteString("]")
-	return lastStepTime
+	// If the trace should not be written, still check for nested traces that should be written
+	for _, s := range t.traceItems {
+		if nestedTrace, ok := s.(*Trace); ok {
+			nestedTrace.writeItem(b, formatter, startTime, stepThreshold)
+		}
+	}
 }
 
 // New creates a Trace with the specified name. The name identifies the operation to be traced. The
@@ -121,85 +132,89 @@ func New(name string, fields ...Field) *Trace {
 // how long it took. The Fields add key value pairs to provide additional details about the trace
 // step.
 func (t *Trace) Step(msg string, fields ...Field) {
-	if t.stepsTraces == nil {
+	if t.traceItems == nil {
 		// traces almost always have less than 6 steps, do this to avoid more than a single allocation
-		t.stepsTraces = make([]stepTrace, 0, 6)
+		t.traceItems = make([]traceItem, 0, 6)
 	}
-	t.stepsTraces = append(t.stepsTraces, traceStep{stepTime: time.Now(), msg: msg, fields: fields})
+	t.traceItems = append(t.traceItems, traceStep{stepTime: time.Now(), msg: msg, fields: fields})
 }
 
 // Nest adds a nested trace with the given message and fields and returns it.
 func (t *Trace) Nest(msg string, fields ...Field) *Trace {
 	newTrace := New(msg, fields...)
 	newTrace.parentTrace = t
-	t.stepsTraces = append(t.stepsTraces, newTrace)
+	t.traceItems = append(t.traceItems, newTrace)
 	return newTrace
 }
 
-// Log is used to dump all the steps in the Trace. It also logs the nested trace messages using indentation
+// Log is used to dump all the steps in the Trace. It also logs the nested trace messages using indentation.
+// If the Trace is nested it is not immediately logged. Instead, it is logged when the trace it is nested within
+// is logged.
 func (t *Trace) Log() {
-	// an explicit logging request should dump all the steps out at the higher level
-	t.logWithStepThreshold(0)
-}
-
-func (t *Trace) logWithStepThreshold(stepThreshold time.Duration) {
-	var buffer bytes.Buffer
-	tracenum := rand.Int31()
 	endTime := time.Now()
-
-	totalTime := endTime.Sub(t.startTime)
-	buffer.WriteString(fmt.Sprintf("Trace[%d]: %q ", tracenum, t.name))
-	if len(t.fields) > 0 {
-		writeFields(&buffer, t.fields)
-		buffer.WriteString(" ")
+	t.endTime = &endTime
+	// an explicit logging request should dump all the steps out at the higher level
+	if t.parentTrace == nil { // We don't start logging until Log or LogIfLong is called on the root trace
+		t.logTrace()
 	}
-	buffer.WriteString(fmt.Sprintf("(%v) (total time: %vms):", t.startTime.Format("02-Jan-2006 15:04:00.000"), totalTime.Milliseconds()))
-	lastStepTime := writeTrace(&buffer, t, fmt.Sprintf("\nTrace[%d]: ", tracenum), stepThreshold)
-	stepDuration := endTime.Sub(lastStepTime)
-	if stepThreshold == 0 || stepDuration > stepThreshold || klog.V(4).Enabled() {
-		buffer.WriteString(fmt.Sprintf("\nTrace[%d]: [%v] [%v] END\n", tracenum, endTime.Sub(t.startTime), stepDuration))
-	}
-
-	klog.Info(buffer.String())
 }
 
-func writeTrace(b *bytes.Buffer, t *Trace, formatter string, stepThreshold time.Duration) time.Time {
-	lastStepTime := t.startTime
-	stepAndTraces := t.stepsTraces
-	if len(stepAndTraces) == 0 {
-		return lastStepTime
-	}
-	for _, stepOrTrace := range stepAndTraces {
-		stepTime := stepOrTrace.writeStep(b, formatter, stepThreshold, lastStepTime)
-		lastStepTime = stepTime
-	}
-	return lastStepTime
-}
-
-// LogIfLong is used to dump steps that took longer than its share
+// LogIfLong only logs the trace if the duration of the trace exceeds the threshold.
+// Only steps that took longer than their share or the given threshold are logged.
+// If klog is at verbosity level 4 or higher, the trace and its steps are logged regardless of threshold.
+// If the Trace is nested it is not immediately logged. Instead, it is logged when the trace it is nested within
+// is logged.
 func (t *Trace) LogIfLong(threshold time.Duration) {
-	t.threshold = &threshold
-	if time.Since(t.startTime) >= threshold && t.parentTrace == nil {
-		// if any step took more than it's share of the total allowed time, it deserves a higher log level
-		stepThreshold := calculateStepThreshold(t)
-		t.logWithStepThreshold(stepThreshold)
-	} else {
-		recursiveLogIfLog(t)
+	if !klog.V(4).Enabled() { // don't set threshold if verbosity is level 4 of higher
+		t.threshold = &threshold
 	}
+	t.Log()
 }
 
-func recursiveLogIfLog(t *Trace) {
-	for _, s := range t.stepsTraces {
-		nestedTrace, ok := s.(*Trace)
-		if ok {
-			if nestedTrace.threshold != nil && time.Since(nestedTrace.startTime) >= *nestedTrace.threshold {
-				stepThreshold := calculateStepThreshold(nestedTrace)
-				nestedTrace.logWithStepThreshold(stepThreshold)
-			} else {
-				recursiveLogIfLog(nestedTrace)
-			}
+// logTopLevelTraces finds all traces in a hierarchy of nested traces that should be logged but do not have any
+// parents that will be logged, due to threshold limits, and logs them as top level traces.
+func (t *Trace) logTrace() {
+	if t.durationIsWithinThreshold() {
+		var buffer bytes.Buffer
+		tracenum := rand.Int31()
+
+		totalTime := t.endTime.Sub(t.startTime)
+		buffer.WriteString(fmt.Sprintf("Trace[%d]: %q ", tracenum, t.name))
+		if len(t.fields) > 0 {
+			writeFields(&buffer, t.fields)
+			buffer.WriteString(" ")
+		}
+
+		// if any step took more than it's share of the total allowed time, it deserves a higher log level
+		buffer.WriteString(fmt.Sprintf("(%v) (total time: %vms):", t.startTime.Format("02-Jan-2006 15:04:00.000"), totalTime.Milliseconds()))
+		stepThreshold := t.calculateStepThreshold()
+		t.writeTraceSteps(&buffer, fmt.Sprintf("\nTrace[%d]: ", tracenum), stepThreshold)
+		buffer.WriteString(fmt.Sprintf("\nTrace[%d]: [%v] [%v] END\n", tracenum, t.endTime.Sub(t.startTime), totalTime))
+
+		klog.Info(buffer.String())
+		return
+	}
+	// If the trace should not be logged, still check if nested traces should be logged
+	for _, s := range t.traceItems {
+		if nestedTrace, ok := s.(*Trace); ok {
+			nestedTrace.logTrace()
 		}
 	}
+}
+
+func (t *Trace) writeTraceSteps(b *bytes.Buffer, formatter string, stepThreshold *time.Duration) {
+	lastStepTime := t.startTime
+	for _, stepOrTrace := range t.traceItems {
+		stepOrTrace.writeItem(b, formatter, lastStepTime, stepThreshold)
+		lastStepTime = stepOrTrace.time()
+	}
+}
+
+func (t *Trace) durationIsWithinThreshold() bool {
+	if t.endTime == nil { // we don't assume incomplete traces meet the threshold
+		return false
+	}
+	return t.threshold == nil || *t.threshold == 0 || t.endTime.Sub(t.startTime) >= *t.threshold
 }
 
 // TotalTime can be used to figure out how long it took since the Trace was created
@@ -207,10 +222,16 @@ func (t *Trace) TotalTime() time.Duration {
 	return time.Since(t.startTime)
 }
 
-func calculateStepThreshold(t *Trace) time.Duration {
-	lenTrace := len(t.stepsTraces) + 1
+// calculateStepThreshold returns a threshold for the individual steps of a trace, or nil if there is no threshold and
+// all steps should be written.
+// TODO: If Log is called instead of LogIfLong, we should print all steps, right? This should be documented clearly.
+func (t *Trace) calculateStepThreshold() *time.Duration {
+	if t.threshold == nil {
+		return nil
+	}
+	lenTrace := len(t.traceItems) + 1
 	traceThreshold := *t.threshold
-	for _, s := range t.stepsTraces {
+	for _, s := range t.traceItems {
 		nestedTrace, ok := s.(*Trace)
 		if ok && nestedTrace.threshold != nil {
 			traceThreshold = traceThreshold - *nestedTrace.threshold
@@ -223,9 +244,9 @@ func calculateStepThreshold(t *Trace) time.Duration {
 	limitThreshold := *t.threshold / 4
 	if traceThreshold < limitThreshold {
 		traceThreshold = limitThreshold
-		lenTrace = len(t.stepsTraces) + 1
+		lenTrace = len(t.traceItems) + 1
 	}
 
 	stepThreshold := traceThreshold / time.Duration(lenTrace)
-	return stepThreshold
+	return &stepThreshold
 }

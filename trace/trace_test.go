@@ -42,7 +42,7 @@ func TestStep(t *testing.T) {
 			name:        "When string is empty",
 			inputString: "",
 			expectedTrace: &Trace{
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					traceStep{stepTime: time.Now(), msg: ""},
 				},
 			},
@@ -51,7 +51,7 @@ func TestStep(t *testing.T) {
 			name:        "When string is not empty",
 			inputString: "test2",
 			expectedTrace: &Trace{
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					traceStep{stepTime: time.Now(), msg: "test2"},
 				},
 			},
@@ -62,7 +62,7 @@ func TestStep(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			sampleTrace := &Trace{}
 			sampleTrace.Step(tt.inputString)
-			if sampleTrace.stepsTraces[0].(traceStep).msg != tt.expectedTrace.stepsTraces[0].(traceStep).msg {
+			if sampleTrace.traceItems[0].(traceStep).msg != tt.expectedTrace.traceItems[0].(traceStep).msg {
 				t.Errorf("Expected %v \n Got %v \n", tt.expectedTrace, sampleTrace)
 			}
 		})
@@ -79,7 +79,7 @@ func TestNestedTrace(t *testing.T) {
 			name:        "Empty string",
 			inputString: "",
 			expectedTrace: &Trace{
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					&Trace{startTime: time.Now(), name: ""},
 				},
 			},
@@ -88,11 +88,11 @@ func TestNestedTrace(t *testing.T) {
 			name:        "Non-empty string",
 			inputString: "Inner trace",
 			expectedTrace: &Trace{
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					&Trace{
 						startTime: time.Now(),
 						name:      "Inner trace",
-						stepsTraces: []stepTrace{
+						traceItems: []traceItem{
 							&Trace{name: "Inner trace"},
 						},
 					},
@@ -106,7 +106,7 @@ func TestNestedTrace(t *testing.T) {
 			sampleTrace := &Trace{}
 			innerSampleTrace := sampleTrace.Nest(tt.inputString)
 			innerSampleTrace.Nest(tt.inputString)
-			if sampleTrace.stepsTraces[0].(*Trace).name != tt.expectedTrace.stepsTraces[0].(*Trace).name {
+			if sampleTrace.traceItems[0].(*Trace).name != tt.expectedTrace.traceItems[0].(*Trace).name {
 				t.Errorf("Expected %v \n Got %v \n", tt.expectedTrace, sampleTrace)
 			}
 		})
@@ -147,7 +147,7 @@ func TestLog(t *testing.T) {
 			},
 			sampleTrace: &Trace{
 				name: "Sample Trace",
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					&traceStep{stepTime: time.Now(), msg: "msg1"},
 					&traceStep{stepTime: time.Now(), msg: "msg2"},
 					&traceStep{stepTime: time.Now(), msg: "msg3"},
@@ -162,7 +162,7 @@ func TestLog(t *testing.T) {
 			sampleTrace: &Trace{
 				name:   "Sample Trace",
 				fields: []Field{{"URL", "/api"}, {"count", 3}},
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					&traceStep{stepTime: time.Now(), msg: "msg1", fields: []Field{{"str", "text"}, {"int", 2}, {"bool",
 						false}}},
 					&traceStep{stepTime: time.Now(), msg: "msg2", fields: []Field{{"x", "1"}}},
@@ -193,8 +193,7 @@ func TestLog(t *testing.T) {
 }
 
 func TestNestedTraceLog(t *testing.T) {
-	thousandMs := 1000 * time.Millisecond
-
+	currentTime := time.Now()
 	tests := []struct {
 		name             string
 		msg              string
@@ -208,12 +207,11 @@ func TestNestedTraceLog(t *testing.T) {
 				"Sample Trace", "msg1", "msg2", "msg3",
 			},
 			sampleTrace: &Trace{
-				name:      "Sample Trace",
-				threshold: &thousandMs,
-				stepsTraces: []stepTrace{
-					&Trace{startTime: time.Now(), name: "msg1"},
-					&Trace{startTime: time.Now(), name: "msg2"},
-					&Trace{startTime: time.Now(), name: "msg3"},
+				name: "Sample Trace",
+				traceItems: []traceItem{
+					&Trace{startTime: currentTime, endTime: &currentTime, name: "msg1"},
+					&Trace{startTime: currentTime, endTime: &currentTime, name: "msg2"},
+					&Trace{startTime: currentTime, endTime: &currentTime, name: "msg3"},
 				},
 			},
 		},
@@ -223,15 +221,14 @@ func TestNestedTraceLog(t *testing.T) {
 				"Sample Trace", "msg1", "msg2", "msg3", "step1", "step2", "step3",
 			},
 			sampleTrace: &Trace{
-				name:      "Sample Trace",
-				threshold: &thousandMs,
-				stepsTraces: []stepTrace{
-					&Trace{startTime: time.Now(), name: "msg1"},
-					&Trace{startTime: time.Now(), name: "msg2"},
-					&Trace{startTime: time.Now(), name: "msg3"},
-					&traceStep{stepTime: time.Now(), msg: "step1"},
-					&traceStep{stepTime: time.Now(), msg: "step2"},
-					&traceStep{stepTime: time.Now(), msg: "step3"},
+				name: "Sample Trace",
+				traceItems: []traceItem{
+					&Trace{startTime: currentTime, endTime: &currentTime, name: "msg1"},
+					&Trace{startTime: currentTime, endTime: &currentTime, name: "msg2"},
+					&Trace{startTime: currentTime, endTime: &currentTime, name: "msg3"},
+					&traceStep{stepTime: currentTime, msg: "step1"},
+					&traceStep{stepTime: currentTime, msg: "step2"},
+					&traceStep{stepTime: currentTime, msg: "step3"},
 				},
 			},
 		},
@@ -241,11 +238,15 @@ func TestNestedTraceLog(t *testing.T) {
 				"Sample Trace", `"msg1" str:text,int:2,bool:false`,
 			},
 			sampleTrace: &Trace{
-				name:      "Sample Trace",
-				threshold: &thousandMs,
-				stepsTraces: []stepTrace{
-					&Trace{startTime: time.Now(), name: "msg1", fields: []Field{{"str", "text"}, {"int", 2}, {"bool",
-						false}}},
+				name: "Sample Trace",
+				traceItems: []traceItem{
+					&Trace{
+						startTime: currentTime,
+						endTime:   &currentTime,
+						name:      "msg1", fields: []Field{
+							{"str", "text"},
+							{"int", 2},
+							{"bool", false}}},
 				},
 			},
 		},
@@ -255,13 +256,13 @@ func TestNestedTraceLog(t *testing.T) {
 				"Sample Trace", "msg1", "nested1",
 			},
 			sampleTrace: &Trace{
-				name:      "Sample Trace",
-				threshold: &thousandMs,
-				stepsTraces: []stepTrace{
+				name: "Sample Trace",
+				traceItems: []traceItem{
 					&Trace{
-						startTime:   time.Now(),
-						name:        "msg1",
-						stepsTraces: []stepTrace{&Trace{name: "nested1", startTime: time.Now()}},
+						startTime:  currentTime,
+						endTime:    &currentTime,
+						name:       "msg1",
+						traceItems: []traceItem{&Trace{name: "nested1", startTime: currentTime, endTime: &currentTime}},
 					},
 				},
 			},
@@ -358,7 +359,7 @@ func TestLogIfLong(t *testing.T) {
 
 			tt.sampleTrace = New("Test trace")
 			for _, mod := range tt.mutateInfo {
-				tt.sampleTrace.stepsTraces = append(tt.sampleTrace.stepsTraces,
+				tt.sampleTrace.traceItems = append(tt.sampleTrace.traceItems,
 					&traceStep{stepTime: currentTime.Add(mod.delay), msg: mod.msg})
 			}
 
@@ -391,30 +392,108 @@ func TestLogNestedTrace(t *testing.T) {
 			trace: &Trace{
 				name:      "msg",
 				startTime: currentTime.Add(10),
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					&Trace{
 						name:      "inner1",
 						threshold: &five,
 						startTime: currentTime.Add(-10 * time.Millisecond),
+						endTime:   &currentTime,
 					},
 				},
 			},
 		},
 		{
 			name:          "Log inner nested trace when it surpasses threshold",
-			expectedMsgs:  []string{"inner inner"},
+			expectedMsgs:  []string{"inner2"},
 			unexpectedMsg: []string{"msg", "inner1"},
 			trace: &Trace{
 				name:      "msg",
 				startTime: currentTime.Add(10),
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					&Trace{
-						name: "inner1",
-						stepsTraces: []stepTrace{
+						name:      "inner1",
+						threshold: &five,
+						startTime: currentTime.Add(-1 * time.Millisecond),
+						endTime:   &currentTime,
+						traceItems: []traceItem{
 							&Trace{
-								name:      "inner inner",
+								name:      "inner2",
 								threshold: &five,
 								startTime: currentTime.Add(-10 * time.Millisecond),
+								endTime:   &currentTime,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "Log inner nested trace when it surpasses threshold and surrounding trace not ended",
+			expectedMsgs:  []string{"inner2"},
+			unexpectedMsg: []string{"msg", "inner1"},
+			trace: &Trace{
+				name:      "msg",
+				startTime: currentTime.Add(10),
+				traceItems: []traceItem{
+					&Trace{
+						name:      "inner1",
+						threshold: &five,
+						traceItems: []traceItem{
+							&Trace{
+								name:      "inner2",
+								threshold: &five,
+								startTime: currentTime.Add(-10 * time.Millisecond),
+								endTime:   &currentTime,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "Do not log nested trace that does not surpass threshold",
+			expectedMsgs:  []string{"msg", "inner2"},
+			unexpectedMsg: []string{"inner1"},
+			trace: &Trace{
+				name:      "msg",
+				startTime: currentTime.Add(-300 * time.Millisecond),
+				traceItems: []traceItem{
+					&Trace{
+						name:      "inner1",
+						threshold: &five,
+						startTime: currentTime.Add(-1 * time.Millisecond),
+						endTime:   &currentTime,
+						traceItems: []traceItem{
+							&Trace{
+								name:      "inner2",
+								threshold: &five,
+								startTime: currentTime.Add(-10 * time.Millisecond),
+								endTime:   &currentTime,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "Log all nested traces that surpass threshold",
+			expectedMsgs:  []string{"inner1", "inner2"},
+			unexpectedMsg: []string{"msg"},
+			trace: &Trace{
+				name:      "msg",
+				startTime: currentTime.Add(10),
+				traceItems: []traceItem{
+					&Trace{
+						name:      "inner1",
+						threshold: &five,
+						startTime: currentTime.Add(-10 * time.Millisecond),
+						endTime:   &currentTime,
+						traceItems: []traceItem{
+							&Trace{
+								name:      "inner2",
+								threshold: &five,
+								startTime: currentTime.Add(-10 * time.Millisecond),
+								endTime:   &currentTime,
 							},
 						},
 					},
@@ -462,7 +541,7 @@ func TestStepThreshold(t *testing.T) {
 			name: "Trace with  nested traces",
 			inputTrace: &Trace{
 				threshold: &thousandMs,
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					traceStep{msg: "trace 1"},
 					traceStep{msg: "trace 2"},
 					&Trace{threshold: &sixHundred},
@@ -475,7 +554,7 @@ func TestStepThreshold(t *testing.T) {
 			name: "Trace with  nested traces",
 			inputTrace: &Trace{
 				threshold: &thousandMs,
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					traceStep{msg: "trace 1"},
 					traceStep{msg: "trace 2"},
 					&Trace{threshold: &sixHundred},
@@ -488,7 +567,7 @@ func TestStepThreshold(t *testing.T) {
 			name: "Trace with nested traces with a large threshold",
 			inputTrace: &Trace{
 				threshold: &thousandMs,
-				stepsTraces: []stepTrace{
+				traceItems: []traceItem{
 					&Trace{threshold: &twoThousandMs},
 				},
 			},
@@ -497,7 +576,7 @@ func TestStepThreshold(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		actualThreshold := calculateStepThreshold(tt.inputTrace)
+		actualThreshold := *tt.inputTrace.calculateStepThreshold()
 		if actualThreshold != tt.expectedThreshold {
 			t.Errorf("Expecting %v threshold but got %v", tt.expectedThreshold, actualThreshold)
 		}

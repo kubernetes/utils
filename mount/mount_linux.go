@@ -236,7 +236,7 @@ func AddSystemdScopeSensitive(systemdRunPath, mountName, command string, args []
 // Unmount unmounts the target.
 func (mounter *Mounter) Unmount(target string) error {
 	klog.V(4).Infof("Unmounting %s", target)
-	command := exec.Command("umount", target)
+	command := exec.Command("umount", "-l", target)
 	output, err := command.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(output))

@@ -18,6 +18,7 @@ package trace
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"os"
 	"strings"
@@ -580,6 +581,28 @@ func TestStepThreshold(t *testing.T) {
 		if actualThreshold != tt.expectedThreshold {
 			t.Errorf("Expecting %v threshold but got %v", tt.expectedThreshold, actualThreshold)
 		}
+	}
+}
+
+func TestContext(t *testing.T) {
+	ctx := context.Background()
+
+	trace1 := GetTraceFromContext(ctx).Nest("op1")
+	ctx = ContextWithTrace(ctx, trace1)
+	defer trace1.Log()
+	func(ctx context.Context) {
+		trace2 := GetTraceFromContext(ctx).Nest("op2")
+		defer trace2.Log()
+	}(ctx)
+	if len(trace1.traceItems) != 1 {
+		t.Fatalf("expected len(trace1.traceItems) == 1, but got %d", len(trace1.traceItems))
+	}
+	nested, ok := trace1.traceItems[0].(*Trace)
+	if !ok {
+		t.Fatal("expected trace1.traceItems[0] to be a nested trace")
+	}
+	if nested.name != "op2" {
+		t.Errorf("expected trace named op2 to be nested in op1, but got %s", nested.name)
 	}
 }
 

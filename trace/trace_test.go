@@ -587,11 +587,11 @@ func TestStepThreshold(t *testing.T) {
 func TestContext(t *testing.T) {
 	ctx := context.Background()
 
-	trace1 := GetTraceFromContext(ctx).Nest("op1")
+	trace1 := FromContext(ctx).Nest("op1")
 	ctx = ContextWithTrace(ctx, trace1)
 	defer trace1.Log()
 	func(ctx context.Context) {
-		trace2 := GetTraceFromContext(ctx).Nest("op2")
+		trace2 := FromContext(ctx).Nest("op2")
 		defer trace2.Log()
 	}(ctx)
 	if len(trace1.traceItems) != 1 {

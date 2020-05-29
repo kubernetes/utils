@@ -143,7 +143,7 @@ func (t *Trace) Step(msg string, fields ...Field) {
 
 // Nest adds a nested trace with the given message and fields and returns it.
 // As a convenience, if the receiver is nil, returns a top level trace. This allows
-// one to call GetTraceFromContext(ctx).Nest without having to check if the trace
+// one to call FromContext(ctx).Nest without having to check if the trace
 // in the context is nil.
 func (t *Trace) Nest(msg string, fields ...Field) *Trace {
 	newTrace := New(msg, fields...)
@@ -261,11 +261,11 @@ func (t *Trace) calculateStepThreshold() *time.Duration {
 // ContextTraceKey provides a common key for traces in context.Context values.
 type ContextTraceKey struct{}
 
-// GetTraceFromContext returns the trace keyed by ContextTraceKey in the context values, if one
+// FromContext returns the trace keyed by ContextTraceKey in the context values, if one
 // is present, or nil If there is no trace in the Context.
 // It is safe to call Nest() on the returned value even if it is nil because ((*Trace)nil).Nest returns a top level
 // trace.
-func GetTraceFromContext(ctx context.Context) *Trace {
+func FromContext(ctx context.Context) *Trace {
 	if v, ok := ctx.Value(ContextTraceKey{}).(*Trace); ok {
 		return v
 	}

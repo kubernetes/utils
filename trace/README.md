@@ -58,7 +58,7 @@ a top level trace.
 
 ```go
 func doSomething(ctx context.Context) {
-    opTrace := trace.GetTraceFromContext(ctx).Nest("operation") // create a trace, possibly nested
+    opTrace := trace.FromContext(ctx).Nest("operation") // create a trace, possibly nested
     ctx = trace.ContextWithTrace(ctx, opTrace) // make this trace the parent trace of the context
     defer opTrace.LogIfLong(50 * time.Millisecond)
     

@@ -18,6 +18,7 @@ package trace
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math/rand"
 	"time"
@@ -63,6 +64,7 @@ type traceItem interface {
 	time() time.Time
 	// writeItem outputs the traceItem to the buffer. If stepThreshold is non-nil, only output the
 	// traceItem if its the duration exceeds the stepThreshold.
+	// Each line of output is prefixed by formatter to visually indent nested items.
 	writeItem(b *bytes.Buffer, formatter string, startTime time.Time, stepThreshold *time.Duration)
 }
 
@@ -140,10 +142,15 @@ func (t *Trace) Step(msg string, fields ...Field) {
 }
 
 // Nest adds a nested trace with the given message and fields and returns it.
+// As a convenience, if the receiver is nil, returns a top level trace. This allows
+// one to call FromContext(ctx).Nest without having to check if the trace
+// in the context is nil.
 func (t *Trace) Nest(msg string, fields ...Field) *Trace {
 	newTrace := New(msg, fields...)
-	newTrace.parentTrace = t
-	t.traceItems = append(t.traceItems, newTrace)
+	if t != nil {
+		newTrace.parentTrace = t
+		t.traceItems = append(t.traceItems, newTrace)
+	}
 	return newTrace
 }
 
@@ -176,10 +183,10 @@ func (t *Trace) LogIfLong(threshold time.Duration) {
 func (t *Trace) logTrace() {
 	if t.durationIsWithinThreshold() {
 		var buffer bytes.Buffer
-		tracenum := rand.Int31()
+		traceNum := rand.Int31()
 
 		totalTime := t.endTime.Sub(t.startTime)
-		buffer.WriteString(fmt.Sprintf("Trace[%d]: %q ", tracenum, t.name))
+		buffer.WriteString(fmt.Sprintf("Trace[%d]: %q ", traceNum, t.name))
 		if len(t.fields) > 0 {
 			writeFields(&buffer, t.fields)
 			buffer.WriteString(" ")
@@ -188,12 +195,13 @@ func (t *Trace) logTrace() {
 		// if any step took more than it's share of the total allowed time, it deserves a higher log level
 		buffer.WriteString(fmt.Sprintf("(%v) (total time: %vms):", t.startTime.Format("02-Jan-2006 15:04:00.000"), totalTime.Milliseconds()))
 		stepThreshold := t.calculateStepThreshold()
-		t.writeTraceSteps(&buffer, fmt.Sprintf("\nTrace[%d]: ", tracenum), stepThreshold)
-		buffer.WriteString(fmt.Sprintf("\nTrace[%d]: [%v] [%v] END\n", tracenum, t.endTime.Sub(t.startTime), totalTime))
+		t.writeTraceSteps(&buffer, fmt.Sprintf("\nTrace[%d]: ", traceNum), stepThreshold)
+		buffer.WriteString(fmt.Sprintf("\nTrace[%d]: [%v] [%v] END\n", traceNum, t.endTime.Sub(t.startTime), totalTime))
 
 		klog.Info(buffer.String())
 		return
 	}
+
 	// If the trace should not be logged, still check if nested traces should be logged
 	for _, s := range t.traceItems {
 		if nestedTrace, ok := s.(*Trace); ok {
@@ -224,7 +232,6 @@ func (t *Trace) TotalTime() time.Duration {
 
 // calculateStepThreshold returns a threshold for the individual steps of a trace, or nil if there is no threshold and
 // all steps should be written.
-// TODO: If Log is called instead of LogIfLong, we should print all steps, right? This should be documented clearly.
 func (t *Trace) calculateStepThreshold() *time.Duration {
 	if t.threshold == nil {
 		return nil
@@ -249,4 +256,23 @@ func (t *Trace) calculateStepThreshold() *time.Duration {
 
 	stepThreshold := traceThreshold / time.Duration(lenTrace)
 	return &stepThreshold
+}
+
+// ContextTraceKey provides a common key for traces in context.Context values.
+type ContextTraceKey struct{}
+
+// FromContext returns the trace keyed by ContextTraceKey in the context values, if one
+// is present, or nil If there is no trace in the Context.
+// It is safe to call Nest() on the returned value even if it is nil because ((*Trace)nil).Nest returns a top level
+// trace.
+func FromContext(ctx context.Context) *Trace {
+	if v, ok := ctx.Value(ContextTraceKey{}).(*Trace); ok {
+		return v
+	}
+	return nil
+}
+
+// ContextWithTrace returns a context with trace included in the context values, keyed by ContextTraceKey.
+func ContextWithTrace(ctx context.Context, trace *Trace) context.Context {
+	return context.WithValue(ctx, ContextTraceKey{}, trace)
 }

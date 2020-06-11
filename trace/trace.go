@@ -17,11 +17,9 @@ limitations under the License.
 package trace
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"time"
 
 	"k8s.io/klog/v2"
@@ -37,57 +35,13 @@ func (f Field) format() string {
 	return fmt.Sprintf("%s:%v", f.Key, f.Value)
 }
 
-func writeFields(b *bytes.Buffer, l []Field) {
-	for i, f := range l {
-		b.WriteString(f.format())
-		if i < len(l)-1 {
-			b.WriteString(",")
-		}
-	}
-}
-
-func logTraceArgs(traceNum int32, trace *Trace, totalTime time.Duration) []interface{} {
-	result := make([]interface{}, 0, 2*len(trace.fields)+8)
-	result = append(result, "traceNum", traceNum, "traceName", trace.name)
-	for _, field := range trace.fields {
-		result = append(result, field.Key, field.Value)
-	}
-	result = append(result, "startTime", trace.startTime.Format("02-Jan-2006 15:04:00.000"), "totalTime", durationToMilliseconds(totalTime))
-	return result
-}
-
-func logStepArgs(traceNum int32, s traceStep, stepDuration time.Duration) []interface{} {
-	result := make([]interface{}, 0, 2*len(s.fields)+8)
-	result = append(result, "traceNum", traceNum, "traceMsg", s.msg)
-	for _, field := range s.fields {
-		result = append(result, field.Key, field.Value)
-	}
-	result = append(result, "stepDuration", durationToMilliseconds(stepDuration), "stepTime", s.stepTime.Format("15:04:00.000"))
-	return result
-}
-
-func logNestArgs(traceNum int32, nested *Trace, totalTime time.Duration) []interface{} {
-	result := make([]interface{}, 0, 2*len(nested.fields)+8)
-	result = append(result, "traceNum", traceNum, "traceName", nested.name)
-	for _, field := range nested.fields {
-		result = append(result, field.Key, field.Value)
-	}
-	result = append(result, "totalTime", durationToMilliseconds(totalTime), "startTime", nested.startTime.Format("15:04:00.000"))
-	return result
-}
-
-func writeTraceItemSummary(b *bytes.Buffer, msg string, totalTime time.Duration, startTime time.Time, fields []Field) {
-	b.WriteString(fmt.Sprintf("%q ", msg))
-	if len(fields) > 0 {
-		writeFields(b, fields)
-		b.WriteString(" ")
+func writeTraceItemSummary(b *[]interface{}, msg string, totalTime time.Duration, startTime time.Time, fields []Field) {
+	*b = append(*b, "traceMsg", msg)
+	for _, field := range fields {
+		*b = append(*b, field.Key, field.Value)
 	}
 
-	b.WriteString(fmt.Sprintf("%vms (%v)", durationToMilliseconds(totalTime), startTime.Format("15:04:00.000")))
-}
-
-func durationToMilliseconds(timeDuration time.Duration) string {
-	return strconv.FormatInt(timeDuration.Nanoseconds()/1e6, 10) + "ms"
+	*b = append(*b, "durationTime", totalTime, "startTime", startTime)
 }
 
 type traceItem interface {
@@ -96,7 +50,7 @@ type traceItem interface {
 	// writeItem outputs the traceItem to the buffer. If stepThreshold is non-nil, only output the
 	// traceItem if its the duration exceeds the stepThreshold.
 	// Each line of output is prefixed by formatter to visually indent nested items.
-	writeItem(traceNum int32, startTime time.Time, stepThreshold *time.Duration)
+	writeItem(b *[]interface{}, traceNum int32, startTime time.Time, stepThreshold *time.Duration)
 }
 
 type traceStep struct {
@@ -109,10 +63,11 @@ func (s traceStep) time() time.Time {
 	return s.stepTime
 }
 
-func (s traceStep) writeItem(traceNum int32, startTime time.Time, stepThreshold *time.Duration) {
+func (s traceStep) writeItem(b *[]interface{}, traceNum int32, startTime time.Time, stepThreshold *time.Duration) {
 	stepDuration := s.stepTime.Sub(startTime)
 	if stepThreshold == nil || *stepThreshold == 0 || stepDuration >= *stepThreshold {
-		klog.InfoS("Trace", logStepArgs(traceNum, s, stepDuration)...)
+		*b = append(*b, "traceType", "step", "traceNum", traceNum)
+		writeTraceItemSummary(b, s.msg, stepDuration, s.stepTime, s.fields)
 	}
 }
 
@@ -135,21 +90,21 @@ func (t *Trace) time() time.Time {
 	return t.startTime // if the trace is incomplete, don't assume an end time
 }
 
-func (t *Trace) writeItem(traceNum int32, startTime time.Time, stepThreshold *time.Duration) {
+func (t *Trace) writeItem(b *[]interface{}, traceNum int32, startTime time.Time, stepThreshold *time.Duration) {
 	if t.durationIsWithinThreshold() {
-		totalTime := t.endTime.Sub(t.startTime)
-		klog.InfoS("Trace nested start", logNestArgs(traceNum, t, totalTime)...)
+		*b = append(*b, "Trace nested", "start")
+		writeTraceItemSummary(b, t.name, t.TotalTime(), t.startTime, t.fields)
 		if st := t.calculateStepThreshold(); st != nil {
 			stepThreshold = st
 		}
-		t.writeTraceSteps(traceNum, stepThreshold)
-		klog.InfoS("Trace nested end")
+		t.writeTraceSteps(b, traceNum, stepThreshold)
+		*b = append(*b, "Trace nested", "end")
 		return
 	}
 	// If the trace should not be written, still check for nested traces that should be written
 	for _, s := range t.traceItems {
 		if nestedTrace, ok := s.(*Trace); ok {
-			nestedTrace.writeItem(traceNum, startTime, stepThreshold)
+			nestedTrace.writeItem(b, traceNum, startTime, stepThreshold)
 		}
 	}
 }
@@ -212,16 +167,23 @@ func (t *Trace) LogIfLong(threshold time.Duration) {
 // parents that will be logged, due to threshold limits, and logs them as top level traces.
 func (t *Trace) logTrace() {
 	if t.durationIsWithinThreshold() {
+		buffer := make([]interface{}, 0, 8)
 		traceNum := rand.Int31()
 
 		totalTime := t.endTime.Sub(t.startTime)
+		buffer = append(buffer, "traceNum", traceNum, "traceName", t.name)
+		for _, field := range t.fields {
+			buffer = append(buffer, field.Key, field.Value)
+		}
 
 		// if any step took more than it's share of the total allowed time, it deserves a higher log level
-		klog.InfoS("Trace", logTraceArgs(traceNum, t, totalTime)...)
-		stepThreshold := t.calculateStepThreshold()
-		t.writeTraceSteps(traceNum, stepThreshold)
-		klog.InfoS("Trace", "traceNum", traceNum, "endTime", t.endTime.Sub(t.startTime), "totalTime", totalTime)
+		buffer = append(buffer, "startTime", t.startTime, "totalTime", totalTime)
 
+		stepThreshold := t.calculateStepThreshold()
+		t.writeTraceSteps(&buffer, traceNum, stepThreshold)
+		buffer = append(buffer, "traceNum", traceNum, "endTime", t.endTime.Sub(t.startTime), "totalTime", totalTime)
+
+		klog.InfoS("Trace", buffer...)
 		return
 	}
 
@@ -233,10 +195,10 @@ func (t *Trace) logTrace() {
 	}
 }
 
-func (t *Trace) writeTraceSteps(traceNum int32, stepThreshold *time.Duration) {
+func (t *Trace) writeTraceSteps(b *[]interface{}, traceNum int32, stepThreshold *time.Duration) {
 	lastStepTime := t.startTime
 	for _, stepOrTrace := range t.traceItems {
-		stepOrTrace.writeItem(traceNum, lastStepTime, stepThreshold)
+		stepOrTrace.writeItem(b, traceNum, lastStepTime, stepThreshold)
 		lastStepTime = stepOrTrace.time()
 	}
 }

@@ -25,6 +25,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// RateLimiter provides an interface for performing actions at a limited rate
 type RateLimiter interface {
 	// TryAccept returns true if a token is taken immediately. Otherwise,
 	// it returns false.
@@ -55,7 +56,7 @@ func NewTokenBucketRateLimiter(qps float32, burst int) RateLimiter {
 	return newTokenBucketRateLimiter(limiter, realClock{}, qps)
 }
 
-// An injectable, mockable clock interface.
+// Clock is a mockable clock interface
 type Clock interface {
 	Now() time.Time
 	Sleep(time.Duration)
@@ -108,6 +109,7 @@ func (t *tokenBucketRateLimiter) Wait(ctx context.Context) error {
 
 type fakeAlwaysRateLimiter struct{}
 
+// NewFakeAlwaysRateLimiter returns a RateLimiter that is always ready
 func NewFakeAlwaysRateLimiter() RateLimiter {
 	return &fakeAlwaysRateLimiter{}
 }
@@ -132,6 +134,7 @@ type fakeNeverRateLimiter struct {
 	wg sync.WaitGroup
 }
 
+// NewFakeNeverRateLimiter returns a RateLimiter that is never ready
 func NewFakeNeverRateLimiter() RateLimiter {
 	rl := fakeNeverRateLimiter{}
 	rl.wg.Add(1)

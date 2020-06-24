@@ -21,8 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/client-go/util/flowcontrol"
-
 	"k8s.io/klog/v2"
 )
 
@@ -181,7 +179,7 @@ func construct(name string, fn func(), minInterval, maxInterval time.Duration, b
 	} else {
 		// allow burst updates in short succession
 		qps := float32(time.Second) / float32(minInterval)
-		bfr.limiter = flowcontrol.NewTokenBucketRateLimiterWithClock(qps, burstRuns, timer)
+		bfr.limiter = NewTokenBucketRateLimiterWithClock(qps, burstRuns, timer)
 	}
 	return bfr
 }
@@ -213,7 +211,7 @@ func (bfr *BoundedFrequencyRunner) Loop(stop <-chan struct{}) {
 // may be dropped - it is just guaranteed that we will try calling the
 // underlying function as soon as possible starting from now.
 func (bfr *BoundedFrequencyRunner) Run() {
-	// If it takes a lot of time to run the underlying function, noone is really
+	// If it takes a lot of time to run the underlying function, no one is really
 	// processing elements from <run> channel. So to avoid blocking here on the
 	// putting element to it, we simply skip it if there is already an element
 	// in it.

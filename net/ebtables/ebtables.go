@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ebtables allows to control the ebtables Linux-based bridging firewall.
+// Both chains and rules can be added, deleted and modified.
+// For ebtables specific documentation see: http://ebtables.netfilter.org/
 package ebtables
 
 import (

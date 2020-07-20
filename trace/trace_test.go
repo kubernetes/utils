@@ -385,6 +385,7 @@ func TestLogNestedTrace(t *testing.T) {
 		expectedMsgs  []string
 		unexpectedMsg []string
 		trace         *Trace
+		verbosity     klog.Level
 	}{
 		{
 			name:          "Log nested trace when it surpasses threshold",
@@ -501,12 +502,48 @@ func TestLogNestedTrace(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:          "Log all nested traces that surpass threshold and their children if klog verbosity is >= 4",
+			expectedMsgs:  []string{"inner1", "inner2"},
+			unexpectedMsg: []string{"msg"},
+			verbosity:     4,
+			trace: &Trace{
+				name:      "msg",
+				startTime: currentTime.Add(10),
+				traceItems: []traceItem{
+					&Trace{
+						name:      "inner1",
+						threshold: &five,
+						startTime: currentTime.Add(-10 * time.Millisecond),
+						endTime:   &currentTime,
+						traceItems: []traceItem{
+							&Trace{
+								name:      "inner2",
+								threshold: &twoHundred,
+								startTime: currentTime.Add(-10 * time.Millisecond),
+								endTime:   &currentTime,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			klog.SetOutput(&buf)
+
+			if tt.verbosity > 0 {
+				orig := klogV
+				klogV = func(l klog.Level) bool {
+					return l <= tt.verbosity
+				}
+				defer func() {
+					klogV = orig
+				}()
+			}
 
 			tt.trace.LogIfLong(twoHundred)
 

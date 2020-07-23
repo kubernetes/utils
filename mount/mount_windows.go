@@ -55,6 +55,45 @@ func (mounter *Mounter) Mount(source string, target string, fstype string, optio
 	return mounter.MountSensitive(source, target, fstype, options, nil /* sensitiveOptions */)
 }
 
+//mountNfs uses powershell command "net use" to connect NFS share
+func mountNfs(source, target string, options []string) error {
+	mountCmd := "net use " + source
+	output, err := exec.Command(mountCmd, options...).CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	klog.V(4).Infof("NFS mount source(%q) on target(%q) successfully, output: %q", source, target, string(output))
+	return nil
+}
+
+//mountSmb tries to create SMB mapping to a SMB share
+func mountSmb(source, target string, options []string) error {
+	if len(options) < 2 {
+		klog.Warningf("mount options(%q) command number(%d) less than 2, source:%q, target:%q, skip mounting",
+			sanitizedOptionsForLogging, len(options), source, target)
+		return nil
+	}
+	// lock smb mount for the same source
+	getSMBMountMutex.LockKey(source)
+	defer getSMBMountMutex.UnlockKey(source)
+
+	if output, err := newSMBMapping(options[0], options[1], source); err != nil {
+		if isSMBMappingExist(source) {
+			klog.V(2).Infof("SMB Mapping(%s) already exists, now begin to remove and remount", source)
+			if output, err := removeSMBMapping(source); err != nil {
+				return fmt.Errorf("Remove-SmbGlobalMapping failed: %v, output: %q", err, output)
+			}
+			if output, err := newSMBMapping(options[0], options[1], source); err != nil {
+				return fmt.Errorf("New-SmbGlobalMapping remount failed: %v, output: %q", err, output)
+			}
+		} else {
+			return fmt.Errorf("New-SmbGlobalMapping failed: %v, output: %q", err, output)
+		}
+	}
+	return nil
+}
+
 // MountSensitive is the same as Mount() but this method allows
 // sensitiveOptions to be passed in a separate parameter from the normal
 // mount options and ensures the sensitiveOptions are never logged. This
@@ -84,43 +123,22 @@ func (mounter *Mounter) MountSensitive(source string, target string, fstype stri
 		allOptions := []string{}
 		allOptions = append(allOptions, options...)
 		allOptions = append(allOptions, sensitiveOptions...)
-		if len(allOptions) < 2 {
-			klog.Warningf("mount options(%q) command number(%d) less than 2, source:%q, target:%q, skip mounting",
-				sanitizedOptionsForLogging, len(allOptions), source, target)
-			return nil
-		}
-
-		// currently only cifs mount is supported
-		if strings.ToLower(fstype) != "cifs" {
-			return fmt.Errorf("only cifs mount is supported now, fstype: %q, mounting source (%q), target (%q), with options (%q)", fstype, source, target, sanitizedOptionsForLogging)
-		}
-
-		// lock smb mount for the same source
-		getSMBMountMutex.LockKey(source)
-		defer getSMBMountMutex.UnlockKey(source)
-
-		if output, err := newSMBMapping(allOptions[0], allOptions[1], source); err != nil {
-			if isSMBMappingExist(source) {
-				klog.V(2).Infof("SMB Mapping(%s) already exists, now begin to remove and remount", source)
-				if output, err := removeSMBMapping(source); err != nil {
-					return fmt.Errorf("Remove-SmbGlobalMapping failed: %v, output: %q", err, output)
-				}
-				if output, err := newSMBMapping(allOptions[0], allOptions[1], source); err != nil {
-					return fmt.Errorf("New-SmbGlobalMapping remount failed: %v, output: %q", err, output)
-				}
-			} else {
-				return fmt.Errorf("New-SmbGlobalMapping failed: %v, output: %q", err, output)
-			}
+		fstype = strings.ToLower(fstype)
+		switch fstype {
+		case "nfs":
+			mountNfs(source, target, allOptions)
+		case "cifs":
+			mountSmb(source, target, allOptions)
+		default:
+			return fmt.Errorf("mount failed: only fstypes nfs or cifs are supported")
 		}
 	}
-
 	output, err := exec.Command("cmd", "/c", "mklink", "/D", target, bindSource).CombinedOutput()
 	if err != nil {
 		klog.Errorf("mklink failed: %v, source(%q) target(%q) output: %q", err, bindSource, target, string(output))
 		return err
 	}
 	klog.V(2).Infof("mklink source(%q) on target(%q) successfully, output: %q", bindSource, target, string(output))
-
 	return nil
 }
 
@@ -164,7 +182,7 @@ func removeSMBMapping(remotepath string) (string, error) {
 
 // Unmount unmounts the target.
 func (mounter *Mounter) Unmount(target string) error {
-	klog.V(4).Infof("azureMount: Unmount target (%q)", target)
+	klog.V(4).Infof("Unmount target (%q)", target)
 	target = NormalizeWindowsPath(target)
 	if output, err := exec.Command("cmd", "/c", "rmdir", target).CombinedOutput(); err != nil {
 		klog.Errorf("rmdir failed: %v, output: %q", err, string(output))

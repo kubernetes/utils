@@ -24,14 +24,20 @@ import (
 )
 
 var (
+	_ = clock.PassiveClock(&FakePassiveClock{})
 	_ = clock.Clock(&FakeClock{})
 	_ = clock.Clock(&IntervalClock{})
 )
 
-// FakeClock implements clock.Clock, but returns an arbitrary time.
-type FakeClock struct {
+// FakePassiveClock implements PassiveClock, but returns an arbitrary time.
+type FakePassiveClock struct {
 	lock sync.RWMutex
 	time time.Time
+}
+
+// FakeClock implements clock.Clock, but returns an arbitrary time.
+type FakeClock struct {
+	FakePassiveClock
 
 	// waiters are waiting for the fake time to pass their specified time
 	waiters []*fakeClockWaiter
@@ -45,25 +51,39 @@ type fakeClockWaiter struct {
 	fired         bool
 }
 
-// NewFakeClock constructs a fake clock set to the provided time.
-func NewFakeClock(t time.Time) *FakeClock {
-	return &FakeClock{
+// NewFakePassiveClock returns a new FakePassiveClock.
+func NewFakePassiveClock(t time.Time) *FakePassiveClock {
+	return &FakePassiveClock{
 		time: t,
 	}
 }
 
+// NewFakeClock constructs a fake clock set to the provided time.
+func NewFakeClock(t time.Time) *FakeClock {
+	return &FakeClock{
+		FakePassiveClock: *NewFakePassiveClock(t),
+	}
+}
+
 // Now returns f's time.
-func (f *FakeClock) Now() time.Time {
+func (f *FakePassiveClock) Now() time.Time {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 	return f.time
 }
 
 // Since returns time since the time in f.
-func (f *FakeClock) Since(ts time.Time) time.Duration {
+func (f *FakePassiveClock) Since(ts time.Time) time.Duration {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 	return f.time.Sub(ts)
+}
+
+// SetTime sets the time on the FakePassiveClock.
+func (f *FakePassiveClock) SetTime(t time.Time) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	f.time = t
 }
 
 // After is the fake version of time.After(d).

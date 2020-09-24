@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
+	utilerrors "k8s.io/utils/third_party/forked/apimachinery/errors"
+	"k8s.io/utils/third_party/forked/apimachinery/wait"
 )
 
 type locker struct {

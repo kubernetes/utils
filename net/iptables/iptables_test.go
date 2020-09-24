@@ -28,11 +28,11 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/exec"
 	fakeexec "k8s.io/utils/exec/testing"
+	"k8s.io/utils/third_party/forked/apimachinery/sets"
+	utilversion "k8s.io/utils/third_party/forked/apimachinery/version"
+	"k8s.io/utils/third_party/forked/apimachinery/wait"
 )
 
 func getLockPaths() (string, string) {

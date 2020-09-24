@@ -27,9 +27,9 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/exec"
+	"k8s.io/utils/third_party/forked/apimachinery/sets"
+	utilwait "k8s.io/utils/third_party/forked/apimachinery/wait"
 )
 
 // We can't use the normal FakeExec because we don't know precisely how many times the

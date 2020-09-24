@@ -25,11 +25,11 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	utilexec "k8s.io/utils/exec"
+	"k8s.io/utils/third_party/forked/apimachinery/sets"
+	utilversion "k8s.io/utils/third_party/forked/apimachinery/version"
+	utilwait "k8s.io/utils/third_party/forked/apimachinery/wait"
 	utiltrace "k8s.io/utils/trace"
 )
 

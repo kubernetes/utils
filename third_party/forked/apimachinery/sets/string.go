@@ -23,6 +23,8 @@ import (
 	"sort"
 )
 
+type Empty struct{}
+
 // sets.String is a set of strings, implemented via map[string]struct{} for minimal memory consumption.
 type String map[string]Empty
 

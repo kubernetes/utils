@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/utils/third_party/forked/apimachinery/sets"
 )
 
 // MessageCountMap contains occurrence for each error message.

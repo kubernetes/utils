@@ -21,7 +21,6 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/utils/exec"
 	fakeexec "k8s.io/utils/exec/testing"
 	utilnet "k8s.io/utils/net"
@@ -40,7 +39,7 @@ func TestExecConntrackTool(t *testing.T) {
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 			func() ([]byte, []byte, error) {
-				return []byte(""), nil, fmt.Errorf("conntrack v1.4.2 (conntrack-tools): 0 flow entries have been deleted")
+				return []byte(""), nil, fmt.Errorf("conntrack 4.2 (conntrack-tools): 0 flow entries have been deleted")
 			},
 		},
 	}
@@ -89,7 +88,7 @@ func TestClearUDPConntrackForIP(t *testing.T) {
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 			func() ([]byte, []byte, error) {
-				return []byte(""), nil, fmt.Errorf("conntrack v1.4.2 (conntrack-tools): 0 flow entries have been deleted")
+				return []byte(""), nil, fmt.Errorf("conntrack 4.2 (conntrack-tools): 0 flow entries have been deleted")
 			},
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 		},
@@ -116,7 +115,7 @@ func TestClearUDPConntrackForIP(t *testing.T) {
 
 	svcCount := 0
 	for _, tc := range testCases {
-		if err := ClearEntriesForIP(&fexec, tc.ip, v1.ProtocolUDP); err != nil {
+		if err := ClearEntriesForIP(&fexec, tc.ip, ProtocolUDP); err != nil {
 			t.Errorf("%s test case:, Unexpected error: %v", tc.name, err)
 		}
 		expectCommand := fmt.Sprintf("conntrack -D --orig-dst %s -p udp", tc.ip) + familyParamStr(utilnet.IsIPv6String(tc.ip))
@@ -136,7 +135,7 @@ func TestClearUDPConntrackForPort(t *testing.T) {
 		CombinedOutputScript: []fakeexec.FakeAction{
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 			func() ([]byte, []byte, error) {
-				return []byte(""), nil, fmt.Errorf("conntrack v1.4.2 (conntrack-tools): 0 flow entries have been deleted")
+				return []byte(""), nil, fmt.Errorf("conntrack 4.2 (conntrack-tools): 0 flow entries have been deleted")
 			},
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 		},
@@ -161,7 +160,7 @@ func TestClearUDPConntrackForPort(t *testing.T) {
 	}
 	svcCount := 0
 	for _, tc := range testCases {
-		err := ClearEntriesForPort(&fexec, tc.port, tc.isIPv6, v1.ProtocolUDP)
+		err := ClearEntriesForPort(&fexec, tc.port, tc.isIPv6, ProtocolUDP)
 		if err != nil {
 			t.Errorf("%s test case: Unexpected error: %v", tc.name, err)
 		}
@@ -182,12 +181,12 @@ func TestDeleteConnections(t *testing.T) {
 		CombinedOutputScript: []fakeexec.FakeAction{
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 			func() ([]byte, []byte, error) {
-				return []byte(""), nil, fmt.Errorf("conntrack v1.4.2 (conntrack-tools): 0 flow entries have been deleted")
+				return []byte(""), nil, fmt.Errorf("conntrack 4.2 (conntrack-tools): 0 flow entries have been deleted")
 			},
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 			func() ([]byte, []byte, error) {
-				return []byte(""), nil, fmt.Errorf("conntrack v1.4.2 (conntrack-tools): 0 flow entries have been deleted")
+				return []byte(""), nil, fmt.Errorf("conntrack 4.2 (conntrack-tools): 0 flow entries have been deleted")
 			},
 			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
 		},
@@ -208,43 +207,43 @@ func TestDeleteConnections(t *testing.T) {
 		name   string
 		origin string
 		dest   string
-		proto  v1.Protocol
+		proto  Protocol
 	}{
 		{
 			name:   "UDP IPv4 success",
 			origin: "1.2.3.4",
 			dest:   "10.20.30.40",
-			proto:  v1.ProtocolUDP,
+			proto:  ProtocolUDP,
 		},
 		{
 			name:   "UDP IPv4 simulated failure",
 			origin: "2.3.4.5",
 			dest:   "20.30.40.50",
-			proto:  v1.ProtocolUDP,
+			proto:  ProtocolUDP,
 		},
 		{
 			name:   "UDP IPv6 success",
 			origin: "fd00::600d:f00d",
 			dest:   "2001:db8::5",
-			proto:  v1.ProtocolUDP,
+			proto:  ProtocolUDP,
 		},
 		{
 			name:   "SCTP IPv4 success",
 			origin: "1.2.3.5",
 			dest:   "10.20.30.50",
-			proto:  v1.ProtocolSCTP,
+			proto:  ProtocolSCTP,
 		},
 		{
 			name:   "SCTP IPv4 simulated failure",
 			origin: "2.3.4.6",
 			dest:   "20.30.40.60",
-			proto:  v1.ProtocolSCTP,
+			proto:  ProtocolSCTP,
 		},
 		{
 			name:   "SCTP IPv6 success",
 			origin: "fd00::600d:f00d",
 			dest:   "2001:db8::6",
-			proto:  v1.ProtocolSCTP,
+			proto:  ProtocolSCTP,
 		},
 	}
 	svcCount := 0
@@ -283,19 +282,19 @@ func TestClearConntrackForPortNAT(t *testing.T) {
 		name  string
 		port  int
 		dest  string
-		proto v1.Protocol
+		proto Protocol
 	}{
 		{
 			name:  "UDP IPv4 success",
 			port:  30211,
 			dest:  "1.2.3.4",
-			proto: v1.ProtocolUDP,
+			proto: ProtocolUDP,
 		},
 		{
 			name:  "SCTP IPv4 success",
 			port:  30215,
 			dest:  "1.2.3.5",
-			proto: v1.ProtocolSCTP,
+			proto: ProtocolSCTP,
 		},
 	}
 	svcCount := 0

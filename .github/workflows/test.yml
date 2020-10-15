@@ -17,6 +17,10 @@ jobs:
       - name: Build
         run: |
           go build ./...
+      - name: Run Windows Unit Tests
+        run: |
+          $env:GH_ACTION="TRUE"
+          go test -v -race ./mount/...
   test:
     strategy:
       matrix:

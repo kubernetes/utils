@@ -133,6 +133,12 @@ func TestPathWithinBase(t *testing.T) {
 }
 
 func TestIsLikelyNotMountPoint(t *testing.T) {
+	if os.Getenv("GH_ACTION") == "TRUE" {
+		// Skip this test on Github Action due to:
+		// Creating a `SymbolicLink` type on Windows requires elevation as administrator
+		// https://github.com/MicrosoftDocs/PowerShell-Docs/pull/3473
+		t.Skip("Skipping test on Github Action")
+	}
 	mounter := Mounter{"fake/path"}
 
 	tests := []struct {

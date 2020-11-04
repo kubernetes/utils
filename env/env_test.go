@@ -24,59 +24,83 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetEnvAsStringOrFallback(t *testing.T) {
+func TestGetString(t *testing.T) {
 	const expected = "foo"
 
 	assert := assert.New(t)
 
-	key := "FLOCKER_SET_VAR"
+	key := "STRING_SET_VAR"
 	os.Setenv(key, expected)
-	assert.Equal(expected, GetEnvAsStringOrFallback(key, "~"+expected))
+	assert.Equal(expected, GetString(key, "~"+expected))
 
-	key = "FLOCKER_UNSET_VAR"
-	assert.Equal(expected, GetEnvAsStringOrFallback(key, expected))
+	key = "STRING_UNSET_VAR"
+	assert.Equal(expected, GetString(key, expected))
 }
 
-func TestGetEnvAsIntOrFallback(t *testing.T) {
+func TestGetInt(t *testing.T) {
 	const expected = 1
+	const defaultValue = 2
 
 	assert := assert.New(t)
 
-	key := "FLOCKER_SET_VAR"
+	key := "INT_SET_VAR"
 	os.Setenv(key, strconv.Itoa(expected))
-	returnVal, _ := GetEnvAsIntOrFallback(key, 1)
+	returnVal, _ := GetInt(key, defaultValue)
 	assert.Equal(expected, returnVal)
 
-	key = "FLOCKER_UNSET_VAR"
-	returnVal, _ = GetEnvAsIntOrFallback(key, expected)
-	assert.Equal(expected, returnVal)
+	key = "INT_UNSET_VAR"
+	returnVal, _ = GetInt(key, defaultValue)
+	assert.Equal(defaultValue, returnVal)
 
-	key = "FLOCKER_SET_VAR"
+	key = "INT_SET_VAR"
 	os.Setenv(key, "not-an-int")
-	returnVal, err := GetEnvAsIntOrFallback(key, 1)
-	assert.Equal(expected, returnVal)
+	returnVal, err := GetInt(key, defaultValue)
+	assert.Equal(defaultValue, returnVal)
 	if err == nil {
 		t.Error("expected error")
 	}
 }
 
-func TestGetEnvAsFloat64OrFallback(t *testing.T) {
+func TestGetFloat64(t *testing.T) {
 	const expected = 1.0
+	const defaultValue = 2.0
 
 	assert := assert.New(t)
 
-	key := "FLOCKER_SET_VAR"
+	key := "FLOAT_SET_VAR"
 	os.Setenv(key, "1.0")
-	returnVal, _ := GetEnvAsFloat64OrFallback(key, 2.0)
+	returnVal, _ := GetFloat64(key, defaultValue)
 	assert.Equal(expected, returnVal)
 
-	key = "FLOCKER_UNSET_VAR"
-	returnVal, _ = GetEnvAsFloat64OrFallback(key, 1.0)
-	assert.Equal(expected, returnVal)
+	key = "FLOAT_UNSET_VAR"
+	returnVal, _ = GetFloat64(key, defaultValue)
+	assert.Equal(defaultValue, returnVal)
 
-	key = "FLOCKER_SET_VAR"
+	key = "FLOAT_SET_VAR"
 	os.Setenv(key, "not-a-float")
-	returnVal, err := GetEnvAsFloat64OrFallback(key, 1.0)
-	assert.Equal(expected, returnVal)
+	returnVal, err := GetFloat64(key, defaultValue)
+	assert.Equal(defaultValue, returnVal)
 	assert.EqualError(err, "strconv.ParseFloat: parsing \"not-a-float\": invalid syntax")
+}
+
+func TestGetBool(t *testing.T) {
+	const expected = true
+	const defaultValue = false
+
+	assert := assert.New(t)
+
+	key := "BOOL_SET_VAR"
+	os.Setenv(key, "true")
+	returnVal, _ := GetBool(key, defaultValue)
+	assert.Equal(expected, returnVal)
+
+	key = "BOOL_UNSET_VAR"
+	returnVal, _ = GetBool(key, defaultValue)
+	assert.Equal(defaultValue, returnVal)
+
+	key = "BOOL_SET_VAR"
+	os.Setenv(key, "not-a-bool")
+	returnVal, err := GetBool(key, defaultValue)
+	assert.Equal(defaultValue, returnVal)
+	assert.EqualError(err, "strconv.ParseBool: parsing \"not-a-bool\": invalid syntax")
 }

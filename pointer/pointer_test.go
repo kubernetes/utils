@@ -69,170 +69,278 @@ func TestAllPtrFieldsNil(t *testing.T) {
 	}
 }
 
-func TestInt32Ptr(t *testing.T) {
+func TestInt32(t *testing.T) {
 	val := int32(0)
-	ptr := Int32Ptr(val)
+	ptr := Int32(val)
 	if *ptr != val {
 		t.Errorf("expected %d, got %d", val, *ptr)
 	}
 
 	val = int32(1)
-	ptr = Int32Ptr(val)
+	ptr = Int32(val)
 	if *ptr != val {
 		t.Errorf("expected %d, got %d", val, *ptr)
 	}
 }
 
-func TestInt32PtrDerefOr(t *testing.T) {
+func TestInt32Deref(t *testing.T) {
 	var val, def int32 = 1, 0
 
-	out := Int32PtrDerefOr(&val, def)
+	out := Int32Deref(&val, def)
 	if out != val {
 		t.Errorf("expected %d, got %d", val, out)
 	}
 
-	out = Int32PtrDerefOr(nil, def)
+	out = Int32Deref(nil, def)
 	if out != def {
 		t.Errorf("expected %d, got %d", def, out)
 	}
 }
 
-func TestInt64Ptr(t *testing.T) {
+func TestInt32Equal(t *testing.T) {
+	if !Int32Equal(nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !Int32Equal(Int32(123), Int32(123)) {
+		t.Errorf("expected true (val == val)")
+	}
+	if Int32Equal(nil, Int32(123)) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if Int32Equal(Int32(123), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if Int32Equal(Int32(123), Int32(456)) {
+		t.Errorf("expected false (val != val)")
+	}
+}
+
+func TestInt64(t *testing.T) {
 	val := int64(0)
-	ptr := Int64Ptr(val)
+	ptr := Int64(val)
 	if *ptr != val {
 		t.Errorf("expected %d, got %d", val, *ptr)
 	}
 
 	val = int64(1)
-	ptr = Int64Ptr(val)
+	ptr = Int64(val)
 	if *ptr != val {
 		t.Errorf("expected %d, got %d", val, *ptr)
 	}
 }
 
-func TestInt64PtrDerefOr(t *testing.T) {
+func TestInt64Deref(t *testing.T) {
 	var val, def int64 = 1, 0
 
-	out := Int64PtrDerefOr(&val, def)
+	out := Int64Deref(&val, def)
 	if out != val {
 		t.Errorf("expected %d, got %d", val, out)
 	}
 
-	out = Int64PtrDerefOr(nil, def)
+	out = Int64Deref(nil, def)
 	if out != def {
 		t.Errorf("expected %d, got %d", def, out)
 	}
 }
 
-func TestBoolPtr(t *testing.T) {
+func TestInt64Equal(t *testing.T) {
+	if !Int64Equal(nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !Int64Equal(Int64(123), Int64(123)) {
+		t.Errorf("expected true (val == val)")
+	}
+	if Int64Equal(nil, Int64(123)) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if Int64Equal(Int64(123), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if Int64Equal(Int64(123), Int64(456)) {
+		t.Errorf("expected false (val != val)")
+	}
+}
+
+func TestBool(t *testing.T) {
 	val := false
-	ptr := BoolPtr(val)
+	ptr := Bool(val)
 	if *ptr != val {
 		t.Errorf("expected %t, got %t", val, *ptr)
 	}
 
 	val = true
-	ptr = BoolPtr(true)
+	ptr = Bool(true)
 	if *ptr != val {
 		t.Errorf("expected %t, got %t", val, *ptr)
 	}
 }
 
-func TestBoolPtrDerefOr(t *testing.T) {
+func TestBoolDeref(t *testing.T) {
 	val, def := true, false
 
-	out := BoolPtrDerefOr(&val, def)
+	out := BoolDeref(&val, def)
 	if out != val {
 		t.Errorf("expected %t, got %t", val, out)
 	}
 
-	out = BoolPtrDerefOr(nil, def)
+	out = BoolDeref(nil, def)
 	if out != def {
 		t.Errorf("expected %t, got %t", def, out)
 	}
 }
 
-func TestStringPtr(t *testing.T) {
+func TestBoolEqual(t *testing.T) {
+	if !BoolEqual(nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !BoolEqual(Bool(true), Bool(true)) {
+		t.Errorf("expected true (val == val)")
+	}
+	if BoolEqual(nil, Bool(true)) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if BoolEqual(Bool(true), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if BoolEqual(Bool(true), Bool(false)) {
+		t.Errorf("expected false (val != val)")
+	}
+}
+
+func TestString(t *testing.T) {
 	val := ""
-	ptr := StringPtr(val)
+	ptr := String(val)
 	if *ptr != val {
 		t.Errorf("expected %s, got %s", val, *ptr)
 	}
 
 	val = "a"
-	ptr = StringPtr(val)
+	ptr = String(val)
 	if *ptr != val {
 		t.Errorf("expected %s, got %s", val, *ptr)
 	}
 }
 
-func TestStringPtrDerefOr(t *testing.T) {
+func TestStringDeref(t *testing.T) {
 	val, def := "a", ""
 
-	out := StringPtrDerefOr(&val, def)
+	out := StringDeref(&val, def)
 	if out != val {
 		t.Errorf("expected %s, got %s", val, out)
 	}
 
-	out = StringPtrDerefOr(nil, def)
+	out = StringDeref(nil, def)
 	if out != def {
 		t.Errorf("expected %s, got %s", def, out)
 	}
 }
 
-func TestFloat32Ptr(t *testing.T) {
+func TestStringEqual(t *testing.T) {
+	if !StringEqual(nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !StringEqual(String("abc"), String("abc")) {
+		t.Errorf("expected true (val == val)")
+	}
+	if StringEqual(nil, String("abc")) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if StringEqual(String("abc"), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if StringEqual(String("abc"), String("def")) {
+		t.Errorf("expected false (val != val)")
+	}
+}
+
+func TestFloat32(t *testing.T) {
 	val := float32(0)
-	ptr := Float32Ptr(val)
+	ptr := Float32(val)
 	if *ptr != val {
 		t.Errorf("expected %f, got %f", val, *ptr)
 	}
 
 	val = float32(0.1)
-	ptr = Float32Ptr(val)
+	ptr = Float32(val)
 	if *ptr != val {
 		t.Errorf("expected %f, got %f", val, *ptr)
 	}
 }
 
-func TestFloat32PtrDerefOr(t *testing.T) {
+func TestFloat32Deref(t *testing.T) {
 	var val, def float32 = 0.1, 0
 
-	out := Float32PtrDerefOr(&val, def)
+	out := Float32Deref(&val, def)
 	if out != val {
 		t.Errorf("expected %f, got %f", val, out)
 	}
 
-	out = Float32PtrDerefOr(nil, def)
+	out = Float32Deref(nil, def)
 	if out != def {
 		t.Errorf("expected %f, got %f", def, out)
 	}
 }
 
-func TestFloat64Ptr(t *testing.T) {
+func TestFloat32Equal(t *testing.T) {
+	if !Float32Equal(nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !Float32Equal(Float32(1.25), Float32(1.25)) {
+		t.Errorf("expected true (val == val)")
+	}
+	if Float32Equal(nil, Float32(1.25)) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if Float32Equal(Float32(1.25), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if Float32Equal(Float32(1.25), Float32(4.5)) {
+		t.Errorf("expected false (val != val)")
+	}
+}
+
+func TestFloat64(t *testing.T) {
 	val := float64(0)
-	ptr := Float64Ptr(val)
+	ptr := Float64(val)
 	if *ptr != val {
 		t.Errorf("expected %f, got %f", val, *ptr)
 	}
 
 	val = float64(0.1)
-	ptr = Float64Ptr(val)
+	ptr = Float64(val)
 	if *ptr != val {
 		t.Errorf("expected %f, got %f", val, *ptr)
 	}
 }
 
-func TestFloat64PtrDerefOr(t *testing.T) {
+func TestFloat64Deref(t *testing.T) {
 	var val, def float64 = 0.1, 0
 
-	out := Float64PtrDerefOr(&val, def)
+	out := Float64Deref(&val, def)
 	if out != val {
 		t.Errorf("expected %f, got %f", val, out)
 	}
 
-	out = Float64PtrDerefOr(nil, def)
+	out = Float64Deref(nil, def)
 	if out != def {
 		t.Errorf("expected %f, got %f", def, out)
+	}
+}
+
+func TestFloat64Equal(t *testing.T) {
+	if !Float64Equal(nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !Float64Equal(Float64(1.25), Float64(1.25)) {
+		t.Errorf("expected true (val == val)")
+	}
+	if Float64Equal(nil, Float64(1.25)) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if Float64Equal(Float64(1.25), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if Float64Equal(Float64(1.25), Float64(4.5)) {
+		t.Errorf("expected false (val != val)")
 	}
 }

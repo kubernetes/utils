@@ -17,28 +17,6 @@ limitations under the License.
 // Package slice provides utility methods for common operations on slices.
 package slice
 
-import (
-	"sort"
-)
-
-// CopyStrings copies the contents of the specified string slice
-// into a new slice.
-func CopyStrings(s []string) []string {
-	if s == nil {
-		return nil
-	}
-	c := make([]string, len(s))
-	copy(c, s)
-	return c
-}
-
-// SortStrings sorts the specified string slice in place. It returns the same
-// slice that was provided in order to facilitate method chaining.
-func SortStrings(s []string) []string {
-	sort.Strings(s)
-	return s
-}
-
 // ContainsString checks if a given slice of strings contains the provided string.
 // If a modifier func is provided, it is called with the slice item before the comparation.
 func ContainsString(slice []string, s string, modifier func(s string) string) bool {

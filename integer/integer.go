@@ -32,6 +32,32 @@ func IntMin(a, b int) int {
 	return a
 }
 
+// IntBounded bound the value in range [lower, upper]
+func IntBounded(value, lower, upper int) int {
+	return IntMin(IntMax(value, lower), upper)
+}
+
+// Uint8Max returns the maximum of the params
+func Uint8Max(a, b uint8) uint8 {
+	if b > a {
+		return b
+	}
+	return a
+}
+
+// Uint8Min returns the minimum of the params
+func Uint8Min(a, b uint8) uint8 {
+	if b < a {
+		return b
+	}
+	return a
+}
+
+// Uint8Bounded bound the value in range [lower, upper]
+func Uint8Bounded(value, lower, upper uint8) uint8 {
+	return Uint8Min(Uint8Max(value, lower), upper)
+}
+
 // Int32Max returns the maximum of the params
 func Int32Max(a, b int32) int32 {
 	if b > a {
@@ -48,6 +74,11 @@ func Int32Min(a, b int32) int32 {
 	return a
 }
 
+// Int32Bounded bound the value in range [lower, upper]
+func Int32Bounded(value, lower, upper int32) int32 {
+	return Int32Min(Int32Max(value, lower), upper)
+}
+
 // Int64Max returns the maximum of the params
 func Int64Max(a, b int64) int64 {
 	if b > a {
@@ -62,6 +93,11 @@ func Int64Min(a, b int64) int64 {
 		return b
 	}
 	return a
+}
+
+// Int64Bounded bound the value in range [lower, upper]
+func Int64Bounded(value, lower, upper int64) int64 {
+	return Int64Min(Int64Max(value, lower), upper)
 }
 
 // RoundToInt32 rounds floats into integer numbers.

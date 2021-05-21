@@ -89,8 +89,12 @@ func TestConsistentReadFlakyReader(t *testing.T) {
 	prog, done := make(chan int), make(chan bool)
 	go writer(pipe, true, prog, done)
 
-	if _, err := consistentReadSync(pipe, 3, func(i int) { prog <- i }); err == nil {
+	var err error
+	if _, err = consistentReadSync(pipe, 3, func(i int) { prog <- i }); err == nil {
 		t.Fatal("flaky reader returned consistent results")
+	}
+	if !IsInconsistentReadError(err) {
+		t.Errorf("Unexpected error returned, expected InconsistentReadError, got: %T / %q", err, err)
 	}
 }
 

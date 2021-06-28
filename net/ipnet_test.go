@@ -24,7 +24,7 @@ import (
 )
 
 func parseIPNet(s string) *net.IPNet {
-	_, net, err := net.ParseCIDR(s)
+	_, net, err := ParseCIDRSloppy(s)
 	if err != nil {
 		panic(err)
 	}
@@ -158,10 +158,10 @@ func TestIPSet(t *testing.T) {
 	s := IPSet{}
 	s2 := IPSet{}
 
-	a := net.ParseIP("1.0.0.0")
-	b := net.ParseIP("2.0.0.0")
-	c := net.ParseIP("3.0.0.0")
-	d := net.ParseIP("4.0.0.0")
+	a := ParseIPSloppy("1.0.0.0")
+	b := ParseIPSloppy("2.0.0.0")
+	c := ParseIPSloppy("3.0.0.0")
+	d := ParseIPSloppy("4.0.0.0")
 
 	s.Insert(a, b)
 	if len(s) != 2 {
@@ -199,9 +199,9 @@ func TestIPSet(t *testing.T) {
 
 func TestIPSetDeleteMultiples(t *testing.T) {
 	s := IPSet{}
-	a := net.ParseIP("1.0.0.0")
-	b := net.ParseIP("2.0.0.0")
-	c := net.ParseIP("3.0.0.0")
+	a := ParseIPSloppy("1.0.0.0")
+	b := ParseIPSloppy("2.0.0.0")
+	c := ParseIPSloppy("3.0.0.0")
 
 	s.Insert(a, b, c)
 	if len(s) != 3 {
@@ -231,11 +231,11 @@ func TestParseIPSet(t *testing.T) {
 	if len(s) != 4 {
 		t.Errorf("Expected len=3: %d", len(s))
 	}
-	a := net.ParseIP("1.0.0.0")
-	b := net.ParseIP("2.0.0.0")
-	c := net.ParseIP("3.0.0.0")
-	d := net.ParseIP("::ffff:4.0.0.0")
-	e := net.ParseIP("4.0.0.0")
+	a := ParseIPSloppy("1.0.0.0")
+	b := ParseIPSloppy("2.0.0.0")
+	c := ParseIPSloppy("3.0.0.0")
+	d := ParseIPSloppy("::ffff:4.0.0.0")
+	e := ParseIPSloppy("4.0.0.0")
 
 	if !s.Has(a) || !s.Has(b) || !s.Has(c) || !s.Has(d) || !s.Has(e) {
 		t.Errorf("Unexpected contents: %#v", s)
@@ -256,13 +256,13 @@ func TestIPSetDifference(t *testing.T) {
 	if len(c) != 1 {
 		t.Errorf("Expected len=1: %d", len(c))
 	}
-	if !c.Has(net.ParseIP("3.0.0.0")) {
+	if !c.Has(ParseIPSloppy("3.0.0.0")) {
 		t.Errorf("Unexpected contents: %#v", c)
 	}
 	if len(d) != 2 {
 		t.Errorf("Expected len=2: %d", len(d))
 	}
-	if !d.Has(net.ParseIP("4.0.0.0")) || !d.Has(net.ParseIP("5.0.0.0")) {
+	if !d.Has(ParseIPSloppy("4.0.0.0")) || !d.Has(ParseIPSloppy("5.0.0.0")) {
 		t.Errorf("Unexpected contents: %#v", d)
 	}
 }

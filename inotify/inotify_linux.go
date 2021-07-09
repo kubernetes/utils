@@ -33,6 +33,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"syscall"
 	"unsafe"
 )
@@ -134,6 +135,22 @@ func (w *Watcher) RemoveWatch(path string) error {
 // received events into Event objects and sends them via the Event channel
 func (w *Watcher) readEvents() {
 	var buf [syscall.SizeofInotifyEvent * 4096]byte
+	var eventArray []*Event
+	var locker = new(sync.Mutex)
+	var cond = sync.NewCond(locker)
+	go func() {
+		for {
+			cond.L.Lock()
+			for eventArray == nil || len(eventArray) == 0 {
+				cond.Wait()
+			}
+			// Send the event on the events channel
+			w.Event <- eventArray[0]
+			eventArray = eventArray[1:]
+			cond.L.Unlock()
+		}
+
+	}()
 
 	for {
 		n, err := syscall.Read(w.fd, buf[:])
@@ -166,6 +183,7 @@ func (w *Watcher) readEvents() {
 		}
 
 		var offset uint32
+
 		// We don't know how many events we just read into the buffer
 		// While the offset points to at least one whole event...
 		for offset <= uint32(n-syscall.SizeofInotifyEvent) {
@@ -190,8 +208,10 @@ func (w *Watcher) readEvents() {
 					// The filename is padded with NUL bytes. TrimRight() gets rid of those.
 					event.Name += "/" + strings.TrimRight(string(bytes[0:nameLen]), "\000")
 				}
-				// Send the event on the events channel
-				w.Event <- event
+				cond.L.Lock()
+				eventArray = append(eventArray, event)
+				cond.L.Unlock()
+				cond.Signal()
 			}
 			// Move to the next event in the buffer
 			offset += syscall.SizeofInotifyEvent + nameLen

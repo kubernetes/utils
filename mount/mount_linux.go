@@ -43,6 +43,8 @@ const (
 	fsckErrorsCorrected = 1
 	// 'fsck' found errors but exited without correcting them
 	fsckErrorsUncorrected = 4
+	// Error thrown by exec cmd.Run() when process spawned by cmd.Start() completes before cmd.Wait() is called (see - k/k issue #103753)
+	errNoChildProcesses = "wait: no child processes"
 )
 
 // Mounter provides the default implementation of mount.Interface
@@ -147,6 +149,10 @@ func (mounter *Mounter) doMount(mounterPath string, mountCmd string, source stri
 	command := exec.Command(mountCmd, mountArgs...)
 	output, err := command.CombinedOutput()
 	if err != nil {
+		if err.Error() == errNoChildProcesses {
+			// We don't consider this an error (see - k/k issue #103753)
+			return nil
+		}
 		klog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s\n", err, mountCmd, mountArgsLogStr, string(output))
 		return fmt.Errorf("mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s",
 			err, mountCmd, mountArgsLogStr, string(output))
@@ -239,6 +245,10 @@ func (mounter *Mounter) Unmount(target string) error {
 	command := exec.Command("umount", target)
 	output, err := command.CombinedOutput()
 	if err != nil {
+		if err.Error() == errNoChildProcesses {
+			// We don't consider this an error (see - k/k issue #103753)
+			return nil
+		}
 		return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(output))
 	}
 	return nil

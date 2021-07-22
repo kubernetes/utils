@@ -25,7 +25,7 @@ import (
 
 var (
 	_ = clock.PassiveClock(&FakePassiveClock{})
-	_ = clock.Clock(&FakeClock{})
+	_ = clock.WithTicker(&FakeClock{})
 	_ = clock.Clock(&IntervalClock{})
 )
 
@@ -135,6 +135,24 @@ func (f *FakeClock) Tick(d time.Duration) <-chan time.Time {
 	return ch
 }
 
+// NewTicker returns a new Ticker.
+func (f *FakeClock) NewTicker(d time.Duration) clock.Ticker {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	tickTime := f.time.Add(d)
+	ch := make(chan time.Time, 1) // hold one tick
+	f.waiters = append(f.waiters, &fakeClockWaiter{
+		targetTime:    tickTime,
+		stepInterval:  d,
+		skipIfBlocked: true,
+		destChan:      ch,
+	})
+
+	return &fakeTicker{
+		c: ch,
+	}
+}
+
 // Step moves the clock by Duration and notifies anyone that's called After,
 // Tick, or NewTimer.
 func (f *FakeClock) Step(d time.Duration) {
@@ -231,6 +249,12 @@ func (*IntervalClock) Tick(d time.Duration) <-chan time.Time {
 	panic("IntervalClock doesn't implement Tick")
 }
 
+// NewTicker has no implementation yet and is omitted.
+// TODO: make interval clock use FakeClock so this can be implemented.
+//func (*IntervalClock) NewTicker(d time.Duration) clock.Ticker {
+//	panic("IntervalClock doesn't implement NewTicker")
+//}
+
 // Sleep is unimplemented, will panic.
 func (*IntervalClock) Sleep(d time.Duration) {
 	panic("IntervalClock doesn't implement Sleep")
@@ -291,4 +315,15 @@ func (f *fakeTimer) Reset(d time.Duration) bool {
 	}
 
 	return active
+}
+
+type fakeTicker struct {
+	c <-chan time.Time
+}
+
+func (t *fakeTicker) C() <-chan time.Time {
+	return t.c
+}
+
+func (t *fakeTicker) Stop() {
 }

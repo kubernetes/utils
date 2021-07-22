@@ -214,7 +214,9 @@ func (f *FakeClock) Sleep(d time.Duration) {
 	f.Step(d)
 }
 
-// IntervalClock implements clock.Clock, but each invocation of Now steps the clock forward the specified duration
+// IntervalClock implements clock.PassiveClock, but each invocation of Now steps the clock forward the specified duration.
+// IntervalClock technically implements the other methods of clock.Clock, but each implementation is just a panic.
+// See SimpleIntervalClock for an alternative that only has the methods of PassiveClock.
 type IntervalClock struct {
 	Time     time.Time
 	Duration time.Duration

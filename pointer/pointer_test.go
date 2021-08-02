@@ -69,6 +69,34 @@ func TestAllPtrFieldsNil(t *testing.T) {
 	}
 }
 
+func TestInt(t *testing.T) {
+	val := int(0)
+	ptr := Int(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+
+	val = int(1)
+	ptr = Int(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+}
+
+func TestIntDeref(t *testing.T) {
+	var val, def int = 1, 0
+
+	out := IntDeref(&val, def)
+	if out != val {
+		t.Errorf("expected %d, got %d", val, out)
+	}
+
+	out = IntDeref(nil, def)
+	if out != def {
+		t.Errorf("expected %d, got %d", def, out)
+	}
+}
+
 func TestInt32(t *testing.T) {
 	val := int32(0)
 	ptr := Int32(val)

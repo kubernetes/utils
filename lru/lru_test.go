@@ -33,6 +33,7 @@ package lru
 
 import (
 	"testing"
+	"time"
 )
 
 type simpleStruct struct {
@@ -85,4 +86,30 @@ func TestRemove(t *testing.T) {
 	if _, ok := lru.Get("myKey"); ok {
 		t.Fatal("TestRemove returned a removed entry")
 	}
+}
+
+func TestGetRace(t *testing.T) {
+	// size to force eviction and exercise next,curr,prev list behavior
+	lru := New(25)
+
+	stop := make(chan struct{})
+	defer close(stop)
+
+	// set up parallel getters/writers on 2x len keys
+	for key := 0; key < 50; key++ {
+		go func(key int) {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					lru.Get(key)
+					lru.Add(key, 1)
+					lru.Get(key)
+				}
+			}
+		}(key)
+	}
+	// let them run
+	time.Sleep(5 * time.Second)
 }

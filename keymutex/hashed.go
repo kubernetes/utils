@@ -41,8 +41,11 @@ type hashedKeyMutex struct {
 }
 
 // Acquires a lock associated with the specified ID.
-func (km *hashedKeyMutex) LockKey(id string) {
+func (km *hashedKeyMutex) LockKey(id string) func() {
 	km.mutexes[km.hash(id)%uint32(len(km.mutexes))].Lock()
+	return func() {
+		km.UnlockKey(id)
+	}
 }
 
 // Releases the lock associated with the specified ID.

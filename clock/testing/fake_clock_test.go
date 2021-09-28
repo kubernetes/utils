@@ -17,6 +17,7 @@ limitations under the License.
 package testing
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -134,6 +135,51 @@ func TestFakeAfter(t *testing.T) {
 		t.Errorf("unexpected channel read")
 	default:
 		t.Errorf("unexpected non-channel read")
+	}
+}
+
+func TestFakeAfterFunc(t *testing.T) {
+	tc := NewFakeClock(time.Now())
+	if tc.HasWaiters() {
+		t.Errorf("unexpected waiter?")
+	}
+
+	var called int64
+	fun := func() {
+		atomic.AddInt64(&called, 1)
+	}
+
+	tc.AfterFunc(time.Second, fun)
+	if !tc.HasWaiters() {
+		t.Errorf("unexpected lack of waiter?")
+	}
+
+	tc.AfterFunc(time.Second+time.Millisecond, fun)
+	if !tc.HasWaiters() {
+		t.Errorf("unexpected lack of waiter?")
+	}
+
+	tc.AfterFunc(2*time.Second, fun)
+	if !tc.HasWaiters() {
+		t.Errorf("unexpected lack of waiter?")
+	}
+
+	if called != 0 {
+		t.Errorf("unexpected function call")
+	}
+
+	tc.Step(999 * time.Millisecond)
+	if called != 0 {
+		t.Errorf("unexpected function call")
+	}
+
+	tc.Step(time.Millisecond)
+	if called != 1 {
+		t.Errorf("except function to be called once but %d", called)
+	}
+	tc.Step(time.Millisecond)
+	if called != 2 {
+		t.Errorf("except function to be called twice but %d", called)
 	}
 }
 

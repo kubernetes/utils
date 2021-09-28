@@ -34,6 +34,8 @@ type Clock interface {
 	// This method does not allow to free/GC the backing timer before it fires. Use
 	// NewTimer instead.
 	After(d time.Duration) <-chan time.Time
+	// AfterFunc calls fun after provided duration d and returns a timer which could stop it.
+	AfterFunc(d time.Duration, fun func()) Timer
 	// NewTimer returns a new Timer.
 	NewTimer(d time.Duration) Timer
 	// Sleep sleeps for the provided duration d.
@@ -79,6 +81,13 @@ func (RealClock) Since(ts time.Time) time.Duration {
 // NewTimer instead.
 func (RealClock) After(d time.Duration) <-chan time.Time {
 	return time.After(d)
+}
+
+// AfterFunc is the same as time.AfterFunc(d, f).
+func (r RealClock) AfterFunc(d time.Duration, f func()) Timer {
+	return &realTimer{
+		timer: time.AfterFunc(d, f),
+	}
 }
 
 // NewTimer is the same as time.NewTimer(d)

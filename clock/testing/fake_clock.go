@@ -49,6 +49,7 @@ type fakeClockWaiter struct {
 	skipIfBlocked bool
 	destChan      chan time.Time
 	fired         bool
+	fun           func()
 }
 
 // NewFakePassiveClock returns a new FakePassiveClock.
@@ -97,6 +98,24 @@ func (f *FakeClock) After(d time.Duration) <-chan time.Time {
 		destChan:   ch,
 	})
 	return ch
+}
+
+// AfterFunc is the fake version of time.AfterFunc(d,f).
+func (f *FakeClock) AfterFunc(d time.Duration, fun func()) clock.Timer {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	stopTime := f.time.Add(d)
+	ch := make(chan time.Time, 1) // Don't block!
+	timer := &fakeTimer{
+		fakeClock: f,
+		waiter: fakeClockWaiter{
+			targetTime: stopTime,
+			destChan:   ch,
+			fun:        fun,
+		},
+	}
+	f.waiters = append(f.waiters, &timer.waiter)
+	return timer
 }
 
 // NewTimer constructs a fake timer, akin to time.NewTimer(d).
@@ -180,11 +199,17 @@ func (f *FakeClock) setTimeLocked(t time.Time) {
 				select {
 				case w.destChan <- t:
 					w.fired = true
+					if w.fun != nil {
+						w.fun()
+					}
 				default:
 				}
 			} else {
 				w.destChan <- t
 				w.fired = true
+				if w.fun != nil {
+					w.fun()
+				}
 			}
 
 			if w.stepInterval > 0 {
@@ -237,6 +262,12 @@ func (i *IntervalClock) Since(ts time.Time) time.Duration {
 // TODO: make interval clock use FakeClock so this can be implemented.
 func (*IntervalClock) After(d time.Duration) <-chan time.Time {
 	panic("IntervalClock doesn't implement After")
+}
+
+// AfterFunc is unimplemented, will panic.
+// TODO: make interval clock use FakeClock so this can be implemented.
+func (*IntervalClock) AfterFunc(d time.Duration, fun func()) clock.Timer {
+	panic("IntervalClock doesn't implement AfterFunc")
 }
 
 // NewTimer is unimplemented, will panic.

@@ -37,13 +37,17 @@ func NewRingGrowing(initialSize int32) *RingGrowing {
 
 // ReadOne reads (consumes) first item from the buffer if it is available, otherwise returns false.
 func (r *RingGrowing) ReadOne() (data interface{}, ok bool) {
-	if r.readable == 0 {
+	oldReadable := atomic.LoadInt32(&r.readable)
+	oldN := atomic.LoadInt32(&r.n)
+	if oldReadable == 0 {
 		return nil, false
 	}
-	r.readable--
+	if !atomic.CompareAndSwapInt32(&r.readable, oldReadable, oldReadable-1) {
+		return nil, false
+	}
 	oldBeg := atomic.LoadInt32(&r.beg)
 
-	if oldBeg == r.n-1 {
+	if oldBeg == oldN-1 {
 		if !atomic.CompareAndSwapInt32(&r.beg, oldBeg, 0) {
 			return nil, false
 		}

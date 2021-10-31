@@ -16,17 +16,19 @@ limitations under the License.
 
 package buffer
 
+import "sync/atomic"
+
 // RingGrowing is a growing ring buffer.
 // Not thread safe.
 type RingGrowing struct {
 	data     []interface{}
-	n        int // Size of Data
-	beg      int // First available element
-	readable int // Number of data items available
+	n        int32 // Size of Data
+	beg      int32 // First available element
+	readable int32 // Number of data items available
 }
 
 // NewRingGrowing constructs a new RingGrowing instance with provided parameters.
-func NewRingGrowing(initialSize int) *RingGrowing {
+func NewRingGrowing(initialSize int32) *RingGrowing {
 	return &RingGrowing{
 		data: make([]interface{}, initialSize),
 		n:    initialSize,
@@ -39,34 +41,43 @@ func (r *RingGrowing) ReadOne() (data interface{}, ok bool) {
 		return nil, false
 	}
 	r.readable--
-	element := r.data[r.beg]
-	r.data[r.beg] = nil // Remove reference to the object to help GC
-	if r.beg == r.n-1 {
-		// Was the last element
-		r.beg = 0
+	oldBeg := atomic.LoadInt32(&r.beg)
+
+	if oldBeg == r.n-1 {
+		if !atomic.CompareAndSwapInt32(&r.beg, oldBeg, 0) {
+			return nil, false
+		}
 	} else {
-		r.beg++
+		if !atomic.CompareAndSwapInt32(&r.beg, oldBeg, oldBeg+1) {
+			return nil, false
+		}
 	}
+	element := r.data[oldBeg]
+	r.data[oldBeg] = nil // Remove reference to the object to help GC
 	return element, true
 }
 
 // WriteOne adds an item to the end of the buffer, growing it if it is full.
 func (r *RingGrowing) WriteOne(data interface{}) {
-	if r.readable == r.n {
+	oldReadable := atomic.LoadInt32(&r.readable)
+	oldN := atomic.LoadInt32(&r.n)
+	oldBeg := atomic.LoadInt32(&r.beg)
+
+	if oldN == oldReadable {
 		// Time to grow
-		newN := r.n * 2
+		newN := oldN * 2
 		newData := make([]interface{}, newN)
-		to := r.beg + r.readable
+		to := oldBeg + oldReadable
 		if to <= r.n {
 			copy(newData, r.data[r.beg:to])
 		} else {
 			copied := copy(newData, r.data[r.beg:])
 			copy(newData[copied:], r.data[:(to%r.n)])
 		}
-		r.beg = 0
+		atomic.StoreInt32(&r.n, newN)
 		r.data = newData
-		r.n = newN
+		atomic.StoreInt32(&r.beg, 0)
 	}
 	r.data[(r.readable+r.beg)%r.n] = data
-	r.readable++
+	atomic.StoreInt32(&r.readable, oldReadable+1)
 }

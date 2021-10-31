@@ -27,7 +27,7 @@ func TestGrowth(t *testing.T) {
 	x := 10
 	g := NewRingGrowing(1)
 	for i := 0; i < x; i++ {
-		assert.Equal(t, i, g.readable)
+		assert.Equal(t, int32(i), g.readable)
 		g.WriteOne(i)
 	}
 	read := 0
@@ -39,7 +39,7 @@ func TestGrowth(t *testing.T) {
 	}
 	assert.Equalf(t, x, read, "expected to have read %d items: %d", x, read)
 	assert.Zerof(t, g.readable, "expected readable to be zero: %d", g.readable)
-	assert.Equalf(t, 16, g.n, "expected N to be 16: %d", g.n)
+	assert.Equalf(t, int32(16), g.n, "expected N to be 16: %d", g.n)
 }
 
 func TestEmpty(t *testing.T) {

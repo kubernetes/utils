@@ -28,10 +28,10 @@ type RingGrowing struct {
 }
 
 // NewRingGrowing constructs a new RingGrowing instance with provided parameters.
-func NewRingGrowing(initialSize int32) *RingGrowing {
+func NewRingGrowing(initialSize int) *RingGrowing {
 	return &RingGrowing{
 		data: make([]interface{}, initialSize),
-		n:    initialSize,
+		n:    int32(initialSize),
 	}
 }
 

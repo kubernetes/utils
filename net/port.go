@@ -23,15 +23,6 @@ import (
 	"strings"
 )
 
-// IPFamily refers to a specific family if not empty, i.e. "4" or "6".
-type IPFamily string
-
-// Constants for valid IPFamilys:
-const (
-	IPv4 IPFamily = "4"
-	IPv6          = "6"
-)
-
 // Protocol is a network protocol support by LocalPort.
 type Protocol string
 

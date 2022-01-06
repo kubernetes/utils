@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/distribution/distribution/v3/digestset"
+	"k8s.io/utils/distribution/digestset"
+
 	"github.com/opencontainers/go-digest"
 )
 

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opencontainers/go-digest"
+	"k8s.io/utils/distribution/digest"
 )
 
 func TestReferenceParse(t *testing.T) {

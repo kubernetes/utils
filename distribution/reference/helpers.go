@@ -1,7 +1,5 @@
 package reference
 
-import "path"
-
 // IsNameOnly returns true if reference only contains a repo name.
 func IsNameOnly(ref Named) bool {
 	if _, ok := ref.(NamedTagged); ok {
@@ -29,14 +27,4 @@ func FamiliarString(ref Reference) string {
 		return nn.Familiar().String()
 	}
 	return ref.String()
-}
-
-// FamiliarMatch reports whether ref matches the specified pattern.
-// See https://godoc.org/path#Match for supported patterns.
-func FamiliarMatch(pattern string, ref Reference) (bool, error) {
-	matched, err := path.Match(pattern, FamiliarString(ref))
-	if namedRef, isNamed := ref.(Named); isNamed && !matched {
-		matched, _ = path.Match(pattern, FamiliarName(namedRef))
-	}
-	return matched, err
 }

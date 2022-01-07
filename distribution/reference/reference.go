@@ -29,7 +29,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/opencontainers/go-digest"
+	"k8s.io/utils/distribution/digest"
 )
 
 const (
@@ -316,15 +316,6 @@ func WithDigest(name Named, digest digest.Digest) (Canonical, error) {
 		namedRepository: repo,
 		digest:          digest,
 	}, nil
-}
-
-// TrimNamed removes any tag or digest from the named reference.
-func TrimNamed(ref Named) Named {
-	domain, path := SplitHostname(ref)
-	return repository{
-		domain: domain,
-		path:   path,
-	}
 }
 
 func getBestReferenceType(ref reference) Reference {

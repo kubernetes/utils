@@ -227,360 +227,207 @@ func TestDualStackCIDRs(t *testing.T) {
 	}
 }
 
-func TestIsIPv6String(t *testing.T) {
+func TestIPFamilyString(t *testing.T) {
 	testCases := []struct {
-		ip         string
-		expectIPv6 bool
+		ip     string
+		family IPFamily
 	}{
 		{
-			ip:         "127.0.0.1",
-			expectIPv6: false,
+			ip:     "0.0.0.0",
+			family: IPv4,
 		},
 		{
-			ip:         "192.168.0.0",
-			expectIPv6: false,
+			ip:     "255.255.255.255",
+			family: IPv4,
 		},
 		{
-			ip:         "1.2.3.4",
-			expectIPv6: false,
+			ip:     "127.0.0.1",
+			family: IPv4,
 		},
 		{
-			ip:         "bad ip",
-			expectIPv6: false,
+			ip:     "192.168.0.0",
+			family: IPv4,
 		},
 		{
-			ip:         "::1",
-			expectIPv6: true,
+			ip:     "1.2.3.4",
+			family: IPv4,
 		},
 		{
-			ip:         "fd00::600d:f00d",
-			expectIPv6: true,
+			ip:     "bad ip",
+			family: IPFamilyUnknown,
 		},
 		{
-			ip:         "2001:db8::5",
-			expectIPv6: true,
+			// CIDR rather than IP
+			ip:     "192.168.0.0/16",
+			family: IPFamilyUnknown,
+		},
+		{
+			ip:     "::",
+			family: IPv6,
+		},
+		{
+			ip:     "::1",
+			family: IPv6,
+		},
+		{
+			ip:     "fd00::600d:f00d",
+			family: IPv6,
+		},
+		{
+			ip:     "2001:db8::5",
+			family: IPv6,
 		},
 	}
 	for i := range testCases {
-		isIPv6 := IsIPv6String(testCases[i].ip)
-		if isIPv6 != testCases[i].expectIPv6 {
-			t.Errorf("[%d] Expect ipv6 %v, got %v", i+1, testCases[i].expectIPv6, isIPv6)
-		}
-	}
-}
-
-func TestIsIPv6(t *testing.T) {
-	testCases := []struct {
-		ip         net.IP
-		expectIPv6 bool
-	}{
-		{
-			ip:         net.IPv4zero,
-			expectIPv6: false,
-		},
-		{
-			ip:         net.IPv4bcast,
-			expectIPv6: false,
-		},
-		{
-			ip:         ParseIPSloppy("127.0.0.1"),
-			expectIPv6: false,
-		},
-		{
-			ip:         ParseIPSloppy("10.20.40.40"),
-			expectIPv6: false,
-		},
-		{
-			ip:         ParseIPSloppy("172.17.3.0"),
-			expectIPv6: false,
-		},
-		{
-			ip:         nil,
-			expectIPv6: false,
-		},
-		{
-			ip:         net.IPv6loopback,
-			expectIPv6: true,
-		},
-		{
-			ip:         net.IPv6zero,
-			expectIPv6: true,
-		},
-		{
-			ip:         ParseIPSloppy("fd00::600d:f00d"),
-			expectIPv6: true,
-		},
-		{
-			ip:         ParseIPSloppy("2001:db8::5"),
-			expectIPv6: true,
-		},
-	}
-	for i := range testCases {
-		isIPv6 := IsIPv6(testCases[i].ip)
-		if isIPv6 != testCases[i].expectIPv6 {
-			t.Errorf("[%d] Expect ipv6 %v, got %v", i+1, testCases[i].expectIPv6, isIPv6)
-		}
-	}
-}
-
-func TestIsIPv6CIDRString(t *testing.T) {
-	testCases := []struct {
-		desc         string
-		cidr         string
-		expectResult bool
-	}{
-		{
-			desc:         "ipv4 CIDR 1",
-			cidr:         "10.0.0.0/8",
-			expectResult: false,
-		},
-		{
-			desc:         "ipv4 CIDR 2",
-			cidr:         "192.168.0.0/16",
-			expectResult: false,
-		},
-		{
-			desc:         "ipv6 CIDR 1",
-			cidr:         "::/1",
-			expectResult: true,
-		},
-		{
-			desc:         "ipv6 CIDR 2",
-			cidr:         "2000::/10",
-			expectResult: true,
-		},
-		{
-			desc:         "ipv6 CIDR 3",
-			cidr:         "2001:db8::/32",
-			expectResult: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		res := IsIPv6CIDRString(tc.cidr)
-		if res != tc.expectResult {
-			t.Errorf("%v: want IsIPv6CIDRString=%v, got %v", tc.desc, tc.expectResult, res)
-		}
-	}
-}
-
-func TestIsIPv6CIDR(t *testing.T) {
-	testCases := []struct {
-		desc         string
-		cidr         string
-		expectResult bool
-	}{
-		{
-			desc:         "ipv4 CIDR 1",
-			cidr:         "10.0.0.0/8",
-			expectResult: false,
-		},
-		{
-			desc:         "ipv4 CIDR 2",
-			cidr:         "192.168.0.0/16",
-			expectResult: false,
-		},
-		{
-			desc:         "ipv6 CIDR 1",
-			cidr:         "::/1",
-			expectResult: true,
-		},
-		{
-			desc:         "ipv6 CIDR 2",
-			cidr:         "2000::/10",
-			expectResult: true,
-		},
-		{
-			desc:         "ipv6 CIDR 3",
-			cidr:         "2001:db8::/32",
-			expectResult: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		_, cidr, _ := ParseCIDRSloppy(tc.cidr)
-		res := IsIPv6CIDR(cidr)
-		if res != tc.expectResult {
-			t.Errorf("%v: want IsIPv6CIDR=%v, got %v", tc.desc, tc.expectResult, res)
-		}
-	}
-}
-
-func TestIsIPv4String(t *testing.T) {
-	testCases := []struct {
-		ip         string
-		expectIPv4 bool
-	}{
-		{
-			ip:         "127.0.0.1",
-			expectIPv4: true,
-		},
-		{
-			ip:         "192.168.0.0",
-			expectIPv4: true,
-		},
-		{
-			ip:         "1.2.3.4",
-			expectIPv4: true,
-		},
-		{
-			ip:         "bad ip",
-			expectIPv4: false,
-		},
-		{
-			ip:         "::1",
-			expectIPv4: false,
-		},
-		{
-			ip:         "fd00::600d:f00d",
-			expectIPv4: false,
-		},
-		{
-			ip:         "2001:db8::5",
-			expectIPv4: false,
-		},
-	}
-	for i := range testCases {
+		family := IPFamilyOfString(testCases[i].ip)
 		isIPv4 := IsIPv4String(testCases[i].ip)
-		if isIPv4 != testCases[i].expectIPv4 {
-			t.Errorf("[%d] Expect ipv4 %v, got %v", i+1, testCases[i].expectIPv4, isIPv4)
+		isIPv6 := IsIPv6String(testCases[i].ip)
+		switch testCases[i].family {
+		case IPFamilyUnknown:
+			if family != IPFamilyUnknown || isIPv4 || isIPv6 {
+				t.Errorf("[%d] Expected family %q, isIPv4 %v, isIPv6 %v. Got family %q, isIPv4 %v, isIPv6 %v", i+1, IPFamilyUnknown, false, false, family, isIPv4, isIPv6)
+			}
+		case IPv4:
+			if family != IPv4 || !isIPv4 || isIPv6 {
+				t.Errorf("[%d] Expected family %q, isIPv4 %v, isIPv6 %v. Got family %q, isIPv4 %v, isIPv6 %v", i+1, IPv4, true, false, family, isIPv4, isIPv6)
+			}
+		case IPv6:
+			if family != IPv6 || isIPv4 || !isIPv6 {
+				t.Errorf("[%d] Expected family %q, isIPv4 %v, isIPv6 %v. Got family %q, isIPv4 %v, isIPv6 %v", i+1, IPv6, false, true, family, isIPv4, isIPv6)
+			}
 		}
 	}
 }
 
-func TestIsIPv4(t *testing.T) {
+func TestIPFamilyOf(t *testing.T) {
 	testCases := []struct {
-		ip         net.IP
-		expectIPv4 bool
+		ip     net.IP
+		family IPFamily
 	}{
 		{
-			ip:         net.IPv4zero,
-			expectIPv4: true,
+			ip:     net.IPv4zero,
+			family: IPv4,
 		},
 		{
-			ip:         net.IPv4bcast,
-			expectIPv4: true,
+			ip:     net.IPv4bcast,
+			family: IPv4,
 		},
 		{
-			ip:         ParseIPSloppy("127.0.0.1"),
-			expectIPv4: true,
+			ip:     ParseIPSloppy("127.0.0.1"),
+			family: IPv4,
 		},
 		{
-			ip:         ParseIPSloppy("10.20.40.40"),
-			expectIPv4: true,
+			ip:     ParseIPSloppy("10.20.40.40"),
+			family: IPv4,
 		},
 		{
-			ip:         ParseIPSloppy("172.17.3.0"),
-			expectIPv4: true,
+			ip:     ParseIPSloppy("172.17.3.0"),
+			family: IPv4,
 		},
 		{
-			ip:         nil,
-			expectIPv4: false,
+			ip:     nil,
+			family: IPFamilyUnknown,
 		},
 		{
-			ip:         net.IPv6loopback,
-			expectIPv4: false,
+			ip:     net.IPv6loopback,
+			family: IPv6,
 		},
 		{
-			ip:         net.IPv6zero,
-			expectIPv4: false,
+			ip:     net.IPv6zero,
+			family: IPv6,
 		},
 		{
-			ip:         ParseIPSloppy("fd00::600d:f00d"),
-			expectIPv4: false,
+			ip:     ParseIPSloppy("fd00::600d:f00d"),
+			family: IPv6,
 		},
 		{
-			ip:         ParseIPSloppy("2001:db8::5"),
-			expectIPv4: false,
+			ip:     ParseIPSloppy("2001:db8::5"),
+			family: IPv6,
 		},
 	}
 	for i := range testCases {
+		family := IPFamilyOf(testCases[i].ip)
 		isIPv4 := IsIPv4(testCases[i].ip)
-		if isIPv4 != testCases[i].expectIPv4 {
-			t.Errorf("[%d] Expect ipv4 %v, got %v", i+1, testCases[i].expectIPv4, isIPv4)
+		isIPv6 := IsIPv6(testCases[i].ip)
+		switch testCases[i].family {
+		case IPFamilyUnknown:
+			if family != IPFamilyUnknown || isIPv4 || isIPv6 {
+				t.Errorf("[%d] Expected family %q, isIPv4 %v, isIPv6 %v. Got family %q, isIPv4 %v, isIPv6 %v", i+1, IPFamilyUnknown, false, false, family, isIPv4, isIPv6)
+			}
+		case IPv4:
+			if family != IPv4 || !isIPv4 || isIPv6 {
+				t.Errorf("[%d] Expected family %q, isIPv4 %v, isIPv6 %v. Got family %q, isIPv4 %v, isIPv6 %v", i+1, IPv4, true, false, family, isIPv4, isIPv6)
+			}
+		case IPv6:
+			if family != IPv6 || isIPv4 || !isIPv6 {
+				t.Errorf("[%d] Expected family %q, isIPv4 %v, isIPv6 %v. Got family %q, isIPv4 %v, isIPv6 %v", i+1, IPv6, false, true, family, isIPv4, isIPv6)
+			}
 		}
 	}
 }
 
-func TestIsIPv4CIDRString(t *testing.T) {
+func TestIPFamilyOfCIDR(t *testing.T) {
 	testCases := []struct {
-		desc         string
-		cidr         string
-		expectResult bool
+		desc   string
+		cidr   string
+		family IPFamily
 	}{
 		{
-			desc:         "ipv4 CIDR 1",
-			cidr:         "10.0.0.0/8",
-			expectResult: true,
+			desc:   "ipv4 CIDR 1",
+			cidr:   "10.0.0.0/8",
+			family: IPv4,
 		},
 		{
-			desc:         "ipv4 CIDR 2",
-			cidr:         "192.168.0.0/16",
-			expectResult: true,
+			desc:   "ipv4 CIDR 2",
+			cidr:   "192.168.0.0/16",
+			family: IPv4,
 		},
 		{
-			desc:         "ipv6 CIDR 1",
-			cidr:         "::/1",
-			expectResult: false,
+			desc:   "ipv6 CIDR 1",
+			cidr:   "::/1",
+			family: IPv6,
 		},
 		{
-			desc:         "ipv6 CIDR 2",
-			cidr:         "2000::/10",
-			expectResult: false,
+			desc:   "ipv6 CIDR 2",
+			cidr:   "2000::/10",
+			family: IPv6,
 		},
 		{
-			desc:         "ipv6 CIDR 3",
-			cidr:         "2001:db8::/32",
-			expectResult: false,
+			desc:   "ipv6 CIDR 3",
+			cidr:   "2001:db8::/32",
+			family: IPv6,
+		},
+		{
+			desc:   "Unknown IP family",
+			cidr:   "invalid.cidr/mask",
+			family: IPFamilyUnknown,
+		},
+		{
+			desc:   "IP rather than CIDR",
+			cidr:   "192.168.0.1",
+			family: IPFamilyUnknown,
 		},
 	}
 
 	for _, tc := range testCases {
-		res := IsIPv4CIDRString(tc.cidr)
-		if res != tc.expectResult {
-			t.Errorf("%v: want IsIPv4CIDRString=%v, got %v", tc.desc, tc.expectResult, res)
-		}
-	}
-}
-
-func TestIsIPv4CIDR(t *testing.T) {
-	testCases := []struct {
-		desc         string
-		cidr         string
-		expectResult bool
-	}{
-		{
-			desc:         "ipv4 CIDR 1",
-			cidr:         "10.0.0.0/8",
-			expectResult: true,
-		},
-		{
-			desc:         "ipv4 CIDR 2",
-			cidr:         "192.168.0.0/16",
-			expectResult: true,
-		},
-		{
-			desc:         "ipv6 CIDR 1",
-			cidr:         "::/1",
-			expectResult: false,
-		},
-		{
-			desc:         "ipv6 CIDR 2",
-			cidr:         "2000::/10",
-			expectResult: false,
-		},
-		{
-			desc:         "ipv6 CIDR 3",
-			cidr:         "2001:db8::/32",
-			expectResult: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		_, cidr, _ := ParseCIDRSloppy(tc.cidr)
-		res := IsIPv4CIDR(cidr)
-		if res != tc.expectResult {
-			t.Errorf("%v: want IsIPv4CIDR=%v, got %v", tc.desc, tc.expectResult, res)
-		}
+		t.Run(tc.desc, func(t *testing.T) {
+			family := IPFamilyOfCIDRString(tc.cidr)
+			isIPv4 := IsIPv4CIDRString(tc.cidr)
+			isIPv6 := IsIPv6CIDRString(tc.cidr)
+			switch tc.family {
+			case IPFamilyUnknown:
+				if family != IPFamilyUnknown || isIPv4 || isIPv6 {
+					t.Errorf("Expected family %q, isIPv4 %v, isIPv6 %v. Got family %q, isIPv4 %v, isIPv6 %v", IPFamilyUnknown, false, false, family, isIPv4, isIPv6)
+				}
+			case IPv4:
+				if family != IPv4 || !isIPv4 || isIPv6 {
+					t.Errorf("Expected family %q, isIPv4 %v, isIPv6 %v. Got family %q, isIPv4 %v, isIPv6 %v", IPv4, true, false, family, isIPv4, isIPv6)
+				}
+			case IPv6:
+				if family != IPv6 || isIPv4 || !isIPv6 {
+					t.Errorf("Expected family %q, isIPv4 %v, isIPv6 %v. Got family %q, isIPv4 %v, isIPv6 %v", IPv6, false, true, family, isIPv4, isIPv6)
+				}
+			}
+		})
 	}
 }

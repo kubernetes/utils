@@ -58,7 +58,7 @@ func NewLocalPort(desc, ip string, ipFamily IPFamily, port int, protocol Protoco
 	if protocol != TCP && protocol != UDP {
 		return nil, fmt.Errorf("Unsupported protocol %s", protocol)
 	}
-	if ipFamily != "" && ipFamily != "4" && ipFamily != "6" {
+	if ipFamily != IPFamilyUnknown && ipFamily != IPv4 && ipFamily != IPv6 {
 		return nil, fmt.Errorf("Invalid IP family %s", ipFamily)
 	}
 	if ip != "" {
@@ -66,9 +66,10 @@ func NewLocalPort(desc, ip string, ipFamily IPFamily, port int, protocol Protoco
 		if parsedIP == nil {
 			return nil, fmt.Errorf("invalid ip address %s", ip)
 		}
-		asIPv4 := parsedIP.To4()
-		if asIPv4 == nil && ipFamily == IPv4 || asIPv4 != nil && ipFamily == IPv6 {
-			return nil, fmt.Errorf("ip address and family mismatch %s, %s", ip, ipFamily)
+		if ipFamily != IPFamilyUnknown {
+			if IPFamily(parsedIP) != ipFamily {
+				return nil, fmt.Errorf("ip address and family mismatch %s, %s", ip, ipFamily)
+			}
 		}
 	}
 	return &LocalPort{Description: desc, IP: ip, IPFamily: ipFamily, Port: port, Protocol: protocol}, nil

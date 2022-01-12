@@ -106,50 +106,73 @@ func IsDualStackCIDRStrings(cidrs []string) (bool, error) {
 	return IsDualStackCIDRs(parsedCIDRs)
 }
 
-// IsIPv6 returns if netIP is IPv6.
+// IPFamilyOf returns the IP family of netIP.
+func IPFamilyOf(netIP net.IP) IPFamily {
+	switch {
+	case netIP == nil:
+		return IPFamilyUnknown
+	case netIP.To4() != nil:
+		return IPv4
+	default:
+		return IPv6
+	}
+}
+
+// IPFamilyOfString returns the IP family of ip.
+func IPFamilyOfString(ip string) IPFamily {
+	return IPFamilyOf(ParseIPSloppy(ip))
+}
+
+// IPFamilyOfCIDR returns the IP family of cidr.
+func IPFamilyOfCIDR(cidr *net.IPNet) IPFamily {
+	if cidr == nil {
+		return IPFamilyUnknown
+	}
+	return IPFamilyOf(cidr.IP)
+}
+
+// IPFamilyOfCIDRString returns the IP family of cidr.
+func IPFamilyOfCIDRString(cidr string) IPFamily {
+	ip, _, _ := ParseCIDRSloppy(cidr)
+	return IPFamilyOf(ip)
+}
+
+// IsIPv6 returns whether netIP is IPv6.
 func IsIPv6(netIP net.IP) bool {
-	return netIP != nil && netIP.To4() == nil
+	return IPFamilyOf(netIP) == IPv6
 }
 
-// IsIPv6String returns if ip is IPv6.
+// IsIPv6String returns whether ip is IPv6.
 func IsIPv6String(ip string) bool {
-	netIP := ParseIPSloppy(ip)
-	return IsIPv6(netIP)
+	return IPFamilyOfString(ip) == IPv6
 }
 
-// IsIPv6CIDRString returns if cidr is IPv6.
-// This assumes cidr is a valid CIDR.
-func IsIPv6CIDRString(cidr string) bool {
-	ip, _, _ := ParseCIDRSloppy(cidr)
-	return IsIPv6(ip)
-}
-
-// IsIPv6CIDR returns if a cidr is ipv6
+// IsIPv6CIDR returns whether cidr is ipv6
 func IsIPv6CIDR(cidr *net.IPNet) bool {
-	ip := cidr.IP
-	return IsIPv6(ip)
+	return IPFamilyOfCIDR(cidr) == IPv6
 }
 
-// IsIPv4 returns if netIP is IPv4.
+// IsIPv6CIDRString returns whether cidr is IPv6.
+func IsIPv6CIDRString(cidr string) bool {
+	return IPFamilyOfCIDRString(cidr) == IPv6
+}
+
+// IsIPv4 returns whether netIP is IPv4.
 func IsIPv4(netIP net.IP) bool {
-	return netIP != nil && netIP.To4() != nil
+	return IPFamilyOf(netIP) == IPv4
 }
 
-// IsIPv4String returns if ip is IPv4.
+// IsIPv4String returns whether ip is IPv4.
 func IsIPv4String(ip string) bool {
-	netIP := ParseIPSloppy(ip)
-	return IsIPv4(netIP)
+	return IPFamilyOfString(ip) == IPv4
 }
 
-// IsIPv4CIDR returns if a cidr is ipv4
+// IsIPv4CIDR returns whether cidr is ipv4
 func IsIPv4CIDR(cidr *net.IPNet) bool {
-	ip := cidr.IP
-	return IsIPv4(ip)
+	return IPFamilyOfCIDR(cidr) == IPv4
 }
 
-// IsIPv4CIDRString returns if cidr is IPv4.
-// This assumes cidr is a valid CIDR.
+// IsIPv4CIDRString returns whether cidr is IPv4.
 func IsIPv4CIDRString(cidr string) bool {
-	ip, _, _ := ParseCIDRSloppy(cidr)
-	return IsIPv4(ip)
+	return IPFamilyOfCIDRString(cidr) == IPv4
 }

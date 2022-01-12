@@ -228,7 +228,7 @@ func TestDualStackCIDRs(t *testing.T) {
 	}
 }
 
-func TestIsIPvXString(t *testing.T) {
+func TestIPFamilyOfString(t *testing.T) {
 	testCases := []struct {
 		desc   string
 		ip     string
@@ -352,9 +352,13 @@ func TestIsIPvXString(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
+			family := IPFamilyOfString(tc.ip)
 			isIPv4 := IsIPv4String(tc.ip)
 			isIPv6 := IsIPv6String(tc.ip)
 
+			if family != tc.family {
+				t.Errorf("Expect %q family %q, got %q", tc.ip, tc.family, family)
+			}
 			if isIPv4 != (tc.family == IPv4) {
 				t.Errorf("Expect %q ipv4 %v, got %v", tc.ip, tc.family == IPv4, isIPv6)
 			}
@@ -392,7 +396,7 @@ func mustParseCIDRMask(cidrstr string) net.IPMask {
 	return cidr.Mask
 }
 
-func TestIsIPvX(t *testing.T) {
+func TestIsIPFamilyOf(t *testing.T) {
 	testCases := []struct {
 		desc   string
 		ip     net.IP
@@ -506,9 +510,13 @@ func TestIsIPvX(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
+			family := IPFamilyOf(tc.ip)
 			isIPv4 := IsIPv4(tc.ip)
 			isIPv6 := IsIPv6(tc.ip)
 
+			if family != tc.family {
+				t.Errorf("Expect family %q, got %q", tc.family, family)
+			}
 			if isIPv4 != (tc.family == IPv4) {
 				t.Errorf("Expect ipv4 %v, got %v", tc.family == IPv4, isIPv6)
 			}
@@ -519,7 +527,7 @@ func TestIsIPvX(t *testing.T) {
 	}
 }
 
-func TestIsIPvXCIDR(t *testing.T) {
+func TestIPFamilyOfCIDR(t *testing.T) {
 	testCases := []struct {
 		desc   string
 		cidr   string
@@ -619,9 +627,13 @@ func TestIsIPvXCIDR(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
+			family := IPFamilyOfCIDRString(tc.cidr)
 			isIPv4 := IsIPv4CIDRString(tc.cidr)
 			isIPv6 := IsIPv6CIDRString(tc.cidr)
 
+			if family != tc.family {
+				t.Errorf("Expect family %v, got %v", tc.family, family)
+			}
 			if isIPv4 != (tc.family == IPv4) {
 				t.Errorf("Expect %q ipv4 %v, got %v", tc.cidr, tc.family == IPv4, isIPv6)
 			}
@@ -630,8 +642,12 @@ func TestIsIPvXCIDR(t *testing.T) {
 			}
 
 			_, parsed, _ := ParseCIDRSloppy(tc.cidr)
+			familyParsed := IPFamilyOfCIDR(parsed)
 			isIPv4Parsed := IsIPv4CIDR(parsed)
 			isIPv6Parsed := IsIPv6CIDR(parsed)
+			if familyParsed != family {
+				t.Errorf("%q gives different results for IPFamilyOfCIDR (%v) and IPFamilyOfCIDRString (%v)", tc.cidr, familyParsed, family)
+			}
 			if isIPv4Parsed != isIPv4 {
 				t.Errorf("%q gives different results for IsIPv4CIDR (%v) and IsIPv4CIDRString (%v)", tc.cidr, isIPv4Parsed, isIPv4)
 			}

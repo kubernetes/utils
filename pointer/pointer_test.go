@@ -19,6 +19,7 @@ package pointer
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestAllPtrFieldsNil(t *testing.T) {
@@ -369,6 +370,52 @@ func TestFloat64Equal(t *testing.T) {
 		t.Errorf("expected false (val != nil)")
 	}
 	if Float64Equal(Float64(1.25), Float64(4.5)) {
+		t.Errorf("expected false (val != val)")
+	}
+}
+
+func TestDuration(t *testing.T) {
+	val := time.Duration(0)
+	ptr := Duration(val)
+	if *ptr != val {
+		t.Errorf("expected %s, got %s", val, *ptr)
+	}
+
+	val = time.Duration(42)
+	ptr = Duration(val)
+	if *ptr != val {
+		t.Errorf("expected %s, got %s", val, *ptr)
+	}
+}
+
+func TestDurationDeref(t *testing.T) {
+	var val, def time.Duration = 42, 0
+
+	out := DurationDeref(&val, def)
+	if out != val {
+		t.Errorf("expected %s, got %s", val, out)
+	}
+
+	out = DurationDeref(nil, def)
+	if out != def {
+		t.Errorf("expected %s, got %s", def, out)
+	}
+}
+
+func TestDurationEqual(t *testing.T) {
+	if !DurationEqual(nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !DurationEqual(Duration(42), Duration(42)) {
+		t.Errorf("expected true (val == val)")
+	}
+	if DurationEqual(nil, Duration(42)) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if DurationEqual(Duration(42), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if DurationEqual(Duration(42), Duration(43)) {
 		t.Errorf("expected false (val != val)")
 	}
 }

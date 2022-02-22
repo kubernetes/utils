@@ -76,6 +76,11 @@ type Cmd interface {
 	// responding, an internal timer function will send a SIGKILL to force
 	// terminate after 10 seconds.
 	Stop()
+
+	// GetPath returns the path from the underlying os.Cmd
+	GetPath() string
+	// GetArgs returns the args from the underlying os.Cmd
+	GetArgs() []string
 }
 
 // ExitError is an interface that presents an API similar to os.ProcessState, which is
@@ -188,6 +193,14 @@ func (cmd *cmdWrapper) Stop() {
 			c.Process.Signal(syscall.SIGKILL)
 		}
 	})
+}
+
+func (cmd *cmdWrapper) GetPath() string {
+	return (*osexec.Cmd)(cmd).Path
+}
+
+func (cmd *cmdWrapper) GetArgs() []string {
+	return (*osexec.Cmd)(cmd).Args
 }
 
 func handleError(err error) error {

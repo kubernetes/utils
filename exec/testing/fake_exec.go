@@ -240,6 +240,14 @@ func (fake *FakeCmd) Stop() {
 	// no-op
 }
 
+func (fake *FakeCmd) GetPath() string {
+	return fake.Argv[0]
+}
+
+func (fake *FakeCmd) GetArgs() []string {
+	return fake.Argv
+}
+
 // FakeExitError is a simple fake ExitError type.
 type FakeExitError struct {
 	Status int

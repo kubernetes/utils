@@ -4,16 +4,16 @@ jobs:
   build:
     strategy:
       matrix:
-        go-versions: [1.13.x]
+        go-versions: [1.18.x]
         platform: [windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Install Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v3
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: ${{ matrix.go-versions }}
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build
         run: |
           go build ./...
@@ -24,16 +24,16 @@ jobs:
   test:
     strategy:
       matrix:
-        go-versions: [1.12.x, 1.13.x, 1.14.x]
+        go-versions: [1.18.x]
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v3
       with:
-        go-version: ${{ matrix.go-version }}
+        go-version: ${{ matrix.go-versions }}
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Test
       run: |
         make test
@@ -41,28 +41,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18.x
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Lint
         run: |
-          docker run --rm -v `pwd`:/go/src/k8s.io/klog -w /go/src/k8s.io/klog \
-            golangci/golangci-lint:v1.23.8 golangci-lint run --disable-all -v \
+          docker run --rm -v `pwd`:/go/src/k8s.io/util -w /go/src/k8s.io/util \
+            golangci/golangci-lint:v1.45.0 golangci-lint run --go 1.18 --disable-all -v \
             -E govet -E misspell -E gofmt -E ineffassign -E golint
   apidiff:
     runs-on: ubuntu-latest
     if: github.base_ref
     steps:
       - name: Install Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.13.x
+          go-version: 1.18.x
       - name: Add GOBIN to PATH
         run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
       - name: Install dependencies
-        run: go get golang.org/x/exp/cmd/apidiff
+        run: go install golang.org/x/exp/cmd/apidiff@latest
       - name: Checkout old code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.base_ref }}
           path: "old"

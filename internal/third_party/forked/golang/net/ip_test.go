@@ -80,9 +80,8 @@ func TestParseIP(t *testing.T) {
 			// Tested in TestMarshalEmptyIP below.
 			continue
 		}
-		var out IP
-		if err := out.UnmarshalText([]byte(tt.in)); !reflect.DeepEqual(out, tt.out) || (tt.out == nil) != (err != nil) {
-			t.Errorf("IP.UnmarshalText(%q) = %v, %v, want %v", tt.in, out, err, tt.out)
+		if out, err := IPUnmarshalText([]byte(tt.in)); !reflect.DeepEqual(out, tt.out) || (tt.out == nil) != (err != nil) {
+			t.Errorf("IPUnmarshalText(%q) = %v, %v, want %v", tt.in, out, err, tt.out)
 		}
 	}
 }

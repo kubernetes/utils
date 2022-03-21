@@ -29,6 +29,19 @@ import (
 //
 
 type IP = stdnet.IP
+
+func IPUnmarshalText(text []byte) (IP, error) {
+	if len(text) == 0 {
+		return nil, nil
+	}
+	s := string(text)
+	x := ParseIP(s)
+	if x == nil {
+		return nil, &ParseError{Type: "IP address", Text: s}
+	}
+	return x, nil
+}
+
 type IPNet = stdnet.IPNet
 type ParseError = stdnet.ParseError
 

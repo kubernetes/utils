@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build linux
 // +build linux
 
 package inotify
@@ -34,9 +35,11 @@ func TestInotifyEvents(t *testing.T) {
 	}
 
 	// Receive errors on the error channel on a separate goroutine
+	var watcherErrs []error
 	go func() {
 		for err := range watcher.Error {
-			t.Fatalf("error received: %s", err)
+			// Fatal inside a goroutine is not allowed
+			watcherErrs = append(watcherErrs, err)
 		}
 	}()
 
@@ -81,6 +84,12 @@ func TestInotifyEvents(t *testing.T) {
 		t.Log("event channel closed")
 	case <-time.After(1 * time.Second):
 		t.Fatal("event stream was not closed after 1 second")
+	}
+
+	for _, err := range watcherErrs {
+		if err != nil {
+			t.Errorf("watcher had error: %v", err)
+		}
 	}
 }
 

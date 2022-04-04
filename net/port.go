@@ -28,7 +28,8 @@ type IPFamily string
 
 // Constants for valid IPFamilys:
 const (
-	IPv4, IPv6 IPFamily = "4", "6"
+	IPv4 IPFamily = "4"
+	IPv6 IPFamily = "6"
 )
 
 // Protocol is a network protocol support by LocalPort.

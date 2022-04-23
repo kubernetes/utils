@@ -52,7 +52,7 @@ opTrace.Log() // unconditionally log the trace
 
 ### Using context.Context to nest traces
 
-`context.Context` can be used to manage nested traces. Create traces by calling `trace.GetTraceFromContext(ctx).Nest`. 
+`context.Context` can be used to manage nested traces. Create traces by calling `trace.FromContext(ctx).Nest`. 
 This is safe even if there is no parent trace already in the context because `(*(Trace)nil).Nest()` returns
 a top level trace.
 

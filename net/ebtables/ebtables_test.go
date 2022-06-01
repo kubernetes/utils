@@ -167,3 +167,61 @@ Bridge chain: TEST, entries: 0, policy: ACCEPT`), nil, nil
 		t.Errorf("expected err = nil")
 	}
 }
+
+func Test_parseVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "version starting with `v`",
+			version: "v2.0.10",
+			want:    "2.0.10",
+			wantErr: false,
+		},
+		{
+			name:    "version without containing `v`",
+			version: "2.0.10",
+			want:    "2.0.10",
+			wantErr: false,
+		},
+		{
+			name:    "version containing `v` in between the regex expression match",
+			version: "2.0v.10",
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name:    "version containing `v` after the regex expression match",
+			version: "2.0.10v",
+			want:    "2.0.10",
+			wantErr: false,
+		},
+		{
+			name:    "version starting with `v` and containing a symbol in between",
+			version: "v2.0.10-4",
+			want:    "2.0.10",
+			wantErr: false,
+		},
+		{
+			name:    "version starting with `v` and containing a symbol/alphabets in between",
+			version: "v2.0a.10-4",
+			want:    "",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseVersion(tt.version)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseVersion() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("parseVersion() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

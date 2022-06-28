@@ -76,14 +76,6 @@ func TestParseIP(t *testing.T) {
 		if out := ParseIP(tt.in); !reflect.DeepEqual(out, tt.out) {
 			t.Errorf("ParseIP(%q) = %v, want %v", tt.in, out, tt.out)
 		}
-		if tt.in == "" {
-			// Tested in TestMarshalEmptyIP below.
-			continue
-		}
-		var out IP
-		if err := out.UnmarshalText([]byte(tt.in)); !reflect.DeepEqual(out, tt.out) || (tt.out == nil) != (err != nil) {
-			t.Errorf("IP.UnmarshalText(%q) = %v, %v, want %v", tt.in, out, err, tt.out)
-		}
 	}
 }
 

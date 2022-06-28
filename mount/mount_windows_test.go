@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 /*
@@ -27,7 +28,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"k8s.io/utils/exec/testing"
+	testingexec "k8s.io/utils/exec/testing"
 )
 
 func makeLink(link, target string) error {

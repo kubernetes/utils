@@ -20,6 +20,7 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"os"
 	osexec "os/exec"
 	"testing"
 	"time"
@@ -212,4 +213,40 @@ func readAll(t *testing.T, r io.Reader, n string) string {
 	}
 
 	return string(b)
+}
+
+func TestExecutorGo119LookPath(t *testing.T) {
+	orig := os.Getenv("PATH")
+	defer func() { os.Setenv("PATH", orig) }()
+
+	os.Setenv("PATH", "./testing")
+
+	ex := New()
+	path, err := ex.LookPath("hello")
+	if err != nil {
+		t.Errorf("expected success, got %v", err)
+	}
+	if path != "testing/hello" {
+		t.Errorf("expected relative path to hello script, got %v", path)
+	}
+
+	cmd := ex.Command("hello")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Errorf("expected success, got %v", err)
+	} else {
+		if len(out) != 5 {
+			t.Errorf("expected 'hello' output, got %q", string(out))
+		}
+	}
+
+	cmd = ex.CommandContext(context.Background(), "hello")
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		t.Errorf("expected success, got %v", err)
+	} else {
+		if len(out) != 5 {
+			t.Errorf("expected 'hello' output, got %q", string(out))
+		}
+	}
 }

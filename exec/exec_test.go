@@ -219,14 +219,14 @@ func TestExecutorGo119LookPath(t *testing.T) {
 	orig := os.Getenv("PATH")
 	defer func() { os.Setenv("PATH", orig) }()
 
-	os.Setenv("PATH", "./testing")
+	os.Setenv("PATH", "./testdata")
 
 	ex := New()
 	path, err := ex.LookPath("hello")
 	if err != nil {
 		t.Errorf("expected success, got %v", err)
 	}
-	if path != "testing/hello" {
+	if path != "testdata/hello" {
 		t.Errorf("expected relative path to hello script, got %v", path)
 	}
 

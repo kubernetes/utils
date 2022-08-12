@@ -144,6 +144,80 @@ func TestInt32Equal(t *testing.T) {
 	}
 }
 
+func TestUint(t *testing.T) {
+	val := uint(0)
+	ptr := Uint(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+
+	val = uint(1)
+	ptr = Uint(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+}
+
+func TestUintDeref(t *testing.T) {
+	var val, def uint = 1, 0
+
+	out := UintDeref(&val, def)
+	if out != val {
+		t.Errorf("expected %d, got %d", val, out)
+	}
+
+	out = UintDeref(nil, def)
+	if out != def {
+		t.Errorf("expected %d, got %d", def, out)
+	}
+}
+
+func TestUint32(t *testing.T) {
+	val := uint32(0)
+	ptr := Uint32(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+
+	val = uint32(1)
+	ptr = Uint32(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+}
+
+func TestUint32Deref(t *testing.T) {
+	var val, def uint32 = 1, 0
+
+	out := Uint32Deref(&val, def)
+	if out != val {
+		t.Errorf("expected %d, got %d", val, out)
+	}
+
+	out = Uint32Deref(nil, def)
+	if out != def {
+		t.Errorf("expected %d, got %d", def, out)
+	}
+}
+
+func TestUint32Equal(t *testing.T) {
+	if !Uint32Equal(nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !Uint32Equal(Uint32(123), Uint32(123)) {
+		t.Errorf("expected true (val == val)")
+	}
+	if Uint32Equal(nil, Uint32(123)) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if Uint32Equal(Uint32(123), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if Uint32Equal(Uint32(123), Uint32(456)) {
+		t.Errorf("expected false (val != val)")
+	}
+}
+
 func TestInt64(t *testing.T) {
 	val := int64(0)
 	ptr := Int64(val)
@@ -186,6 +260,52 @@ func TestInt64Equal(t *testing.T) {
 		t.Errorf("expected false (val != nil)")
 	}
 	if Int64Equal(Int64(123), Int64(456)) {
+		t.Errorf("expected false (val != val)")
+	}
+}
+
+func TestUint64(t *testing.T) {
+	val := uint64(0)
+	ptr := Uint64(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+
+	val = uint64(1)
+	ptr = Uint64(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+}
+
+func TestUint64Deref(t *testing.T) {
+	var val, def uint64 = 1, 0
+
+	out := Uint64Deref(&val, def)
+	if out != val {
+		t.Errorf("expected %d, got %d", val, out)
+	}
+
+	out = Uint64Deref(nil, def)
+	if out != def {
+		t.Errorf("expected %d, got %d", def, out)
+	}
+}
+
+func TestUint64Equal(t *testing.T) {
+	if !Uint64Equal(nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !Uint64Equal(Uint64(123), Uint64(123)) {
+		t.Errorf("expected true (val == val)")
+	}
+	if Uint64Equal(nil, Uint64(123)) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if Uint64Equal(Uint64(123), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if Uint64Equal(Uint64(123), Uint64(456)) {
 		t.Errorf("expected false (val != val)")
 	}
 }

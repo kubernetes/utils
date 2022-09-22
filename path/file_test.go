@@ -19,23 +19,20 @@ package path
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"testing"
-
-	"github.com/spf13/afero"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestFileUtils(t *testing.T) {
-	fs := &afero.Afero{Fs: afero.NewOsFs()}
 	// Create tmp dir
-	tmpDir, err := fs.TempDir(os.TempDir(), "util_file_test_")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "util_file_test_")
 	if err != nil {
 		t.Fatal("Failed to test: failed to create temp dir.")
 	}
 
 	// create tmp file
-	tmpFile, err := fs.TempFile(tmpDir, "test_file_exists_")
+	tmpFile, err := os.CreateTemp(tmpDir, "test_file_exists_")
 	if err != nil {
 		t.Fatal("Failed to test: failed to create temp file.")
 	}
@@ -48,7 +45,7 @@ func TestFileUtils(t *testing.T) {
 	}
 
 	// create tmp sub dir
-	tmpSubDir, err := fs.TempDir(tmpDir, "sub_")
+	tmpSubDir, err := os.MkdirTemp(tmpDir, "sub_")
 	if err != nil {
 		t.Fatal("Failed to test: failed to create temp sub dir.")
 	}
@@ -85,9 +82,11 @@ func TestFileUtils(t *testing.T) {
 		for _, test := range tests {
 			realValued, realError := Exists(CheckFollowSymlink, test.fileName)
 			if test.expectedError {
-				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.fileName, test.name)
-			} else {
-				assert.EqualValuesf(t, test.expectedValue, realValued, "Failed to test with '%s': %s", test.fileName, test.name)
+				if realError == nil {
+					t.Fatalf("Expected error, got none, failed to test with '%s': %s", test.fileName, test.name)
+				}
+			} else if test.expectedValue != realValued {
+				t.Fatalf("Expected %#v==%#v, failed to test with '%s': %s", test.expectedValue, realValued, test.fileName, test.name)
 			}
 		}
 	})
@@ -107,9 +106,11 @@ func TestFileUtils(t *testing.T) {
 		for _, test := range tests {
 			realValued, realError := Exists(CheckSymlinkOnly, test.fileName)
 			if test.expectedError {
-				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.fileName, test.name)
-			} else {
-				assert.EqualValuesf(t, test.expectedValue, realValued, "Failed to test with '%s': %s", test.fileName, test.name)
+				if realError == nil {
+					t.Fatalf("Expected error, got none, failed to test with '%s': %s", test.fileName, test.name)
+				}
+			} else if test.expectedValue != realValued {
+				t.Fatalf("Expected %#v==%#v, failed to test with '%s': %s", test.expectedValue, realValued, test.fileName, test.name)
 			}
 		}
 	})
@@ -138,9 +139,11 @@ func TestFileUtils(t *testing.T) {
 			sort.Strings(test.expectedValue)
 
 			if test.expectedError {
-				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.dirName, test.name)
-			} else {
-				assert.EqualValuesf(t, test.expectedValue, realValued, "Failed to test with '%s': %s", test.dirName, test.name)
+				if realError == nil {
+					t.Fatalf("Expected error, got none, failed to test with '%s': %s", test.dirName, test.name)
+				}
+			} else if !reflect.DeepEqual(test.expectedValue, realValued) {
+				t.Fatalf("Expected %#v==%#v, failed to test with '%s': %s", test.expectedValue, realValued, test.dirName, test.name)
 			}
 		}
 	})

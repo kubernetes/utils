@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	testingexec "k8s.io/utils/exec/testing"
 )
 
@@ -128,8 +127,9 @@ func TestPathWithinBase(t *testing.T) {
 
 	for _, test := range tests {
 		result := PathWithinBase(test.fullPath, test.basePath)
-		assert.Equal(t, result, test.expectedResult, "Expect result not equal with PathWithinBase(%s, %s) return: %q, expected: %q",
-			test.fullPath, test.basePath, result, test.expectedResult)
+		if result != test.expectedResult {
+			t.Fatalf("Expect result not equal with PathWithinBase(%s, %s) return: %v, expected: %v", test.fullPath, test.basePath, result, test.expectedResult)
+		}
 	}
 }
 
@@ -219,13 +219,18 @@ func TestIsLikelyNotMountPoint(t *testing.T) {
 
 		filePath := filepath.Join(base, test.fileName)
 		result, err := mounter.IsLikelyNotMountPoint(filePath)
-		assert.Equal(t, result, test.expectedResult, "Expect result not equal with IsLikelyNotMountPoint(%s) return: %q, expected: %q",
-			filePath, result, test.expectedResult)
+		if result != test.expectedResult {
+			t.Fatalf("Expect result not equal with IsLikelyNotMountPoint(%s) return: %v, expected: %v", filePath, result, test.expectedResult)
+		}
 
 		if test.expectError {
-			assert.NotNil(t, err, "Expect error during IsLikelyNotMountPoint(%s)", filePath)
+			if err == nil {
+				t.Fatalf("expected error, got none during IsLikelyNotMountPoint(%s)", filePath)
+			}
 		} else {
-			assert.Nil(t, err, "Expect error is nil during IsLikelyNotMountPoint(%s)", filePath)
+			if err != nil {
+				t.Fatalf("unexpected error %v during IsLikelyNotMountPoint(%s)", err, filePath)
+			}
 		}
 	}
 }
@@ -294,10 +299,15 @@ func TestFormatAndMount(t *testing.T) {
 
 		target := filepath.Join(base, test.target)
 		err = mounter.FormatAndMount(test.device, target, test.fstype, test.mountOptions)
+
 		if test.expectError {
-			assert.NotNil(t, err, "Expect error during FormatAndMount(%s, %s, %s, %v)", test.device, test.target, test.fstype, test.mountOptions)
+			if err == nil {
+				t.Fatalf("expected error, got none during FormatAndMount(%s, %s, %s, %v)", test.device, test.target, test.fstype, test.mountOptions)
+			}
 		} else {
-			assert.Nil(t, err, "Expect error is nil during FormatAndMount(%s, %s, %s, %v)", test.device, test.target, test.fstype, test.mountOptions)
+			if err != nil {
+				t.Fatalf("unexpected error %v during FormatAndMount(%s, %s, %s, %v)", err, test.device, test.target, test.fstype, test.mountOptions)
+			}
 		}
 	}
 }
@@ -332,9 +342,13 @@ func TestNewSMBMapping(t *testing.T) {
 	for _, test := range tests {
 		_, err := newSMBMapping(test.username, test.password, test.remotepath)
 		if test.expectError {
-			assert.NotNil(t, err, "Expect error during newSMBMapping(%s, %s, %s, %v)", test.username, test.password, test.remotepath)
+			if err == nil {
+				t.Fatalf("expected error, got none during newSMBMapping(%s, %s, %s)", test.username, test.password, test.remotepath)
+			}
 		} else {
-			assert.Nil(t, err, "Expect error is nil during newSMBMapping(%s, %s, %s, %v)", test.username, test.password, test.remotepath)
+			if err != nil {
+				t.Fatalf("unexpected error %v during newSMBMapping(%s, %s, %s)", err, test.username, test.password, test.remotepath)
+			}
 		}
 	}
 }
@@ -359,12 +373,17 @@ func TestIsValidPath(t *testing.T) {
 
 	for _, test := range tests {
 		result, err := isValidPath(test.remotepath)
-		assert.Equal(t, result, test.expectedResult, "Expect result not equal with isValidPath(%s) return: %q, expected: %q, error: %v",
-			test.remotepath, result, test.expectedResult, err)
+		if result != test.expectedResult {
+			t.Fatalf("Expect result not equal with isValidPath(%s) return: %v, expected: %v, error: %v", test.remotepath, result, test.expectedResult, err)
+		}
 		if test.expectError {
-			assert.NotNil(t, err, "Expect error during isValidPath(%s)", test.remotepath)
+			if err == nil {
+				t.Fatalf("expected error, got none during isValidPath(%s)", test.remotepath)
+			}
 		} else {
-			assert.Nil(t, err, "Expect error is nil during isValidPath(%s)", test.remotepath)
+			if err != nil {
+				t.Fatalf("unexpected error %v during isValidPath(%s)", err, test.remotepath)
+			}
 		}
 	}
 }
@@ -390,7 +409,8 @@ func TestIsAccessDeniedError(t *testing.T) {
 
 	for _, test := range tests {
 		result := isAccessDeniedError(test.err)
-		assert.Equal(t, result, test.expectedResult, "Expect result not equal with isAccessDeniedError(%v) return: %q, expected: %q",
-			test.err, result, test.expectedResult)
+		if result != test.expectedResult {
+			t.Fatalf("Expect result not equal with isAccessDeniedError(%v) return: %v, expected: %v", test.err, result, test.expectedResult)
+		}
 	}
 }

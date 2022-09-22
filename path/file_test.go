@@ -22,20 +22,18 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFileUtils(t *testing.T) {
-	fs := &afero.Afero{Fs: afero.NewOsFs()}
 	// Create tmp dir
-	tmpDir, err := fs.TempDir(os.TempDir(), "util_file_test_")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "util_file_test_")
 	if err != nil {
 		t.Fatal("Failed to test: failed to create temp dir.")
 	}
 
 	// create tmp file
-	tmpFile, err := fs.TempFile(tmpDir, "test_file_exists_")
+	tmpFile, err := os.CreateTemp(tmpDir, "test_file_exists_")
 	if err != nil {
 		t.Fatal("Failed to test: failed to create temp file.")
 	}
@@ -48,7 +46,7 @@ func TestFileUtils(t *testing.T) {
 	}
 
 	// create tmp sub dir
-	tmpSubDir, err := fs.TempDir(tmpDir, "sub_")
+	tmpSubDir, err := os.MkdirTemp(tmpDir, "sub_")
 	if err != nil {
 		t.Fatal("Failed to test: failed to create temp sub dir.")
 	}

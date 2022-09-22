@@ -19,10 +19,9 @@ package path
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestFileUtils(t *testing.T) {
@@ -83,9 +82,11 @@ func TestFileUtils(t *testing.T) {
 		for _, test := range tests {
 			realValued, realError := Exists(CheckFollowSymlink, test.fileName)
 			if test.expectedError {
-				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.fileName, test.name)
-			} else {
-				assert.EqualValuesf(t, test.expectedValue, realValued, "Failed to test with '%s': %s", test.fileName, test.name)
+				if realError == nil {
+					t.Fatalf("Expected error, got none, failed to test with '%s': %s", test.fileName, test.name)
+				}
+			} else if test.expectedValue != realValued {
+				t.Fatalf("Expected %#v==%#v, failed to test with '%s': %s", test.expectedValue, realValued, test.fileName, test.name)
 			}
 		}
 	})
@@ -105,9 +106,11 @@ func TestFileUtils(t *testing.T) {
 		for _, test := range tests {
 			realValued, realError := Exists(CheckSymlinkOnly, test.fileName)
 			if test.expectedError {
-				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.fileName, test.name)
-			} else {
-				assert.EqualValuesf(t, test.expectedValue, realValued, "Failed to test with '%s': %s", test.fileName, test.name)
+				if realError == nil {
+					t.Fatalf("Expected error, got none, failed to test with '%s': %s", test.fileName, test.name)
+				}
+			} else if test.expectedValue != realValued {
+				t.Fatalf("Expected %#v==%#v, failed to test with '%s': %s", test.expectedValue, realValued, test.fileName, test.name)
 			}
 		}
 	})
@@ -136,9 +139,11 @@ func TestFileUtils(t *testing.T) {
 			sort.Strings(test.expectedValue)
 
 			if test.expectedError {
-				assert.Errorf(t, realError, "Failed to test with '%s': %s", test.dirName, test.name)
-			} else {
-				assert.EqualValuesf(t, test.expectedValue, realValued, "Failed to test with '%s': %s", test.dirName, test.name)
+				if realError == nil {
+					t.Fatalf("Expected error, got none, failed to test with '%s': %s", test.dirName, test.name)
+				}
+			} else if !reflect.DeepEqual(test.expectedValue, realValued) {
+				t.Fatalf("Expected %#v==%#v, failed to test with '%s': %s", test.expectedValue, realValued, test.dirName, test.name)
 			}
 		}
 	})

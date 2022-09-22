@@ -4,7 +4,7 @@ jobs:
   build:
     strategy:
       matrix:
-        go-versions: [1.17.x, 1.18.x, 1.19.x]
+        go-versions: [1.18.x, 1.19.x]
         platform: [windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -24,7 +24,7 @@ jobs:
   test:
     strategy:
       matrix:
-        go-versions: [1.17.x, 1.18.x, 1.19.x]
+        go-versions: [1.18.x, 1.19.x]
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:

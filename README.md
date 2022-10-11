@@ -35,7 +35,7 @@ for moving] an existing package to this repository.
 - _No dependencies on any other Kubernetes repository_.
 
 [Build Status]: https://travis-ci.org/kubernetes/utils.svg?branch=master
-[Go standard libs]: https://golang.org/pkg/#stdlib
+[Go standard libs]: https://pkg.go.dev/std#stdlib
 [api]: https://github.com/kubernetes/api
 [apiserver]: https://github.com/kubernetes/apiserver
 [core]: https://github.com/kubernetes/kubernetes

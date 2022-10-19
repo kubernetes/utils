@@ -24,9 +24,12 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"k8s.io/klog/v2"
 )
+
+const instrumentationScope = "k8s.io/utils/trace"
 
 var klogV = func(lvl klog.Level) bool {
 	return klog.V(lvl).Enabled()
@@ -127,6 +130,9 @@ func (t *Trace) writeItem(b *bytes.Buffer, formatter string, startTime time.Time
 // New creates a Trace with the specified name. The name identifies the operation to be traced. The
 // Fields add key value pairs to provide additional details about the trace, such as operation inputs.
 func New(ctx context.Context, name string, fields ...attribute.KeyValue) (context.Context, *Trace) {
+	// If the incoming context already includes an OpenTelemetry span, create a child span with the provided name and attributes.
+	// If the caller is not using OpenTelemetry, or has tracing disabled (e.g. with a component-specific feature flag), this is a noop.
+	ctx, _ = trace.SpanFromContext(ctx).TracerProvider().Tracer(instrumentationScope).Start(ctx, name, trace.WithAttributes(fields...))
 	return ctx, &Trace{name: name, startTime: time.Now(), fields: fields}
 }
 
@@ -139,6 +145,9 @@ func (t *Trace) Step(ctx context.Context, msg string, fields ...attribute.KeyVal
 		t.traceItems = make([]traceItem, 0, 6)
 	}
 	t.traceItems = append(t.traceItems, traceStep{stepTime: time.Now(), msg: msg, fields: fields})
+	// If the incoming context already includes an OpenTelemetry span, add a span event to that span.
+	// If the caller is not using OpenTelemetry, or has tracing disabled (e.g. with a component-specific feature flag), this is a noop.
+	trace.SpanFromContext(ctx).AddEvent(msg, trace.WithAttributes(fields...))
 }
 
 // Nest adds a nested trace with the given message and fields and returns it.
@@ -164,6 +173,9 @@ func (t *Trace) Log(ctx context.Context) {
 	if t.parentTrace == nil { // We don't start logging until Log or LogIfLong is called on the root trace
 		t.logTrace()
 	}
+	// If the incoming context already includes an OpenTelemetry span, end that span.
+	// If the caller is not using OpenTelemetry, or has tracing disabled (e.g. with a component-specific feature flag), this is a noop.
+	trace.SpanFromContext(ctx).End()
 }
 
 // LogIfLong only logs the trace if the duration of the trace exceeds the threshold.

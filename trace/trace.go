@@ -23,6 +23,8 @@ import (
 	"math/rand"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+
 	"k8s.io/klog/v2"
 )
 
@@ -30,26 +32,20 @@ var klogV = func(lvl klog.Level) bool {
 	return klog.V(lvl).Enabled()
 }
 
-// Field is a key value pair that provides additional details about the trace.
-type Field struct {
-	Key   string
-	Value interface{}
+func format(f attribute.KeyValue) string {
+	return fmt.Sprintf("%s:%v", f.Key, f.Value.Emit())
 }
 
-func (f Field) format() string {
-	return fmt.Sprintf("%s:%v", f.Key, f.Value)
-}
-
-func writeFields(b *bytes.Buffer, l []Field) {
+func writeFields(b *bytes.Buffer, l []attribute.KeyValue) {
 	for i, f := range l {
-		b.WriteString(f.format())
+		b.WriteString(format(f))
 		if i < len(l)-1 {
 			b.WriteString(",")
 		}
 	}
 }
 
-func writeTraceItemSummary(b *bytes.Buffer, msg string, totalTime time.Duration, startTime time.Time, fields []Field) {
+func writeTraceItemSummary(b *bytes.Buffer, msg string, totalTime time.Duration, startTime time.Time, fields []attribute.KeyValue) {
 	b.WriteString(fmt.Sprintf("%q ", msg))
 	if len(fields) > 0 {
 		writeFields(b, fields)
@@ -75,7 +71,7 @@ type traceItem interface {
 type traceStep struct {
 	stepTime time.Time
 	msg      string
-	fields   []Field
+	fields   []attribute.KeyValue
 }
 
 func (s traceStep) time() time.Time {
@@ -94,7 +90,7 @@ func (s traceStep) writeItem(b *bytes.Buffer, formatter string, startTime time.T
 // step if it took longer than its share of the total allowed time
 type Trace struct {
 	name        string
-	fields      []Field
+	fields      []attribute.KeyValue
 	threshold   *time.Duration
 	startTime   time.Time
 	endTime     *time.Time
@@ -130,14 +126,14 @@ func (t *Trace) writeItem(b *bytes.Buffer, formatter string, startTime time.Time
 
 // New creates a Trace with the specified name. The name identifies the operation to be traced. The
 // Fields add key value pairs to provide additional details about the trace, such as operation inputs.
-func New(ctx context.Context, name string, fields ...Field) (context.Context, *Trace) {
+func New(ctx context.Context, name string, fields ...attribute.KeyValue) (context.Context, *Trace) {
 	return ctx, &Trace{name: name, startTime: time.Now(), fields: fields}
 }
 
 // Step adds a new step with a specific message. Call this at the end of an execution step to record
 // how long it took. The Fields add key value pairs to provide additional details about the trace
 // step.
-func (t *Trace) Step(ctx context.Context, msg string, fields ...Field) {
+func (t *Trace) Step(ctx context.Context, msg string, fields ...attribute.KeyValue) {
 	if t.traceItems == nil {
 		// traces almost always have less than 6 steps, do this to avoid more than a single allocation
 		t.traceItems = make([]traceItem, 0, 6)
@@ -149,7 +145,7 @@ func (t *Trace) Step(ctx context.Context, msg string, fields ...Field) {
 // As a convenience, if the receiver is nil, returns a top level trace. This allows
 // one to call FromContext(ctx).Nest without having to check if the trace
 // in the context is nil.
-func (t *Trace) Nest(ctx context.Context, msg string, fields ...Field) (context.Context, *Trace) {
+func (t *Trace) Nest(ctx context.Context, msg string, fields ...attribute.KeyValue) (context.Context, *Trace) {
 	ctx, newTrace := New(ctx, msg, fields...)
 	if t != nil {
 		newTrace.parentTrace = t

@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	"k8s.io/klog/v2"
 )
 
@@ -138,7 +139,7 @@ func TestLog(t *testing.T) {
 	tests := []struct {
 		name             string
 		msg              string
-		fields           []Field
+		fields           []attribute.KeyValue
 		expectedMessages []string
 		sampleTrace      *Trace
 	}{
@@ -163,11 +164,14 @@ func TestLog(t *testing.T) {
 			},
 			sampleTrace: &Trace{
 				name:   "Sample Trace",
-				fields: []Field{{"URL", "/api"}, {"count", 3}},
+				fields: []attribute.KeyValue{attribute.String("URL", "/api"), attribute.Int("count", 3)},
 				traceItems: []traceItem{
-					&traceStep{stepTime: time.Now(), msg: "msg1", fields: []Field{{"str", "text"}, {"int", 2}, {"bool",
-						false}}},
-					&traceStep{stepTime: time.Now(), msg: "msg2", fields: []Field{{"x", "1"}}},
+					&traceStep{stepTime: time.Now(), msg: "msg1", fields: []attribute.KeyValue{
+						attribute.String("str", "text"),
+						attribute.Int("int", 2),
+						attribute.Bool("bool", false),
+					}},
+					&traceStep{stepTime: time.Now(), msg: "msg2", fields: []attribute.KeyValue{attribute.String("x", "1")}},
 				},
 			},
 		},
@@ -200,7 +204,7 @@ func TestNestedTraceLog(t *testing.T) {
 	tests := []struct {
 		name             string
 		msg              string
-		fields           []Field
+		fields           []attribute.KeyValue
 		expectedMessages []string
 		sampleTrace      *Trace
 	}{
@@ -246,10 +250,10 @@ func TestNestedTraceLog(t *testing.T) {
 					&Trace{
 						startTime: currentTime,
 						endTime:   &currentTime,
-						name:      "msg1", fields: []Field{
-							{"str", "text"},
-							{"int", 2},
-							{"bool", false}}},
+						name:      "msg1", fields: []attribute.KeyValue{
+							attribute.String("str", "text"),
+							attribute.Int("int", 2),
+							attribute.Bool("bool", false)}},
 				},
 			},
 		},
@@ -288,9 +292,9 @@ func TestNestedTraceLog(t *testing.T) {
 
 func fieldsTraceFixture() *Trace {
 	ctx := context.Background()
-	ctx, trace := New(ctx, "Sample Trace", Field{"URL", "/api"}, Field{"count", 3})
-	trace.Step(ctx, "msg1", Field{"str", "text"}, Field{"int", 2}, Field{"bool", false})
-	trace.Step(ctx, "msg2", Field{"x", "1"})
+	ctx, trace := New(ctx, "Sample Trace", attribute.String("URL", "/api"), attribute.Int("count", 3))
+	trace.Step(ctx, "msg1", attribute.String("str", "text"), attribute.Int("int", 2), attribute.Bool("bool", false))
+	trace.Step(ctx, "msg2", attribute.String("x", "1"))
 	return trace
 }
 

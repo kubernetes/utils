@@ -62,7 +62,7 @@ func TestStep(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sampleTrace := &Trace{}
-			sampleTrace.Step(tt.inputString)
+			sampleTrace.Step(context.Background(), tt.inputString)
 			if sampleTrace.traceItems[0].(traceStep).msg != tt.expectedTrace.traceItems[0].(traceStep).msg {
 				t.Errorf("Expected %v \n Got %v \n", tt.expectedTrace, sampleTrace)
 			}
@@ -104,9 +104,10 @@ func TestNestedTrace(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			sampleTrace := &Trace{}
-			innerSampleTrace := sampleTrace.Nest(tt.inputString)
-			innerSampleTrace.Nest(tt.inputString)
+			ctx, innerSampleTrace := sampleTrace.Nest(ctx, tt.inputString)
+			innerSampleTrace.Nest(ctx, tt.inputString)
 			if sampleTrace.traceItems[0].(*Trace).name != tt.expectedTrace.traceItems[0].(*Trace).name {
 				t.Errorf("Expected %v \n Got %v \n", tt.expectedTrace, sampleTrace)
 			}
@@ -182,8 +183,9 @@ func TestLog(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
+			ctx := context.Background()
 			klog.SetOutput(&buf)
-			test.sampleTrace.Log()
+			test.sampleTrace.Log(ctx)
 			for _, msg := range test.expectedMessages {
 				if !strings.Contains(buf.String(), msg) {
 					t.Errorf("\nMsg %q not found in log: \n%v\n", msg, buf.String())
@@ -272,8 +274,9 @@ func TestNestedTraceLog(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
+			ctx := context.Background()
 			klog.SetOutput(&buf)
-			test.sampleTrace.Log()
+			test.sampleTrace.Log(ctx)
 			for _, msg := range test.expectedMessages {
 				if !strings.Contains(buf.String(), msg) {
 					t.Errorf("\nMsg %q not found in log: \n%v\n", msg, buf.String())
@@ -284,9 +287,10 @@ func TestNestedTraceLog(t *testing.T) {
 }
 
 func fieldsTraceFixture() *Trace {
-	trace := New("Sample Trace", Field{"URL", "/api"}, Field{"count", 3})
-	trace.Step("msg1", Field{"str", "text"}, Field{"int", 2}, Field{"bool", false})
-	trace.Step("msg2", Field{"x", "1"})
+	ctx := context.Background()
+	ctx, trace := New(ctx, "Sample Trace", Field{"URL", "/api"}, Field{"count", 3})
+	trace.Step(ctx, "msg1", Field{"str", "text"}, Field{"int", 2}, Field{"bool", false})
+	trace.Step(ctx, "msg2", Field{"x", "1"})
 	return trace
 }
 
@@ -357,14 +361,15 @@ func TestLogIfLong(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			klog.SetOutput(&buf)
+			ctx := context.Background()
 
-			tt.sampleTrace = New("Test trace")
+			ctx, tt.sampleTrace = New(ctx, "Test trace")
 			for _, mod := range tt.mutateInfo {
 				tt.sampleTrace.traceItems = append(tt.sampleTrace.traceItems,
 					&traceStep{stepTime: currentTime.Add(mod.delay), msg: mod.msg})
 			}
 
-			tt.sampleTrace.LogIfLong(tt.threshold)
+			tt.sampleTrace.LogIfLong(ctx, tt.threshold)
 
 			for _, msg := range tt.expectedMessages {
 				if msg != "" && !strings.Contains(buf.String(), msg) {
@@ -533,6 +538,7 @@ func TestLogNestedTrace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
+			ctx := context.Background()
 			klog.SetOutput(&buf)
 
 			if tt.verbosity > 0 {
@@ -545,7 +551,7 @@ func TestLogNestedTrace(t *testing.T) {
 				}()
 			}
 
-			tt.trace.LogIfLong(twoHundred)
+			tt.trace.LogIfLong(ctx, twoHundred)
 
 			for _, msg := range tt.expectedMsgs {
 				if msg != "" && !strings.Contains(buf.String(), msg) {
@@ -624,12 +630,12 @@ func TestStepThreshold(t *testing.T) {
 func TestContext(t *testing.T) {
 	ctx := context.Background()
 
-	trace1 := FromContext(ctx).Nest("op1")
+	ctx, trace1 := FromContext(ctx).Nest(ctx, "op1")
 	ctx = ContextWithTrace(ctx, trace1)
-	defer trace1.Log()
+	defer trace1.Log(ctx)
 	func(ctx context.Context) {
-		trace2 := FromContext(ctx).Nest("op2")
-		defer trace2.Log()
+		ctx, trace2 := FromContext(ctx).Nest(ctx, "op2")
+		defer trace2.Log(ctx)
 	}(ctx)
 	if len(trace1.traceItems) != 1 {
 		t.Fatalf("expected len(trace1.traceItems) == 1, but got %d", len(trace1.traceItems))
@@ -644,14 +650,15 @@ func TestContext(t *testing.T) {
 }
 
 func ExampleTrace_Step() {
-	t := New("frobber")
+	ctx := context.Background()
+	ctx, t := New(ctx, "frobber")
 
 	time.Sleep(5 * time.Millisecond)
-	t.Step("reticulated splines") // took 5ms
+	t.Step(ctx, "reticulated splines") // took 5ms
 
 	time.Sleep(10 * time.Millisecond)
-	t.Step("sequenced particles") // took 10ms
+	t.Step(ctx, "sequenced particles") // took 10ms
 
 	klog.SetOutput(os.Stdout) // change output from stderr to stdout
-	t.Log()
+	t.Log(ctx)
 }

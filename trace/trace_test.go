@@ -26,6 +26,8 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"k8s.io/klog/v2"
 )
 
@@ -665,4 +667,67 @@ func ExampleTrace_Step() {
 
 	klog.SetOutput(os.Stdout) // change output from stderr to stdout
 	t.Log(ctx)
+}
+
+func TestOpenTelemetryTracing(t *testing.T) {
+	ctx := context.Background()
+	// Setup OpenTelemetry for testing
+	fakeRecorder := tracetest.NewSpanRecorder()
+	otelTracer := trace.NewTracerProvider(trace.WithSpanProcessor(fakeRecorder)).Tracer(instrumentationScope)
+	ctx, span := otelTracer.Start(ctx, "parent otel span")
+	defer time.Sleep(1 * time.Millisecond)
+
+	// This creates a child otel span
+	ctx, tr := New(ctx, "frobber", attribute.String("foo", "bar"))
+
+	time.Sleep(5 * time.Millisecond)
+	// This adds one event to the frobber span
+	tr.Step(ctx, "reticulated splines", attribute.Bool("should I do it?", false)) // took 5ms
+
+	time.Sleep(10 * time.Millisecond)
+	// This adds another event to the frobber span
+	tr.Step(ctx, "sequenced particles", attribute.Int("inches in foot", 12)) // took 10ms
+
+	// This ends the frobber span
+	tr.Log(ctx)
+	// This ends the parent otel span
+	span.End()
+
+	output := fakeRecorder.Ended()
+	if len(output) != 2 {
+		t.Fatalf("expected len(output) == 2, but got %d", len(output))
+	}
+	// Child span is ended first
+	child := output[0]
+	if child.Name() != "frobber" {
+		t.Fatalf("expected child.Name() == frobber, but got %s", child.Name())
+	}
+	if len(child.Attributes()) != 1 {
+		t.Fatalf("expected child.Attributes() == 1, but got attributes %v", child.Attributes())
+	}
+	if len(child.Events()) != 2 {
+		t.Fatalf("expected child.Events() == 2, but got events %v", child.Events())
+	}
+	if child.Events()[0].Name != "reticulated splines" {
+		t.Fatalf("expected child.Events()[0].Name == reticulated splines, but got event %v", child.Events()[0])
+	}
+	if len(child.Events()[0].Attributes) != 1 {
+		t.Fatalf("expected child.Events()[0].Attributes == 1, but got event %v", child.Events()[0])
+	}
+	if child.Events()[1].Name != "sequenced particles" {
+		t.Fatalf("expected child.Events()[0].Name == sequenced particles, but got event %v", child.Events()[1])
+	}
+	if len(child.Events()[1].Attributes) != 1 {
+		t.Fatalf("expected child.Events()[0].Attributes == 1, but got event %v", child.Events()[1])
+	}
+	parent := output[1]
+	if !child.Parent().Equal(parent.SpanContext()) {
+		t.Fatalf("expected child.Parent() == parent.SpanContext(), but got child: %v, parent: %v", child.Parent(), parent.SpanContext())
+	}
+	if parent.Name() != "parent otel span" {
+		t.Fatalf("expected parent.Name() == parent otel span, but got %s", parent.Name())
+	}
+	if len(parent.Attributes()) != 0 {
+		t.Fatalf("expected parent.Attributes() == 0, but got attributes %v", parent.Attributes())
+	}
 }

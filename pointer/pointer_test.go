@@ -70,6 +70,58 @@ func TestAllPtrFieldsNil(t *testing.T) {
 	}
 }
 
+func TestRef(t *testing.T) {
+	type T int
+
+	val := T(0)
+	ptr := Ref(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+
+	val = T(1)
+	ptr = Ref(val)
+	if *ptr != val {
+		t.Errorf("expected %d, got %d", val, *ptr)
+	}
+}
+
+func TestDeref(t *testing.T) {
+	type T int
+
+	var val, def T = 1, 0
+
+	out := Deref(&val, def)
+	if out != val {
+		t.Errorf("expected %d, got %d", val, out)
+	}
+
+	out = Deref(nil, def)
+	if out != def {
+		t.Errorf("expected %d, got %d", def, out)
+	}
+}
+
+func TestEqual(t *testing.T) {
+	type T int
+
+	if !Equal[T](nil, nil) {
+		t.Errorf("expected true (nil == nil)")
+	}
+	if !Equal(Ref(T(123)), Ref(T(123))) {
+		t.Errorf("expected true (val == val)")
+	}
+	if Equal(nil, Ref(T(123))) {
+		t.Errorf("expected false (nil != val)")
+	}
+	if Equal(Ref(T(123)), nil) {
+		t.Errorf("expected false (val != nil)")
+	}
+	if Equal(Ref(T(123)), Ref(T(456))) {
+		t.Errorf("expected false (val != val)")
+	}
+}
+
 func TestInt(t *testing.T) {
 	val := int(0)
 	ptr := Int(val)

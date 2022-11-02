@@ -47,57 +47,20 @@ func AllPtrFieldsNil(obj interface{}) bool {
 	return true
 }
 
-// Int returns a pointer to an int
-func Int(i int) *int {
-	return &i
+// Ref returns a pointer to the value.
+func Ref[T any](v T) *T {
+	return &v
 }
 
-// IntPtr is a function variable referring to Int.
-//
-// Deprecated: Use Int instead.
-var IntPtr = Int // for back-compat
-
-// IntDeref dereferences the int ptr and returns it if not nil, or else
-// returns def.
-func IntDeref(ptr *int, def int) int {
+// Deref dereferences the ptr and returns it if not nil, or else returns def.
+func Deref[T any](ptr *T, def T) T {
 	if ptr != nil {
 		return *ptr
 	}
 	return def
 }
 
-// IntPtrDerefOr is a function variable referring to IntDeref.
-//
-// Deprecated: Use IntDeref instead.
-var IntPtrDerefOr = IntDeref // for back-compat
-
-// Int32 returns a pointer to an int32.
-func Int32(i int32) *int32 {
-	return &i
-}
-
-// Int32Ptr is a function variable referring to Int32.
-//
-// Deprecated: Use Int32 instead.
-var Int32Ptr = Int32 // for back-compat
-
-// Int32Deref dereferences the int32 ptr and returns it if not nil, or else
-// returns def.
-func Int32Deref(ptr *int32, def int32) int32 {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
-
-// Int32PtrDerefOr is a function variable referring to Int32Deref.
-//
-// Deprecated: Use Int32Deref instead.
-var Int32PtrDerefOr = Int32Deref // for back-compat
-
-// Int32Equal returns true if both arguments are nil or both arguments
-// dereference to the same value.
-func Int32Equal(a, b *int32) bool {
+func Equal[T comparable](a, b *T) bool {
 	if (a == nil) != (b == nil) {
 		return false
 	}
@@ -107,304 +70,218 @@ func Int32Equal(a, b *int32) bool {
 	return *a == *b
 }
 
-// Uint returns a pointer to an uint
-func Uint(i uint) *uint {
-	return &i
-}
+var (
 
-// UintPtr is a function variable referring to Uint.
-//
-// Deprecated: Use Uint instead.
-var UintPtr = Uint // for back-compat
+	// Int returns a pointer to an int
+	Int = Ref[int]
 
-// UintDeref dereferences the uint ptr and returns it if not nil, or else
-// returns def.
-func UintDeref(ptr *uint, def uint) uint {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
+	// IntPtr is a function variable referring to Int.
+	//
+	// Deprecated: Use Int instead.
+	IntPtr = Int // for back-compat
 
-// UintPtrDerefOr is a function variable referring to UintDeref.
-//
-// Deprecated: Use UintDeref instead.
-var UintPtrDerefOr = UintDeref // for back-compat
+	// IntDeref dereferences the int ptr and returns it if not nil, or else
+	// returns def.
+	IntDeref = Deref[int]
 
-// Uint32 returns a pointer to an uint32.
-func Uint32(i uint32) *uint32 {
-	return &i
-}
+	// IntPtrDerefOr is a function variable referring to IntDeref.
+	//
+	// Deprecated: Use IntDeref instead.
+	IntPtrDerefOr = IntDeref // for back-compat
 
-// Uint32Ptr is a function variable referring to Uint32.
-//
-// Deprecated: Use Uint32 instead.
-var Uint32Ptr = Uint32 // for back-compat
+	// Int32 returns a pointer to an int32.
+	Int32 = Ref[int32]
 
-// Uint32Deref dereferences the uint32 ptr and returns it if not nil, or else
-// returns def.
-func Uint32Deref(ptr *uint32, def uint32) uint32 {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
+	// Int32Ptr is a function variable referring to Int32.
+	//
+	// Deprecated: Use Int32 instead.
+	Int32Ptr = Int32 // for back-compat
 
-// Uint32PtrDerefOr is a function variable referring to Uint32Deref.
-//
-// Deprecated: Use Uint32Deref instead.
-var Uint32PtrDerefOr = Uint32Deref // for back-compat
+	// Int32Deref dereferences the int32 ptr and returns it if not nil, or else
+	// returns def.
+	Int32Deref = Deref[int32]
 
-// Uint32Equal returns true if both arguments are nil or both arguments
-// dereference to the same value.
-func Uint32Equal(a, b *uint32) bool {
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if a == nil {
-		return true
-	}
-	return *a == *b
-}
+	// Int32PtrDerefOr is a function variable referring to Int32Deref.
+	//
+	// Deprecated: Use Int32Deref instead.
+	Int32PtrDerefOr = Int32Deref // for back-compat
 
-// Int64 returns a pointer to an int64.
-func Int64(i int64) *int64 {
-	return &i
-}
+	// Int32Equal returns true if both arguments are nil or both arguments
+	// dereference to the same value.
+	Int32Equal = Equal[int32]
 
-// Int64Ptr is a function variable referring to Int64.
-//
-// Deprecated: Use Int64 instead.
-var Int64Ptr = Int64 // for back-compat
+	// Uint returns a pointer to an uint
+	Uint = Ref[uint]
 
-// Int64Deref dereferences the int64 ptr and returns it if not nil, or else
-// returns def.
-func Int64Deref(ptr *int64, def int64) int64 {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
+	// UintPtr is a function variable referring to Uint.
+	//
+	// Deprecated: Use Uint instead.
+	UintPtr = Uint // for back-compat
 
-// Int64PtrDerefOr is a function variable referring to Int64Deref.
-//
-// Deprecated: Use Int64Deref instead.
-var Int64PtrDerefOr = Int64Deref // for back-compat
+	// UintDeref dereferences the uint ptr and returns it if not nil, or else
+	// returns def.
+	UintDeref = Deref[uint]
 
-// Int64Equal returns true if both arguments are nil or both arguments
-// dereference to the same value.
-func Int64Equal(a, b *int64) bool {
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if a == nil {
-		return true
-	}
-	return *a == *b
-}
+	// UintPtrDerefOr is a function variable referring to UintDeref.
+	//
+	// Deprecated: Use UintDeref instead.
+	UintPtrDerefOr = UintDeref // for back-compat
 
-// Uint64 returns a pointer to an uint64.
-func Uint64(i uint64) *uint64 {
-	return &i
-}
+	// Uint32 returns a pointer to an uint32.
+	Uint32 = Ref[uint32]
 
-// Uint64Ptr is a function variable referring to Uint64.
-//
-// Deprecated: Use Uint64 instead.
-var Uint64Ptr = Uint64 // for back-compat
+	// Uint32Ptr is a function variable referring to Uint32.
+	//
+	// Deprecated: Use Uint32 instead.
+	Uint32Ptr = Uint32 // for back-compat
 
-// Uint64Deref dereferences the uint64 ptr and returns it if not nil, or else
-// returns def.
-func Uint64Deref(ptr *uint64, def uint64) uint64 {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
+	// Uint32Deref dereferences the uint32 ptr and returns it if not nil, or else
+	// returns def.
+	Uint32Deref = Deref[uint32]
 
-// Uint64PtrDerefOr is a function variable referring to Uint64Deref.
-//
-// Deprecated: Use Uint64Deref instead.
-var Uint64PtrDerefOr = Uint64Deref // for back-compat
+	// Uint32PtrDerefOr is a function variable referring to Uint32Deref.
+	//
+	// Deprecated: Use Uint32Deref instead.
+	Uint32PtrDerefOr = Uint32Deref // for back-compat
 
-// Uint64Equal returns true if both arguments are nil or both arguments
-// dereference to the same value.
-func Uint64Equal(a, b *uint64) bool {
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if a == nil {
-		return true
-	}
-	return *a == *b
-}
+	// Uint32Equal returns true if both arguments are nil or both arguments
+	// dereference to the same value.
+	Uint32Equal = Equal[uint32]
 
-// Bool returns a pointer to a bool.
-func Bool(b bool) *bool {
-	return &b
-}
+	// Int64 returns a pointer to an int64.
+	Int64 = Ref[int64]
 
-// BoolPtr is a function variable referring to Bool.
-//
-// Deprecated: Use Bool instead.
-var BoolPtr = Bool // for back-compat
+	// Int64Ptr is a function variable referring to Int64.
+	//
+	// Deprecated: Use Int64 instead.
+	Int64Ptr = Int64 // for back-compat
 
-// BoolDeref dereferences the bool ptr and returns it if not nil, or else
-// returns def.
-func BoolDeref(ptr *bool, def bool) bool {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
+	// Int64Deref dereferences the int64 ptr and returns it if not nil, or else
+	// returns def.
+	Int64Deref = Deref[int64]
 
-// BoolPtrDerefOr is a function variable referring to BoolDeref.
-//
-// Deprecated: Use BoolDeref instead.
-var BoolPtrDerefOr = BoolDeref // for back-compat
+	// Int64PtrDerefOr is a function variable referring to Int64Deref.
+	//
+	// Deprecated: Use Int64Deref instead.
+	Int64PtrDerefOr = Int64Deref // for back-compat
 
-// BoolEqual returns true if both arguments are nil or both arguments
-// dereference to the same value.
-func BoolEqual(a, b *bool) bool {
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if a == nil {
-		return true
-	}
-	return *a == *b
-}
+	// Int64Equal returns true if both arguments are nil or both arguments
+	// dereference to the same value.
+	Int64Equal = Equal[int64]
 
-// String returns a pointer to a string.
-func String(s string) *string {
-	return &s
-}
+	// Uint64 returns a pointer to an uint64.
+	Uint64 = Ref[uint64]
 
-// StringPtr is a function variable referring to String.
-//
-// Deprecated: Use String instead.
-var StringPtr = String // for back-compat
+	// Uint64Ptr is a function variable referring to Uint64.
+	//
+	// Deprecated: Use Uint64 instead.
+	Uint64Ptr = Uint64 // for back-compat
 
-// StringDeref dereferences the string ptr and returns it if not nil, or else
-// returns def.
-func StringDeref(ptr *string, def string) string {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
+	// Uint64Deref dereferences the uint64 ptr and returns it if not nil, or else
+	// returns def.
+	Uint64Deref = Deref[uint64]
 
-// StringPtrDerefOr is a function variable referring to StringDeref.
-//
-// Deprecated: Use StringDeref instead.
-var StringPtrDerefOr = StringDeref // for back-compat
+	// Uint64PtrDerefOr is a function variable referring to Uint64Deref.
+	//
+	// Deprecated: Use Uint64Deref instead.
+	Uint64PtrDerefOr = Uint64Deref // for back-compat
 
-// StringEqual returns true if both arguments are nil or both arguments
-// dereference to the same value.
-func StringEqual(a, b *string) bool {
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if a == nil {
-		return true
-	}
-	return *a == *b
-}
+	// Uint64Equal returns true if both arguments are nil or both arguments
+	// dereference to the same value.
+	Uint64Equal = Equal[uint64]
 
-// Float32 returns a pointer to a float32.
-func Float32(i float32) *float32 {
-	return &i
-}
+	// Bool returns a pointer to a bool.
+	Bool = Ref[bool]
 
-// Float32Ptr is a function variable referring to Float32.
-//
-// Deprecated: Use Float32 instead.
-var Float32Ptr = Float32
+	// BoolPtr is a function variable referring to Bool.
+	//
+	// Deprecated: Use Bool instead.
+	BoolPtr = Bool // for back-compat
 
-// Float32Deref dereferences the float32 ptr and returns it if not nil, or else
-// returns def.
-func Float32Deref(ptr *float32, def float32) float32 {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
+	// BoolDeref dereferences the bool ptr and returns it if not nil, or else
+	// returns def.
+	BoolDeref = Deref[bool]
 
-// Float32PtrDerefOr is a function variable referring to Float32Deref.
-//
-// Deprecated: Use Float32Deref instead.
-var Float32PtrDerefOr = Float32Deref // for back-compat
+	// BoolPtrDerefOr is a function variable referring to BoolDeref.
+	//
+	// Deprecated: Use BoolDeref instead.
+	BoolPtrDerefOr = BoolDeref // for back-compat
 
-// Float32Equal returns true if both arguments are nil or both arguments
-// dereference to the same value.
-func Float32Equal(a, b *float32) bool {
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if a == nil {
-		return true
-	}
-	return *a == *b
-}
+	// BoolEqual returns true if both arguments are nil or both arguments
+	// dereference to the same value.
+	BoolEqual = Equal[bool]
 
-// Float64 returns a pointer to a float64.
-func Float64(i float64) *float64 {
-	return &i
-}
+	// String returns a pointer to a string.
+	String = Ref[string]
 
-// Float64Ptr is a function variable referring to Float64.
-//
-// Deprecated: Use Float64 instead.
-var Float64Ptr = Float64
+	// StringPtr is a function variable referring to String.
+	//
+	// Deprecated: Use String instead.
+	StringPtr = String // for back-compat
 
-// Float64Deref dereferences the float64 ptr and returns it if not nil, or else
-// returns def.
-func Float64Deref(ptr *float64, def float64) float64 {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
+	// StringDeref dereferences the string ptr and returns it if not nil, or else
+	// returns def.
+	StringDeref = Deref[string]
 
-// Float64PtrDerefOr is a function variable referring to Float64Deref.
-//
-// Deprecated: Use Float64Deref instead.
-var Float64PtrDerefOr = Float64Deref // for back-compat
+	// StringPtrDerefOr is a function variable referring to StringDeref.
+	//
+	// Deprecated: Use StringDeref instead.
+	StringPtrDerefOr = StringDeref // for back-compat
 
-// Float64Equal returns true if both arguments are nil or both arguments
-// dereference to the same value.
-func Float64Equal(a, b *float64) bool {
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if a == nil {
-		return true
-	}
-	return *a == *b
-}
+	// StringEqual returns true if both arguments are nil or both arguments
+	// dereference to the same value.
+	StringEqual = Equal[string]
 
-// Duration returns a pointer to a time.Duration.
-func Duration(d time.Duration) *time.Duration {
-	return &d
-}
+	// Float32 returns a pointer to a float32.
+	Float32 = Ref[float32]
 
-// DurationDeref dereferences the time.Duration ptr and returns it if not nil, or else
-// returns def.
-func DurationDeref(ptr *time.Duration, def time.Duration) time.Duration {
-	if ptr != nil {
-		return *ptr
-	}
-	return def
-}
+	// Float32Ptr is a function variable referring to Float32.
+	//
+	// Deprecated: Use Float32 instead.
+	Float32Ptr = Float32
 
-// DurationEqual returns true if both arguments are nil or both arguments
-// dereference to the same value.
-func DurationEqual(a, b *time.Duration) bool {
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if a == nil {
-		return true
-	}
-	return *a == *b
-}
+	// Float32Deref dereferences the float32 ptr and returns it if not nil, or else
+	// returns def.
+	Float32Deref = Deref[float32]
+
+	// Float32PtrDerefOr is a function variable referring to Float32Deref.
+	//
+	// Deprecated: Use Float32Deref instead.
+	Float32PtrDerefOr = Float32Deref // for back-compat
+
+	// Float32Equal returns true if both arguments are nil or both arguments
+	// dereference to the same value.
+	Float32Equal = Equal[float32]
+
+	// Float64 returns a pointer to a float64.
+	Float64 = Ref[float64]
+
+	// Float64Ptr is a function variable referring to Float64.
+	//
+	// Deprecated: Use Float64 instead.
+	Float64Ptr = Float64
+
+	// Float64Deref dereferences the float64 ptr and returns it if not nil, or else
+	// returns def.
+	Float64Deref = Deref[float64]
+
+	// Float64PtrDerefOr is a function variable referring to Float64Deref.
+	//
+	// Deprecated: Use Float64Deref instead.
+	Float64PtrDerefOr = Float64Deref // for back-compat
+
+	// Float64Equal returns true if both arguments are nil or both arguments
+	// dereference to the same value.
+	Float64Equal = Equal[float64]
+
+	// Duration returns a pointer to a time.Duration.
+	Duration = Ref[time.Duration]
+
+	// DurationDeref dereferences the time.Duration ptr and returns it if not nil, or else
+	// returns def.
+	DurationDeref = Deref[time.Duration]
+
+	// DurationEqual returns true if both arguments are nil or both arguments
+	// dereference to the same value.
+	DurationEqual = Equal[time.Duration]
+)

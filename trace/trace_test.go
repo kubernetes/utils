@@ -621,6 +621,21 @@ func TestStepThreshold(t *testing.T) {
 	}
 }
 
+func TestParentEndedBeforeChild(t *testing.T) {
+	var buf bytes.Buffer
+	klog.SetOutput(&buf)
+	parent := New("foo")
+	for i := 0; i < 1000; i++ {
+		go func(parent *Trace) {
+			child := parent.Nest("bar")
+			child.Step("hello")
+			child.LogIfLong(0 * time.Second)
+		}(parent)
+	}
+	parent.Step("world")
+	parent.LogIfLong(0 * time.Second)
+}
+
 func TestContext(t *testing.T) {
 	ctx := context.Background()
 

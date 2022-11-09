@@ -126,6 +126,9 @@ func IsIPv6CIDRString(cidr string) bool {
 
 // IsIPv6CIDR returns if a cidr is ipv6
 func IsIPv6CIDR(cidr *net.IPNet) bool {
+	if cidr == nil {
+		return false
+	}
 	ip := cidr.IP
 	return IsIPv6(ip)
 }
@@ -143,6 +146,9 @@ func IsIPv4String(ip string) bool {
 
 // IsIPv4CIDR returns if a cidr is ipv4
 func IsIPv4CIDR(cidr *net.IPNet) bool {
+	if cidr == nil {
+		return false
+	}
 	ip := cidr.IP
 	return IsIPv4(ip)
 }

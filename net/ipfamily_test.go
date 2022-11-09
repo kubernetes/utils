@@ -354,6 +354,16 @@ func TestIsIPv6CIDRString(t *testing.T) {
 			cidr:         "2001:db8::/32",
 			expectResult: true,
 		},
+		{
+			desc:         "bad CIDR",
+			cidr:         "foo",
+			expectResult: false,
+		},
+		{
+			desc:         "IP, not CIDR",
+			cidr:         "2001:db8::",
+			expectResult: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -394,6 +404,16 @@ func TestIsIPv6CIDR(t *testing.T) {
 			desc:         "ipv6 CIDR 3",
 			cidr:         "2001:db8::/32",
 			expectResult: true,
+		},
+		{
+			desc:         "bad CIDR",
+			cidr:         "foo",
+			expectResult: false,
+		},
+		{
+			desc:         "IP, not CIDR",
+			cidr:         "2001:db8::",
+			expectResult: false,
 		},
 	}
 
@@ -533,6 +553,16 @@ func TestIsIPv4CIDRString(t *testing.T) {
 			cidr:         "2001:db8::/32",
 			expectResult: false,
 		},
+		{
+			desc:         "bad CIDR",
+			cidr:         "foo",
+			expectResult: false,
+		},
+		{
+			desc:         "IP, not CIDR",
+			cidr:         "192.168.0.0",
+			expectResult: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -572,6 +602,16 @@ func TestIsIPv4CIDR(t *testing.T) {
 		{
 			desc:         "ipv6 CIDR 3",
 			cidr:         "2001:db8::/32",
+			expectResult: false,
+		},
+		{
+			desc:         "bad CIDR",
+			cidr:         "foo",
+			expectResult: false,
+		},
+		{
+			desc:         "IP, not CIDR",
+			cidr:         "192.168.0.0",
 			expectResult: false,
 		},
 	}

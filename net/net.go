@@ -29,10 +29,10 @@ import (
 // order is maintained
 func ParseCIDRs(cidrsString []string) ([]*net.IPNet, error) {
 	cidrs := make([]*net.IPNet, 0, len(cidrsString))
-	for _, cidrString := range cidrsString {
+	for i, cidrString := range cidrsString {
 		_, cidr, err := ParseCIDRSloppy(cidrString)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse cidr value:%q with error:%v", cidrString, err)
+			return nil, fmt.Errorf("invalid CIDR[%d]: %v (%v)", i, cidr, err)
 		}
 		cidrs = append(cidrs, cidr)
 	}

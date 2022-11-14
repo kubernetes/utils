@@ -32,72 +32,64 @@ const (
 	IPv6 IPFamily = "6"
 )
 
-// IsDualStackIPs returns if a slice of ips is:
-// - all are valid ips
-// - at least one ip from each family (v4 or v6)
+// IsDualStackIPs returns true if:
+// - all elements of ips are valid
+// - at least one IP from each family (v4 and v6) is present
 func IsDualStackIPs(ips []net.IP) (bool, error) {
 	v4Found := false
 	v6Found := false
-	for _, ip := range ips {
-		if ip == nil {
-			return false, fmt.Errorf("ip %v is invalid", ip)
-		}
-
-		if v4Found && v6Found {
-			continue
-		}
-
-		if IsIPv6(ip) {
+	for i, ip := range ips {
+		switch IPFamilyOf(ip) {
+		case IPv4:
+			v4Found = true
+		case IPv6:
 			v6Found = true
-			continue
+		default:
+			return false, fmt.Errorf("invalid IP[%d]: %v", i, ip)
 		}
-
-		v4Found = true
 	}
 
 	return (v4Found && v6Found), nil
 }
 
-// IsDualStackIPStrings returns if
-// - all are valid ips
-// - at least one ip from each family (v4 or v6)
+// IsDualStackIPStrings returns true if:
+// - all elements of ips can be parsed as IPs
+// - at least one IP from each family (v4 and v6) is present
 func IsDualStackIPStrings(ips []string) (bool, error) {
 	parsedIPs := make([]net.IP, 0, len(ips))
-	for _, ip := range ips {
+	for i, ip := range ips {
 		parsedIP := ParseIPSloppy(ip)
+		if parsedIP == nil {
+			return false, fmt.Errorf("invalid IP[%d]: %v", i, ip)
+		}
 		parsedIPs = append(parsedIPs, parsedIP)
 	}
 	return IsDualStackIPs(parsedIPs)
 }
 
-// IsDualStackCIDRs returns if
-// - all are valid cidrs
-// - at least one cidr from each family (v4 or v6)
+// IsDualStackCIDRs returns true if:
+// - all elements of cidrs are non-nil
+// - at least one CIDR from each family (v4 and v6) is present
 func IsDualStackCIDRs(cidrs []*net.IPNet) (bool, error) {
 	v4Found := false
 	v6Found := false
-	for _, cidr := range cidrs {
-		if cidr == nil {
-			return false, fmt.Errorf("cidr %v is invalid", cidr)
-		}
-
-		if v4Found && v6Found {
-			continue
-		}
-
-		if IsIPv6(cidr.IP) {
+	for i, cidr := range cidrs {
+		switch IPFamilyOfCIDR(cidr) {
+		case IPv4:
+			v4Found = true
+		case IPv6:
 			v6Found = true
-			continue
+		default:
+			return false, fmt.Errorf("invalid CIDR[%d]: %v", i, cidr)
 		}
-		v4Found = true
 	}
 
-	return v4Found && v6Found, nil
+	return (v4Found && v6Found), nil
 }
 
 // IsDualStackCIDRStrings returns if
-// - all are valid cidrs
-// - at least one cidr from each family (v4 or v6)
+// - all elements of cidrs can be parsed as CIDRs
+// - at least one CIDR from each family (v4 and v6) is present
 func IsDualStackCIDRStrings(cidrs []string) (bool, error) {
 	parsedCIDRs, err := ParseCIDRs(cidrs)
 	if err != nil {

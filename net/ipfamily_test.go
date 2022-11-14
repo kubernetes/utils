@@ -483,6 +483,26 @@ func TestIsIPvX(t *testing.T) {
 			ip:     nil,
 			family: IPFamilyUnknown,
 		},
+		{
+			desc:   "invalid empty binary net.IP",
+			ip:     net.IP([]byte{}),
+			family: IPFamilyUnknown,
+		},
+		{
+			desc:   "invalid short binary net.IP",
+			ip:     net.IP([]byte{1, 2, 3}),
+			family: IPFamilyUnknown,
+		},
+		{
+			desc:   "invalid medium-length binary net.IP",
+			ip:     net.IP([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+			family: IPFamilyUnknown,
+		},
+		{
+			desc:   "invalid long binary net.IP",
+			ip:     net.IP([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}),
+			family: IPFamilyUnknown,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {

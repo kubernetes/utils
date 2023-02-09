@@ -113,3 +113,20 @@ func TestGetRace(t *testing.T) {
 	// let them run
 	time.Sleep(5 * time.Second)
 }
+
+func TestEviction(t *testing.T) {
+	var seenKey Key
+	var seenVal interface{}
+
+	lru := NewWithEvictionFunc(1, func(key Key, value interface{}) {
+		seenKey = key
+		seenVal = value
+	})
+
+	lru.Add(1, 2)
+	lru.Add(3, 4)
+
+	if seenKey != 1 || seenVal != 2 {
+		t.Errorf("unexpected eviction data: key=%v val=%v", seenKey, seenVal)
+	}
+}

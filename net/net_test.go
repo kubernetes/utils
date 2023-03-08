@@ -17,6 +17,7 @@ limitations under the License.
 package net
 
 import (
+	"math"
 	"testing"
 )
 
@@ -140,24 +141,76 @@ func TestParsePort(t *testing.T) {
 
 func TestRangeSize(t *testing.T) {
 	testCases := []struct {
-		name  string
-		cidr  string
-		addrs int64
+		name     string
+		cidr     string
+		addrs    int64
+		addrsU64 uint64
 	}{
 		{
-			name:  "supported IPv4 cidr",
-			cidr:  "192.168.1.0/24",
-			addrs: 256,
+			name:     "supported IPv4 cidr",
+			cidr:     "192.168.1.0/24",
+			addrs:    256,
+			addrsU64: 256,
 		},
 		{
-			name:  "unsupported IPv4 cidr",
-			cidr:  "192.168.1.0/1",
-			addrs: 0,
+			name:     "single IPv4 host",
+			cidr:     "192.168.1.0/32",
+			addrs:    1,
+			addrsU64: 1,
 		},
 		{
-			name:  "unsupported IPv6 mask",
-			cidr:  "2001:db8::/1",
-			addrs: 0,
+			name:     "small IPv4 cidr",
+			cidr:     "192.168.1.0/31",
+			addrs:    2,
+			addrsU64: 2,
+		},
+		{
+			name:     "very large IPv4 cidr",
+			cidr:     "0.0.0.0/1",
+			addrs:    math.MaxInt32 + 1,
+			addrsU64: math.MaxInt32 + 1,
+		},
+		{
+			name:     "full IPv4 range",
+			cidr:     "0.0.0.0/0",
+			addrs:    math.MaxUint32 + 1,
+			addrsU64: math.MaxUint32 + 1,
+		},
+		{
+			name:     "supported IPv6 cidr",
+			cidr:     "2001:db2::/112",
+			addrs:    65536,
+			addrsU64: 65536,
+		},
+		{
+			name:     "single IPv6 host",
+			cidr:     "2001:db8::/128",
+			addrs:    1,
+			addrsU64: 1,
+		},
+		{
+			name:     "small IPv6 cidr",
+			cidr:     "2001:db8::/127",
+			addrs:    2,
+			addrsU64: 2,
+		},
+		{
+			name:     "largest IPv6 for Int64",
+			cidr:     "2001:db8::/65",
+			addrs:    math.MaxInt64,
+			addrsU64: math.MaxInt64 + 1,
+		},
+		{
+			name:     "largest IPv6 for Uint64",
+			cidr:     "2001:db8::/64",
+			addrs:    math.MaxInt64,
+			addrsU64: math.MaxUint64,
+		},
+		{
+			name:     "very large IPv6 cidr",
+			cidr:     "2001:db8::/1",
+			addrs:    math.MaxInt64,
+			addrsU64: math.MaxUint64,
 		},
 	}
 
@@ -169,6 +222,10 @@ func TestRangeSize(t *testing.T) {
 		if size := RangeSize(cidr); size != tc.addrs {
 			t.Errorf("test %s failed. %s should have a range size of %d, got %d",
 				tc.name, tc.cidr, tc.addrs, size)
+		}
+		if size := RangeSizeU64(cidr); size != tc.addrsU64 {
+			t.Errorf("test %s failed. %s should have a range size of %d, got %d",
+				tc.name, tc.cidr, tc.addrsU64, size)
 		}
 	}
 }

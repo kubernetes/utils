@@ -70,15 +70,23 @@ func AddIPOffset(base *big.Int, offset int) net.IP {
 // RangeSize returns the size of a range in valid addresses.
 // returns the size of the subnet (or math.MaxInt64 if the range size would overflow int64)
 func RangeSize(subnet *net.IPNet) int64 {
-	ones, bits := subnet.Mask.Size()
-	if bits == 32 && (bits-ones) >= 31 || bits == 128 && (bits-ones) >= 127 {
-		return 0
-	}
+	size := RangeSizeU64(subnet)
 	// this checks that we are not overflowing an int64
-	if bits-ones >= 63 {
+	if size >= math.MaxInt64 {
 		return math.MaxInt64
 	}
-	return int64(1) << uint(bits-ones)
+	return int64(size)
+}
+
+// RangeSizeU64 returns the size of a range in valid addresses.
+// returns the size of the subnet (or math.MaxInt64 if the range size would overflow int64)
+func RangeSizeU64(subnet *net.IPNet) uint64 {
+	ones, bits := subnet.Mask.Size()
+	// this checks that we are not overflowing an uint64
+	if bits-ones >= 64 {
+		return math.MaxUint64
+	}
+	return uint64(1) << uint(bits-ones)
 }
 
 // GetIndexedIP returns a net.IP that is subnet.IP + index in the contiguous IP space.

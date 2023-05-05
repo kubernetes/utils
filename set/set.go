@@ -14,29 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sets
+package set
 
-import "sort"
-
-type Ordered interface {
-	int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | uintptr | float32 | float64 | string
-}
+import (
+	"sort"
+)
 
 // Empty is public since it is used by some internal API objects for conversions between external
 // string arrays and internal sets, and conversion logic requires public types today.
 type Empty struct{}
 
+// Set is a set of the same type elements, implemented via map[comparable]struct{} for minimal memory consumption.
 type Set[E Ordered] map[E]Empty
 
-// NewSet creates a new set.
-func NewSet[E Ordered](items ...E) Set[E] {
+// New creates a new set.
+func New[E Ordered](items ...E) Set[E] {
 	ss := Set[E]{}
 	ss.Insert(items...)
 	return ss
 }
 
-// NewSetFromMapKeys creates a Set[E] from a keys of a map[E](? extends interface{}).
-func NewSetFromMapKeys[E Ordered, A any](theMap map[E]A) Set[E] {
+// KeySet creates a Set[E] from a keys of a map[E](? extends interface{}).
+func KeySet[E Ordered, A any](theMap map[E]A) Set[E] {
 	ret := Set[E]{}
 	for key := range theMap {
 		ret.Insert(key)
@@ -86,10 +85,16 @@ func (s Set[E]) HasAny(items ...E) bool {
 	return false
 }
 
+// Union returns a new set which includes items in either s1 or s2.
+// For example:
+// s1 = {a1, a2}
+// s2 = {a3, a4}
+// s1.Union(s2) = {a1, a2, a3, a4}
+// s2.Union(s1) = {a1, a2, a3, a4}
 func (s Set[E]) Union(s2 Set[E]) Set[E] {
 	result := Set[E]{}
-	result.Insert(s.List()...)
-	result.Insert(s2.List()...)
+	result.Insert(s.UnsortedList()...)
+	result.Insert(s2.UnsortedList()...)
 	return result
 }
 
@@ -98,6 +103,11 @@ func (s Set[E]) Len() int {
 	return len(s)
 }
 
+// Intersection returns a new set which includes the item in BOTH s1 and s2
+// For example:
+// s1 = {a1, a2}
+// s2 = {a2, a3}
+// s1.Intersection(s2) = {a2}
 func (s Set[E]) Intersection(s2 Set[E]) Set[E] {
 	var walk, other Set[E]
 	result := Set[E]{}
@@ -144,7 +154,6 @@ func (s Set[E]) Difference(s2 Set[E]) Set[E] {
 
 // Equal returns true if and only if s1 is equal (as a set) to s2.
 // Two sets are equal if their membership is identical.
-// (In practice, this means same elements, order doesn't matter)
 func (s Set[E]) Equal(s2 Set[E]) bool {
 	return s.Len() == s.Len() && s.IsSuperset(s2)
 }
@@ -157,8 +166,8 @@ func (s sortableSlice[E]) Len() int {
 func (s sortableSlice[E]) Less(i, j int) bool { return s[i] < s[j] }
 func (s sortableSlice[E]) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-// List returns the contents as a sorted int slice.
-func (s Set[E]) List() []E {
+// SortedList returns the contents as a sorted slice.
+func (s Set[E]) SortedList() []E {
 	res := make(sortableSlice[E], 0, s.Len())
 	for key := range s {
 		res = append(res, key)
@@ -169,7 +178,7 @@ func (s Set[E]) List() []E {
 
 // UnsortedList returns the slice with contents in random order.
 func (s Set[E]) UnsortedList() []E {
-	res := make(sortableSlice[E], 0, len(s))
+	res := make([]E, 0, len(s))
 	for key := range s {
 		res = append(res, key)
 	}
@@ -184,4 +193,37 @@ func (s Set[E]) PopAny() (E, bool) {
 	}
 	var zeroValue E
 	return zeroValue, false
+}
+
+// Clone returns a new set which is a copy of the current set.
+func (s Set[T]) Clone() Set[T] {
+	result := make(Set[T], len(s))
+	for key := range s {
+		result.Insert(key)
+	}
+	return result
+}
+
+// SymmetricDifference returns a set of elements which are in either of the sets, but not in their intersection.
+// For example:
+// s1 = {a1, a2, a3}
+// s2 = {a1, a2, a4, a5}
+// s1.SymmetricDifference(s2) = {a3, a4, a5}
+// s2.SymmetricDifference(s1) = {a3, a4, a5}
+func (s1 Set[T]) SymmetricDifference(s2 Set[T]) Set[T] {
+	return s1.Difference(s2).Union(s2.Difference(s1))
+}
+
+// Clear empties the set.
+// It is preferable to replace the set with a newly constructed set,
+// but not all callers can do that (when there are other references to the map).
+// In some cases the set *won't* be fully cleared, e.g. a Set[float32] containing NaN
+// can't be cleared because NaN can't be removed.
+// For sets containing items of a type that is reflexive for ==,
+// this is optimized to a single call to runtime.mapclear().
+func (s Set[T]) Clear() Set[T] {
+	for key := range s {
+		delete(s, key)
+	}
+	return s
 }

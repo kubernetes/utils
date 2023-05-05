@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sets
+package set
 
 import (
 	"reflect"
 	"testing"
 )
 
-func TestStringSet(t *testing.T) {
-	s := NewSet[string]()
-	s2 := NewSet[string]()
+func TestStringSetHasAll(t *testing.T) {
+	s := New[string]()
+	s2 := New[string]()
 	if len(s) != 0 {
 		t.Errorf("Expected len=0: %d", len(s))
 	}
@@ -59,8 +59,15 @@ func TestStringSet(t *testing.T) {
 	}
 }
 
+func TestTypeInference(t *testing.T) {
+	s := New("a", "b", "c")
+	if len(s) != 3 {
+		t.Errorf("Expected len=3: %d", len(s))
+	}
+}
+
 func TestStringSetDeleteMultiples(t *testing.T) {
-	s := NewSet[string]()
+	s := New[string]()
 	s.Insert("a", "b", "c")
 	if len(s) != 3 {
 		t.Errorf("Expected len=3: %d", len(s))
@@ -81,8 +88,8 @@ func TestStringSetDeleteMultiples(t *testing.T) {
 	}
 }
 
-func TestNewStringSet(t *testing.T) {
-	s := NewSet[string]("a", "b", "c")
+func TestNewStringSetWithMultipleStrings(t *testing.T) {
+	s := New[string]("a", "b", "c")
 	if len(s) != 3 {
 		t.Errorf("Expected len=3: %d", len(s))
 	}
@@ -91,34 +98,42 @@ func TestNewStringSet(t *testing.T) {
 	}
 }
 
-func TestStringSetList(t *testing.T) {
-	s := NewSet[string]("z", "y", "x", "a")
-	if !reflect.DeepEqual(s.List(), []string{"a", "x", "y", "z"}) {
-		t.Errorf("List gave unexpected result: %#v", s.List())
+func TestStringSetSortedList(t *testing.T) {
+	s := New[string]("z", "y", "x", "a")
+	if !reflect.DeepEqual(s.SortedList(), []string{"a", "x", "y", "z"}) {
+		t.Errorf("SortedList gave unexpected result: %#v", s.SortedList())
+	}
+}
+
+func TestStringSetUnsortedList(t *testing.T) {
+	s := New[string]("z", "y", "x", "a")
+	ul := s.UnsortedList()
+	if len(ul) != 4 || !s.Has("z") || !s.Has("y") || !s.Has("x") || !s.Has("a") {
+		t.Errorf("UnsortedList gave unexpected result: %#v", s.UnsortedList())
 	}
 }
 
 func TestStringSetDifference(t *testing.T) {
-	a := NewSet[string]("1", "2", "3")
-	b := NewSet[string]("1", "2", "4", "5")
+	a := New[string]("1", "2", "3")
+	b := New[string]("1", "2", "4", "5")
 	c := a.Difference(b)
 	d := b.Difference(a)
 	if len(c) != 1 {
 		t.Errorf("Expected len=1: %d", len(c))
 	}
 	if !c.Has("3") {
-		t.Errorf("Unexpected contents: %#v", c.List())
+		t.Errorf("Unexpected contents: %#v", c.SortedList())
 	}
 	if len(d) != 2 {
 		t.Errorf("Expected len=2: %d", len(d))
 	}
 	if !d.Has("4") || !d.Has("5") {
-		t.Errorf("Unexpected contents: %#v", d.List())
+		t.Errorf("Unexpected contents: %#v", d.SortedList())
 	}
 }
 
 func TestStringSetHasAny(t *testing.T) {
-	a := NewSet[string]("1", "2", "3")
+	a := New[string]("1", "2", "3")
 
 	if !a.HasAny("1", "4") {
 		t.Errorf("expected true, got false")
@@ -131,37 +146,37 @@ func TestStringSetHasAny(t *testing.T) {
 
 func TestStringSetEquals(t *testing.T) {
 	// Simple case (order doesn't matter)
-	a := NewSet[string]("1", "2")
-	b := NewSet[string]("2", "1")
+	a := New[string]("1", "2")
+	b := New[string]("2", "1")
 	if !a.Equal(b) {
 		t.Errorf("Expected to be equal: %v vs %v", a, b)
 	}
 
 	// It is a set; duplicates are ignored
-	b = NewSet[string]("2", "2", "1")
+	b = New[string]("2", "2", "1")
 	if !a.Equal(b) {
 		t.Errorf("Expected to be equal: %v vs %v", a, b)
 	}
 
 	// Edge cases around empty sets / empty strings
-	a = NewSet[string]()
-	b = NewSet[string]()
+	a = New[string]()
+	b = New[string]()
 	if !a.Equal(b) {
 		t.Errorf("Expected to be equal: %v vs %v", a, b)
 	}
 
-	b = NewSet[string]("1", "2", "3")
+	b = New[string]("1", "2", "3")
 	if a.Equal(b) {
 		t.Errorf("Expected to be not-equal: %v vs %v", a, b)
 	}
 
-	b = NewSet[string]("1", "2", "")
+	b = New[string]("1", "2", "")
 	if a.Equal(b) {
 		t.Errorf("Expected to be not-equal: %v vs %v", a, b)
 	}
 
 	// Check for equality after mutation
-	a = NewSet[string]()
+	a = New[string]()
 	a.Insert("1")
 	if a.Equal(b) {
 		t.Errorf("Expected to be not-equal: %v vs %v", a, b)
@@ -190,24 +205,24 @@ func TestStringUnion(t *testing.T) {
 		expected Set[string]
 	}{
 		{
-			NewSet[string]("1", "2", "3", "4"),
-			NewSet[string]("3", "4", "5", "6"),
-			NewSet[string]("1", "2", "3", "4", "5", "6"),
+			New[string]("1", "2", "3", "4"),
+			New[string]("3", "4", "5", "6"),
+			New[string]("1", "2", "3", "4", "5", "6"),
 		},
 		{
-			NewSet[string]("1", "2", "3", "4"),
-			NewSet[string](),
-			NewSet[string]("1", "2", "3", "4"),
+			New[string]("1", "2", "3", "4"),
+			New[string](),
+			New[string]("1", "2", "3", "4"),
 		},
 		{
-			NewSet[string](),
-			NewSet[string]("1", "2", "3", "4"),
-			NewSet[string]("1", "2", "3", "4"),
+			New[string](),
+			New[string]("1", "2", "3", "4"),
+			New[string]("1", "2", "3", "4"),
 		},
 		{
-			NewSet[string](),
-			NewSet[string](),
-			NewSet[string](),
+			New[string](),
+			New[string](),
+			New[string](),
 		},
 	}
 
@@ -218,7 +233,7 @@ func TestStringUnion(t *testing.T) {
 		}
 
 		if !union.Equal(test.expected) {
-			t.Errorf("Expected union.Equal(expected) but not true.  union:%v expected:%v", union.List(), test.expected.List())
+			t.Errorf("Expected union.Equal(expected) but not true.  union:%v expected:%v", union.SortedList(), test.expected.SortedList())
 		}
 	}
 }
@@ -230,29 +245,29 @@ func TestStringIntersection(t *testing.T) {
 		expected Set[string]
 	}{
 		{
-			NewSet[string]("1", "2", "3", "4"),
-			NewSet[string]("3", "4", "5", "6"),
-			NewSet[string]("3", "4"),
+			New[string]("1", "2", "3", "4"),
+			New[string]("3", "4", "5", "6"),
+			New[string]("3", "4"),
 		},
 		{
-			NewSet[string]("1", "2", "3", "4"),
-			NewSet[string]("1", "2", "3", "4"),
-			NewSet[string]("1", "2", "3", "4"),
+			New[string]("1", "2", "3", "4"),
+			New[string]("1", "2", "3", "4"),
+			New[string]("1", "2", "3", "4"),
 		},
 		{
-			NewSet[string]("1", "2", "3", "4"),
-			NewSet[string](),
-			NewSet[string](),
+			New[string]("1", "2", "3", "4"),
+			New[string](),
+			New[string](),
 		},
 		{
-			NewSet[string](),
-			NewSet[string]("1", "2", "3", "4"),
-			NewSet[string](),
+			New[string](),
+			New[string]("1", "2", "3", "4"),
+			New[string](),
 		},
 		{
-			NewSet[string](),
-			NewSet[string](),
-			NewSet[string](),
+			New[string](),
+			New[string](),
+			New[string](),
 		},
 	}
 
@@ -263,7 +278,7 @@ func TestStringIntersection(t *testing.T) {
 		}
 
 		if !intersection.Equal(test.expected) {
-			t.Errorf("Expected intersection.Equal(expected) but not true.  intersection:%v expected:%v", intersection.List(), test.expected.List())
+			t.Errorf("Expected intersection.Equal(expected) but not true.  intersection:%v expected:%v", intersection.SortedList(), test.expected.SortedList())
 		}
 	}
 }
@@ -274,13 +289,77 @@ func TestNewSetFromMapKeys(t *testing.T) {
 		"goodbye": "and goodnight",
 	}
 	expected := []string{"goodbye", "hallo"}
-	gotList := NewSetFromMapKeys(m).List() // List() returns a sorted list
+	gotList := KeySet(m).SortedList() // List() returns a sorted list
 	if len(gotList) != len(m) {
 		t.Fatalf("got %v elements, wanted %v", len(gotList), len(m))
 	}
-	for i, entry := range NewSetFromMapKeys(m).List() {
+	for i, entry := range KeySet(m).SortedList() {
 		if entry != expected[i] {
 			t.Errorf("got %v, expected %v", entry, expected[i])
 		}
 	}
+}
+
+func TestSetSymmetricDifference(t *testing.T) {
+	a := New("1", "2", "3")
+	b := New("1", "2", "4", "5")
+	c := a.SymmetricDifference(b)
+	d := b.SymmetricDifference(a)
+	if !c.Equal(New("3", "4", "5")) {
+		t.Errorf("Unexpected contents: %#v", c.SortedList())
+	}
+	if !d.Equal(New("3", "4", "5")) {
+		t.Errorf("Unexpected contents: %#v", d.SortedList())
+	}
+}
+
+func TestSetClear(t *testing.T) {
+	s := New[string]()
+	s.Insert("a", "b", "c")
+	if s.Len() != 3 {
+		t.Errorf("Expected len=3: %d", s.Len())
+	}
+
+	s.Clear()
+	if s.Len() != 0 {
+		t.Errorf("Expected len=0: %d", s.Len())
+	}
+}
+
+func TestSetClearWithSharedReference(t *testing.T) {
+	s := New[string]()
+	s.Insert("a", "b", "c")
+	if s.Len() != 3 {
+		t.Errorf("Expected len=3: %d", s.Len())
+	}
+
+	m := s
+	s.Clear()
+	if s.Len() != 0 {
+		t.Errorf("Expected len=0 on the cleared set: %d", s.Len())
+	}
+	if m.Len() != 0 {
+		t.Errorf("Expected len=0 on the shared reference: %d", m.Len())
+	}
+}
+
+func TestSetClearInSeparateFunction(t *testing.T) {
+	s := New[string]()
+	s.Insert("a", "b", "c")
+	if s.Len() != 3 {
+		t.Errorf("Expected len=3: %d", s.Len())
+	}
+
+	clearSetAndAdd(s, "d")
+	if s.Len() != 1 {
+		t.Errorf("Expected len=1: %d", s.Len())
+	}
+	if !s.Has("d") {
+		t.Errorf("Unexpected contents: %#v", s)
+	}
+}
+
+func clearSetAndAdd[T Ordered](s Set[T], a T) {
+	s.Clear()
+	s.Insert(a)
 }

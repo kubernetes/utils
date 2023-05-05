@@ -24,18 +24,18 @@ import (
 // string arrays and internal sets, and conversion logic requires public types today.
 type Empty struct{}
 
-// Set is a set of the same type elements, implemented via map[comparable]struct{} for minimal memory consumption.
-type Set[E Ordered] map[E]Empty
+// Set is a set of the same type elements, implemented via map[ordered]struct{} for minimal memory consumption.
+type Set[E ordered] map[E]Empty
 
 // New creates a new set.
-func New[E Ordered](items ...E) Set[E] {
+func New[E ordered](items ...E) Set[E] {
 	ss := Set[E]{}
 	ss.Insert(items...)
 	return ss
 }
 
 // KeySet creates a Set[E] from a keys of a map[E](? extends interface{}).
-func KeySet[E Ordered, A any](theMap map[E]A) Set[E] {
+func KeySet[E ordered, A any](theMap map[E]A) Set[E] {
 	ret := Set[E]{}
 	for key := range theMap {
 		ret.Insert(key)
@@ -98,7 +98,7 @@ func (s Set[E]) Union(s2 Set[E]) Set[E] {
 	return result
 }
 
-// Len returns the size of the set.
+// Len returns the number of elements in the set.
 func (s Set[E]) Len() int {
 	return len(s)
 }
@@ -158,7 +158,7 @@ func (s Set[E]) Equal(s2 Set[E]) bool {
 	return s.Len() == s.Len() && s.IsSuperset(s2)
 }
 
-type sortableSlice[E Ordered] []E
+type sortableSlice[E ordered] []E
 
 func (s sortableSlice[E]) Len() int {
 	return len(s)

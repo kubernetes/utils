@@ -283,7 +283,7 @@ func TestStringIntersection(t *testing.T) {
 	}
 }
 
-func TestNewSetFromMapKeys(t *testing.T) {
+func TestKeySet(t *testing.T) {
 	m := map[string]string{
 		"hallo":   "world",
 		"goodbye": "and goodnight",
@@ -359,7 +359,7 @@ func TestSetClearInSeparateFunction(t *testing.T) {
 	}
 }
 
-func clearSetAndAdd[T Ordered](s Set[T], a T) {
+func clearSetAndAdd[T ordered](s Set[T], a T) {
 	s.Clear()
 	s.Insert(a)
 }

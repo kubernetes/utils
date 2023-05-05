@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -210,8 +210,8 @@ func (s Set[T]) Clone() Set[T] {
 // s2 = {a1, a2, a4, a5}
 // s1.SymmetricDifference(s2) = {a3, a4, a5}
 // s2.SymmetricDifference(s1) = {a3, a4, a5}
-func (s1 Set[T]) SymmetricDifference(s2 Set[T]) Set[T] {
-	return s1.Difference(s2).Union(s2.Difference(s1))
+func (s Set[T]) SymmetricDifference(s2 Set[T]) Set[T] {
+	return s.Difference(s2).Union(s2.Difference(s))
 }
 
 // Clear empties the set.

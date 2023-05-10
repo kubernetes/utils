@@ -16,7 +16,29 @@ limitations under the License.
 
 package integer
 
+// number is a constraint that permits any signed type, or any unsigned type
+type number interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
+}
+
+// Max returns the maximum of the params
+func Max[E number](a, b E) E {
+	if b > a {
+		return b
+	}
+	return a
+}
+
+// Min returns the minimum of the params
+func Min[E number](a, b E) E {
+	if b < a {
+		return b
+	}
+	return a
+}
+
 // IntMax returns the maximum of the params
+// Deprecated: please use Max
 func IntMax(a, b int) int {
 	if b > a {
 		return b
@@ -25,6 +47,7 @@ func IntMax(a, b int) int {
 }
 
 // IntMin returns the minimum of the params
+// Deprecated: please use Min
 func IntMin(a, b int) int {
 	if b < a {
 		return b
@@ -33,6 +56,7 @@ func IntMin(a, b int) int {
 }
 
 // Int32Max returns the maximum of the params
+// Deprecated: please use Max
 func Int32Max(a, b int32) int32 {
 	if b > a {
 		return b
@@ -41,6 +65,7 @@ func Int32Max(a, b int32) int32 {
 }
 
 // Int32Min returns the minimum of the params
+// Deprecated: please use Min
 func Int32Min(a, b int32) int32 {
 	if b < a {
 		return b
@@ -49,6 +74,7 @@ func Int32Min(a, b int32) int32 {
 }
 
 // Int64Max returns the maximum of the params
+// Deprecated: please use Max
 func Int64Max(a, b int64) int64 {
 	if b > a {
 		return b
@@ -57,6 +83,7 @@ func Int64Max(a, b int64) int64 {
 }
 
 // Int64Min returns the minimum of the params
+// Deprecated: please use Min
 func Int64Min(a, b int64) int64 {
 	if b < a {
 		return b

@@ -16,7 +16,10 @@ limitations under the License.
 
 package integer
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestIntMax(t *testing.T) {
 	tests := []struct {
@@ -240,5 +243,29 @@ func TestRoundToInt32(t *testing.T) {
 		if got := RoundToInt32(test.num); got != test.exp {
 			t.Errorf("expected %d, got %d", test.exp, got)
 		}
+	}
+}
+
+func TestMin(t *testing.T) {
+	if min := Min(math.MinInt, 0); min != math.MinInt {
+		t.Errorf("got %v, want %v", min, 0)
+	}
+	if min := Min(math.MinInt32, int32(0)); min != math.MinInt32 {
+		t.Errorf("got %v, want %v", min, 0)
+	}
+	if min := Min(math.MinInt64, int64(0)); min != math.MinInt64 {
+		t.Errorf("got %v, want %v", min, 0)
+	}
+}
+
+func TestMax(t *testing.T) {
+	if max := Max(math.MaxInt, 42); max != math.MaxInt {
+		t.Errorf("got %v, want %v", max, 0)
+	}
+	if max := Max(math.MaxInt32, int32(42)); max != math.MaxInt32 {
+		t.Errorf("got %v, want %v", max, 0)
+	}
+	if max := Max(math.MaxInt64, int64(42)); max != math.MaxInt64 {
+		t.Errorf("got %v, want %v", max, 0)
 	}
 }

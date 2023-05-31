@@ -17,9 +17,9 @@ limitations under the License.
 package keymutex
 
 import (
+	"context"
 	"hash/fnv"
 	"runtime"
-	"sync"
 )
 
 // NewHashed returns a new instance of KeyMutex which hashes arbitrary keys to
@@ -31,23 +31,43 @@ func NewHashed(n int) KeyMutex {
 	if n <= 0 {
 		n = runtime.NumCPU()
 	}
+	channels := make([]chan bool, n)
+	for i := range channels {
+		channels[i] = make(chan bool, 1)
+		channels[i] <- true
+	}
+
 	return &hashedKeyMutex{
-		mutexes: make([]sync.Mutex, n),
+		channels: channels,
 	}
 }
 
 type hashedKeyMutex struct {
-	mutexes []sync.Mutex
+	channels []chan bool
 }
 
 // Acquires a lock associated with the specified ID.
 func (km *hashedKeyMutex) LockKey(id string) {
-	km.mutexes[km.hash(id)%uint32(len(km.mutexes))].Lock()
+	select {
+	case <-km.channels[km.hash(id)%uint32(len(km.channels))]:
+		break
+	}
+}
+
+// Tries to acquire the associated lock within the timeframe,
+// returns true if lock is acquired, false otherwise.
+func (km *hashedKeyMutex) LockKeyWithContext(id string, ctx context.Context) bool {
+	select {
+	case <-km.channels[km.hash(id)%uint32(len(km.channels))]:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 // Releases the lock associated with the specified ID.
 func (km *hashedKeyMutex) UnlockKey(id string) error {
-	km.mutexes[km.hash(id)%uint32(len(km.mutexes))].Unlock()
+	km.channels[km.hash(id)%uint32(len(km.channels))] <- true
 	return nil
 }
 

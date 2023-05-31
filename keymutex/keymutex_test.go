@@ -17,6 +17,7 @@ limitations under the License.
 package keymutex
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -34,7 +35,7 @@ func newKeyMutexes() []KeyMutex {
 	}
 }
 
-func Test_SingleLock_NoUnlock(t *testing.T) {
+func Test_Lock_SingleLock_NoUnlock(t *testing.T) {
 	for _, km := range newKeyMutexes() {
 		// Arrange
 		key := "fakeid"
@@ -48,7 +49,7 @@ func Test_SingleLock_NoUnlock(t *testing.T) {
 	}
 }
 
-func Test_SingleLock_SingleUnlock(t *testing.T) {
+func Test_Lock_SingleLock_SingleUnlock(t *testing.T) {
 	for _, km := range newKeyMutexes() {
 		// Arrange
 		key := "fakeid"
@@ -61,7 +62,7 @@ func Test_SingleLock_SingleUnlock(t *testing.T) {
 	}
 }
 
-func Test_DoubleLock_DoubleUnlock(t *testing.T) {
+func Test_Lock_DoubleLock_DoubleUnlock(t *testing.T) {
 	for _, km := range newKeyMutexes() {
 		// Arrange
 		key := "fakeid"
@@ -79,15 +80,82 @@ func Test_DoubleLock_DoubleUnlock(t *testing.T) {
 	}
 }
 
+func Test_LockWithContext_SingleLock_SingleUnlock(t *testing.T) {
+	for _, km := range newKeyMutexes() {
+		// Arrange
+		key := "fakeid"
+		callbackCh := make(chan interface{})
+
+		// Act & Assert
+		ctx := context.Background()
+		go lockWithContextAndCallback(km, key, callbackCh, ctx)
+		verifyCallbackHappensWithVal(t, callbackCh, true)
+		km.UnlockKey(key)
+	}
+}
+
+func Test_LockWithContext_DoubleLock_DoubleUnlock(t *testing.T) {
+	for _, km := range newKeyMutexes() {
+		// Arrange
+		key := "fakeid"
+		callbackCh1stLock := make(chan interface{})
+		callbackCh2ndLock := make(chan interface{})
+
+		// Act & Assert
+		ctx := context.Background()
+		go lockWithContextAndCallback(km, key, callbackCh1stLock, ctx)
+		verifyCallbackHappensWithVal(t, callbackCh1stLock, true)
+		go lockWithContextAndCallback(km, key, callbackCh2ndLock, ctx)
+		verifyCallbackDoesntHappens(t, callbackCh2ndLock)
+		km.UnlockKey(key)
+		verifyCallbackHappensWithVal(t, callbackCh2ndLock, true)
+		km.UnlockKey(key)
+	}
+}
+
+func Test_LockWithContext_DoubleLock_LockCancellation(t *testing.T) {
+	for _, km := range newKeyMutexes() {
+		// Arrange
+		key := "fakeid"
+		callbackCh1stLock := make(chan interface{})
+		callbackCh2ndLock := make(chan interface{})
+
+		// Act & Assert
+		ctx := context.Background()
+		ctx, cancel := context.WithCancel(ctx)
+		go lockWithContextAndCallback(km, key, callbackCh1stLock, ctx)
+		verifyCallbackHappensWithVal(t, callbackCh1stLock, true)
+		go lockWithContextAndCallback(km, key, callbackCh2ndLock, ctx)
+		verifyCallbackDoesntHappens(t, callbackCh2ndLock)
+		cancel()
+		verifyCallbackHappensWithVal(t, callbackCh2ndLock, false)
+		km.UnlockKey(key)
+	}
+}
+
 func lockAndCallback(km KeyMutex, id string, callbackCh chan<- interface{}) {
 	km.LockKey(id)
 	callbackCh <- true
+}
+
+func lockWithContextAndCallback(km KeyMutex, id string, callbackCh chan<- interface{}, ctx context.Context) {
+	callbackCh <- km.LockKeyWithContext(id, ctx)
 }
 
 func verifyCallbackHappens(t *testing.T, callbackCh <-chan interface{}) bool {
 	select {
 	case <-callbackCh:
 		return true
+	case <-time.After(callbackTimeout):
+		t.Fatalf("Timed out waiting for callback.")
+		return false
+	}
+}
+
+func verifyCallbackHappensWithVal(t *testing.T, callbackCh <-chan interface{}, expectedVal bool) bool {
+	select {
+	case val := <-callbackCh:
+		return expectedVal == val
 	case <-time.After(callbackTimeout):
 		t.Fatalf("Timed out waiting for callback.")
 		return false

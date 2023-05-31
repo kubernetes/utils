@@ -256,6 +256,21 @@ func TestMin(t *testing.T) {
 	if min := Min(math.MinInt64, int64(0)); min != math.MinInt64 {
 		t.Errorf("got %v, want %v", min, 0)
 	}
+	if min := Min(uint(42), uint(0)); min != 0 {
+		t.Errorf("got %v, want %v", min, 0)
+	}
+	if min := Min(uint8(42), uint8(0)); min != 0 {
+		t.Errorf("got %v, want %v", min, 0)
+	}
+	if min := Min(uint16(42), uint16(0)); min != 0 {
+		t.Errorf("got %v, want %v", min, 0)
+	}
+	if min := Min(uint32(42), uint32(0)); min != 0 {
+		t.Errorf("got %v, want %v", min, 0)
+	}
+	if min := Min(uint64(42), uint64(0)); min != 0 {
+		t.Errorf("got %v, want %v", min, 0)
+	}
 }
 
 func TestMax(t *testing.T) {
@@ -266,6 +281,18 @@ func TestMax(t *testing.T) {
 		t.Errorf("got %v, want %v", max, 0)
 	}
 	if max := Max(math.MaxInt64, int64(42)); max != math.MaxInt64 {
+		t.Errorf("got %v, want %v", max, 0)
+	}
+	if max := Max(math.MaxUint8, uint8(42)); max != math.MaxUint8 {
+		t.Errorf("got %v, want %v", max, 0)
+	}
+	if max := Max(math.MaxUint16, uint16(42)); max != math.MaxUint16 {
+		t.Errorf("got %v, want %v", max, 0)
+	}
+	if max := Max(math.MaxUint32, uint32(42)); max != math.MaxUint32 {
+		t.Errorf("got %v, want %v", max, 0)
+	}
+	if max := Max(math.MaxUint64, uint64(42)); max != math.MaxUint64 {
 		t.Errorf("got %v, want %v", max, 0)
 	}
 }

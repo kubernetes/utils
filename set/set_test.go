@@ -169,10 +169,16 @@ func TestStringSetEquals(t *testing.T) {
 	if a.Equal(b) {
 		t.Errorf("Expected to be not-equal: %v vs %v", a, b)
 	}
+	if b.Equal(a) {
+		t.Errorf("Expected to be not-equal: %v vs %v", b, a)
+	}
 
 	b = New[string]("1", "2", "")
 	if a.Equal(b) {
 		t.Errorf("Expected to be not-equal: %v vs %v", a, b)
+	}
+	if b.Equal(a) {
+		t.Errorf("Expected to be not-equal: %v vs %v", b, a)
 	}
 
 	// Check for equality after mutation

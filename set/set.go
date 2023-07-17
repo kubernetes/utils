@@ -25,17 +25,17 @@ import (
 type Empty struct{}
 
 // Set is a set of the same type elements, implemented via map[ordered]struct{} for minimal memory consumption.
-type Set[E ordered] map[E]Empty
+type Set[E orderedBrokenAPI] map[E]Empty
 
 // New creates a new set.
-func New[E ordered](items ...E) Set[E] {
+func New[E orderedBrokenAPI](items ...E) Set[E] {
 	ss := Set[E]{}
 	ss.Insert(items...)
 	return ss
 }
 
 // KeySet creates a Set[E] from a keys of a map[E](? extends interface{}).
-func KeySet[E ordered, A any](theMap map[E]A) Set[E] {
+func KeySet[E orderedBrokenAPI, A any](theMap map[E]A) Set[E] {
 	ret := Set[E]{}
 	for key := range theMap {
 		ret.Insert(key)
@@ -158,7 +158,7 @@ func (s Set[E]) Equal(s2 Set[E]) bool {
 	return s.Len() == s.Len() && s.IsSuperset(s2)
 }
 
-type sortableSlice[E ordered] []E
+type sortableSlice[E orderedBrokenAPI] []E
 
 func (s sortableSlice[E]) Len() int {
 	return len(s)
@@ -168,7 +168,7 @@ func (s sortableSlice[E]) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // SortedList returns the contents as a sorted slice.
 func (s Set[E]) SortedList() []E {
-	res := make(sortableSlice[E], 0, s.Len())
+	res = make(sortableSlice[E], 0, s.Len())
 	for key := range s {
 		res = append(res, key)
 	}

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# dummy comment
 .PHONY: verify
 verify: verify-fmt verify-lint verify-apidiff vet test
 

@@ -359,7 +359,7 @@ func TestSetClearInSeparateFunction(t *testing.T) {
 	}
 }
 
-func clearSetAndAdd[T ordered](s Set[T], a T) {
+func clearSetAndAdd[T orderedBrokenAPI](s Set[T], a T) {
 	s.Clear()
 	s.Insert(a)
 }

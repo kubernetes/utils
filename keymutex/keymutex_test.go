@@ -88,7 +88,7 @@ func Test_LockWithContext_SingleLock_SingleUnlock(t *testing.T) {
 
 		// Act & Assert
 		ctx := context.Background()
-		go lockWithContextAndCallback(km, key, callbackCh, ctx)
+		go lockWithContextAndCallback(ctx, km, key, callbackCh)
 		verifyCallbackHappensWithVal(t, callbackCh, true)
 		km.UnlockKey(key)
 	}
@@ -103,9 +103,9 @@ func Test_LockWithContext_DoubleLock_DoubleUnlock(t *testing.T) {
 
 		// Act & Assert
 		ctx := context.Background()
-		go lockWithContextAndCallback(km, key, callbackCh1stLock, ctx)
+		go lockWithContextAndCallback(ctx, km, key, callbackCh1stLock)
 		verifyCallbackHappensWithVal(t, callbackCh1stLock, true)
-		go lockWithContextAndCallback(km, key, callbackCh2ndLock, ctx)
+		go lockWithContextAndCallback(ctx, km, key, callbackCh2ndLock)
 		verifyCallbackDoesntHappens(t, callbackCh2ndLock)
 		km.UnlockKey(key)
 		verifyCallbackHappensWithVal(t, callbackCh2ndLock, true)
@@ -123,9 +123,9 @@ func Test_LockWithContext_DoubleLock_LockCancellation(t *testing.T) {
 		// Act & Assert
 		ctx := context.Background()
 		ctx, cancel := context.WithCancel(ctx)
-		go lockWithContextAndCallback(km, key, callbackCh1stLock, ctx)
+		go lockWithContextAndCallback(ctx, km, key, callbackCh1stLock)
 		verifyCallbackHappensWithVal(t, callbackCh1stLock, true)
-		go lockWithContextAndCallback(km, key, callbackCh2ndLock, ctx)
+		go lockWithContextAndCallback(ctx, km, key, callbackCh2ndLock)
 		verifyCallbackDoesntHappens(t, callbackCh2ndLock)
 		cancel()
 		verifyCallbackHappensWithVal(t, callbackCh2ndLock, false)
@@ -138,8 +138,8 @@ func lockAndCallback(km KeyMutex, id string, callbackCh chan<- interface{}) {
 	callbackCh <- true
 }
 
-func lockWithContextAndCallback(km KeyMutex, id string, callbackCh chan<- interface{}, ctx context.Context) {
-	callbackCh <- km.LockKeyWithContext(id, ctx)
+func lockWithContextAndCallback(ctx context.Context, km KeyMutex, id string, callbackCh chan<- interface{}) {
+	callbackCh <- km.LockKeyWithContext(ctx, id)
 }
 
 func verifyCallbackHappens(t *testing.T, callbackCh <-chan interface{}) bool {

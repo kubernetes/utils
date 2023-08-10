@@ -56,7 +56,7 @@ func (km *hashedKeyMutex) LockKey(id string) {
 
 // Tries to acquire the associated lock within the timeframe,
 // returns true if lock is acquired, false otherwise.
-func (km *hashedKeyMutex) LockKeyWithContext(id string, ctx context.Context) bool {
+func (km *hashedKeyMutex) LockKeyWithContext(ctx context.Context, id string) bool {
 	select {
 	case <-km.channels[km.hash(id)%uint32(len(km.channels))]:
 		return true

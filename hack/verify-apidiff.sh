@@ -65,7 +65,7 @@ fi
 if ! which apidiff > /dev/null; then
   echo "Installing golang.org/x/exp/cmd/apidiff..."
   pushd "${TMPDIR:-/tmp}" > /dev/null
-    go get golang.org/x/exp/cmd/apidiff
+    go install golang.org/x/exp/cmd/apidiff@latest
   popd > /dev/null
 fi
 

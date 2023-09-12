@@ -28,7 +28,7 @@ for moving] an existing package to this repository.
 
 - Stable, or backward compatible, API, with complete godocs.
 
-- Go tools compliant (`go get`, `go install`, `go test`, etc.).
+- Go tools compliant (`go get`, `go test`, etc.).
 
 - Very few (ideally zero) external dependencies.
 

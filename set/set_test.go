@@ -17,6 +17,7 @@ limitations under the License.
 package set
 
 import (
+	"cmp"
 	"reflect"
 	"testing"
 )
@@ -369,7 +370,7 @@ func TestSetClearInSeparateFunction(t *testing.T) {
 	}
 }
 
-func clearSetAndAdd[T ordered](s Set[T], a T) {
+func clearSetAndAdd[T cmp.Ordered](s Set[T], a T) {
 	s.Clear()
 	s.Insert(a)
 }

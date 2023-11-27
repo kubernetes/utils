@@ -233,6 +233,10 @@ func TestRoundToInt32(t *testing.T) {
 			num: 0,
 			exp: 0,
 		},
+		{
+			num: 0.49999999999999994,
+			exp: 0,
+		},
 	}
 
 	for i, test := range tests {

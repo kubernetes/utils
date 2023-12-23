@@ -8,7 +8,6 @@
 package inotify
 
 import (
-	"io"
 	"os"
 	"sync/atomic"
 	"testing"

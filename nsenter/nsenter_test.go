@@ -115,7 +115,7 @@ func TestEvalSymlinks(t *testing.T) {
 			mustExist: true,
 			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
 				src = filepath.Join(tmpdir, "src")
-				err = os(src, []byte{}, 0644)
+				err = os.WriteFile(src, []byte{}, 0644)
 				return src, src, err
 			},
 		},
@@ -243,7 +243,7 @@ func TestEvalSymlinks(t *testing.T) {
 			},
 		}
 
-		tmpdir, err := os.TempDir("", "nsenter-hostpath-")
+		tmpdir, err := os.MkdirTemp("", "nsenter-hostpath-")
 		if err != nil {
 			t.Fatal(err)
 		}

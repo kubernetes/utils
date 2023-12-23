@@ -22,7 +22,7 @@ func TestInotifyEvents(t *testing.T) {
 		t.Fatalf("NewWatcher failed: %s", err)
 	}
 
-	dir, err := io.TempDir("", "inotify")
+	dir, err := os.MkdirTemp("", "inotify")
 	if err != nil {
 		t.Fatalf("TempDir failed: %s", err)
 	}

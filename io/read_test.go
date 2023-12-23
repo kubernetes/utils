@@ -18,7 +18,6 @@ package io
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,7 +44,7 @@ func writeToPipe(namedPipe string, flaky bool, i int) {
 }
 
 func makePipe(t *testing.T) string {
-	tmp, err := ioutil.TempDir("", "pipe-test")
+	tmp, err := os.MkdirTemp("", "pipe-test")
 	if err != nil {
 		t.Fatal(err)
 	}

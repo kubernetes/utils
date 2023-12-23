@@ -19,7 +19,6 @@ package exec
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"os"
 	osexec "os/exec"
 	"testing"
@@ -207,7 +206,7 @@ func TestStdIOPipes(t *testing.T) {
 func readAll(t *testing.T, r io.Reader, n string) string {
 	t.Helper()
 
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatalf("unexpected error when reading from %s: %v", n, err)
 	}

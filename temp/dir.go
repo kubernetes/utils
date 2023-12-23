@@ -19,7 +19,6 @@ package temp
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -45,7 +44,7 @@ var _ Directory = &Dir{}
 // CreateTempDir returns a new Directory wrapping a temporary directory
 // on disk.
 func CreateTempDir(prefix string) (*Dir, error) {
-	name, err := ioutil.TempDir("", fmt.Sprintf("%s-", prefix))
+	name, err := os.MkdirTemp("", fmt.Sprintf("%s-", prefix))
 	if err != nil {
 		return nil, err
 	}

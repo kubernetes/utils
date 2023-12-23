@@ -17,7 +17,6 @@ limitations under the License.
 package temp
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +43,7 @@ func TestTempDir(t *testing.T) {
 	}
 
 	// Verify that the directory is empty
-	entries, err := ioutil.ReadDir(dir.Name)
+	entries, err := os.ReadDir(dir.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +68,7 @@ func TestTempDir(t *testing.T) {
 	}
 
 	// We have created only two files
-	entries, err = ioutil.ReadDir(dir.Name)
+	entries, err = os.ReadDir(dir.Name)
 	if err != nil {
 		t.Fatal(err)
 	}

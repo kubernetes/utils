@@ -20,7 +20,6 @@ limitations under the License.
 package nsenter
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -116,7 +115,7 @@ func TestEvalSymlinks(t *testing.T) {
 			mustExist: true,
 			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
 				src = filepath.Join(tmpdir, "src")
-				err = ioutil.WriteFile(src, []byte{}, 0644)
+				err = os(src, []byte{}, 0644)
 				return src, src, err
 			},
 		},
@@ -154,7 +153,7 @@ func TestEvalSymlinks(t *testing.T) {
 			mustExist: false,
 			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
 				dst := filepath.Join(tmpdir, "dst")
-				if err = ioutil.WriteFile(dst, []byte{}, 0644); err != nil {
+				if err = os.WriteFile(dst, []byte{}, 0644); err != nil {
 					return "", "", err
 				}
 				src = filepath.Join(tmpdir, "src")
@@ -192,7 +191,7 @@ func TestEvalSymlinks(t *testing.T) {
 					return "", "", err
 				}
 				dstFile := filepath.Join(dst, "file")
-				if err = ioutil.WriteFile(dstFile, []byte{}, 0644); err != nil {
+				if err = os.WriteFile(dstFile, []byte{}, 0644); err != nil {
 					return "", "", err
 				}
 
@@ -244,7 +243,7 @@ func TestEvalSymlinks(t *testing.T) {
 			},
 		}
 
-		tmpdir, err := ioutil.TempDir("", "nsenter-hostpath-")
+		tmpdir, err := os.TempDir("", "nsenter-hostpath-")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -273,7 +272,7 @@ func TestNewNsenter(t *testing.T) {
 	// Create a symlink /tmp/xyz/rootfs -> / and use it as rootfs path
 	// It should resolve all binaries correctly, the test runs on Linux
 
-	tmpdir, err := ioutil.TempDir("", "nsenter-hostpath-")
+	tmpdir, err := os.MkdirTemp("", "nsenter-hostpath-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +293,7 @@ func TestNewNsenterError(t *testing.T) {
 	// Create empty dir /tmp/xyz/rootfs and use it as rootfs path
 	// It should resolve all binaries correctly, the test runs on Linux
 
-	tmpdir, err := ioutil.TempDir("", "nsenter-hostpath-")
+	tmpdir, err := os.MkdirTemp("", "nsenter-hostpath-")
 	if err != nil {
 		t.Fatal(err)
 	}

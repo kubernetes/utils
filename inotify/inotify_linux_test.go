@@ -8,7 +8,7 @@
 package inotify
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"sync/atomic"
 	"testing"
@@ -22,7 +22,7 @@ func TestInotifyEvents(t *testing.T) {
 		t.Fatalf("NewWatcher failed: %s", err)
 	}
 
-	dir, err := ioutil.TempDir("", "inotify")
+	dir, err := io.TempDir("", "inotify")
 	if err != nil {
 		t.Fatalf("TempDir failed: %s", err)
 	}

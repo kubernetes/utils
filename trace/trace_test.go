@@ -31,6 +31,7 @@ import (
 func init() {
 	klog.InitFlags(flag.CommandLine)
 	flag.CommandLine.Lookup("logtostderr").Value.Set("false")
+	flag.CommandLine.Lookup("v").Value.Set("2")
 }
 
 func TestStep(t *testing.T) {
@@ -140,6 +141,7 @@ func TestLog(t *testing.T) {
 		fields           []Field
 		expectedMessages []string
 		sampleTrace      *Trace
+		verbosity        klog.Level
 	}{
 		{
 			name: "Check the log dump with 3 msg",
@@ -177,13 +179,35 @@ func TestLog(t *testing.T) {
 			},
 			sampleTrace: fieldsTraceFixture(),
 		},
+		{
+			name:             "Check that logs are not dumped if verbosity < 2",
+			verbosity:        1,
+			expectedMessages: []string{},
+			sampleTrace:      fieldsTraceFixture(),
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			klog.SetOutput(&buf)
+
+			if test.verbosity > 0 {
+				orig := klogV
+				klogV = func(l klog.Level) bool {
+					return l <= test.verbosity
+				}
+				defer func() {
+					klogV = orig
+				}()
+			}
+
 			test.sampleTrace.Log()
+
+			if len(test.expectedMessages) == 0 && buf.Len() != 0 {
+				t.Errorf("\nNo message expected in trace log: \n%v\n", buf.String())
+			}
+
 			for _, msg := range test.expectedMessages {
 				if !strings.Contains(buf.String(), msg) {
 					t.Errorf("\nMsg %q not found in log: \n%v\n", msg, buf.String())

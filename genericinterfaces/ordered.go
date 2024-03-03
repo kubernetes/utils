@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,40 +14,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package set
+package genericinterfaces
 
-// ordered is a constraint that permits any ordered type: any type
+// Ordered is a constraint that permits any ordered type: any type
 // that supports the operators < <= >= >.
 // If future releases of Go add new ordered types,
 // this constraint will be modified to include them.
-type ordered interface {
-	integer | float | ~string
+type Ordered interface {
+	Integer | Float | ~string
 }
 
-// integer is a constraint that permits any integer type.
+// Integer is a constraint that permits any integer type.
 // If future releases of Go add new predeclared integer types,
 // this constraint will be modified to include them.
-type integer interface {
-	signed | unsigned
+type Integer interface {
+	Signed | Unsigned
 }
 
-// float is a constraint that permits any floating-point type.
+// Float is a constraint that permits any floating-point type.
 // If future releases of Go add new predeclared floating-point types,
 // this constraint will be modified to include them.
-type float interface {
+type Float interface {
 	~float32 | ~float64
 }
 
-// signed is a constraint that permits any signed integer type.
+// Signed is a constraint that permits any signed integer type.
 // If future releases of Go add new predeclared signed integer types,
 // this constraint will be modified to include them.
-type signed interface {
+type Signed interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64
 }
 
-// unsigned is a constraint that permits any unsigned integer type.
+// Unsigned is a constraint that permits any unsigned integer type.
 // If future releases of Go add new predeclared unsigned integer types,
 // this constraint will be modified to include them.
-type unsigned interface {
+type Unsigned interface {
 	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
 }

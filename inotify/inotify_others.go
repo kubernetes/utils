@@ -1,4 +1,4 @@
-// +build !linux
+//go:build !linux
 
 /*
 Copyright 2020 The Kubernetes Authors.

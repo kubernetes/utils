@@ -19,6 +19,8 @@ package set
 import (
 	"reflect"
 	"testing"
+
+	"k8s.io/utils/genericinterfaces"
 )
 
 func TestStringSetHasAll(t *testing.T) {
@@ -365,7 +367,7 @@ func TestSetClearInSeparateFunction(t *testing.T) {
 	}
 }
 
-func clearSetAndAdd[T ordered](s Set[T], a T) {
+func clearSetAndAdd[T genericinterfaces.Ordered](s Set[T], a T) {
 	s.Clear()
 	s.Insert(a)
 }

@@ -100,8 +100,9 @@ func TestNewStringSetWithMultipleStrings(t *testing.T) {
 
 func TestStringSetSortedList(t *testing.T) {
 	s := New[string]("z", "y", "x", "a")
-	if !reflect.DeepEqual(s.SortedList(), []string{"a", "x", "y", "z"}) {
-		t.Errorf("SortedList gave unexpected result: %#v", s.SortedList())
+	l := List(s)
+	if !reflect.DeepEqual(l, []string{"a", "x", "y", "z"}) {
+		t.Errorf("List gave unexpected result: %#v", l)
 	}
 }
 
@@ -122,13 +123,13 @@ func TestStringSetDifference(t *testing.T) {
 		t.Errorf("Expected len=1: %d", len(c))
 	}
 	if !c.Has("3") {
-		t.Errorf("Unexpected contents: %#v", c.SortedList())
+		t.Errorf("Unexpected contents: %#v", List(c))
 	}
 	if len(d) != 2 {
 		t.Errorf("Expected len=2: %d", len(d))
 	}
 	if !d.Has("4") || !d.Has("5") {
-		t.Errorf("Unexpected contents: %#v", d.SortedList())
+		t.Errorf("Unexpected contents: %#v", List(d))
 	}
 }
 
@@ -239,7 +240,7 @@ func TestStringUnion(t *testing.T) {
 		}
 
 		if !union.Equal(test.expected) {
-			t.Errorf("Expected union.Equal(expected) but not true.  union:%v expected:%v", union.SortedList(), test.expected.SortedList())
+			t.Errorf("Expected union.Equal(expected) but not true.  union:%v expected:%v", List(union), List(test.expected))
 		}
 	}
 }
@@ -284,7 +285,7 @@ func TestStringIntersection(t *testing.T) {
 		}
 
 		if !intersection.Equal(test.expected) {
-			t.Errorf("Expected intersection.Equal(expected) but not true.  intersection:%v expected:%v", intersection.SortedList(), test.expected.SortedList())
+			t.Errorf("Expected intersection.Equal(expected) but not true.  intersection:%v expected:%v", List(intersection), List(test.expected))
 		}
 	}
 }
@@ -295,11 +296,11 @@ func TestKeySet(t *testing.T) {
 		"goodbye": "and goodnight",
 	}
 	expected := []string{"goodbye", "hallo"}
-	gotList := KeySet(m).SortedList() // List() returns a sorted list
+	gotList := List(KeySet(m)) // List() returns a sorted list
 	if len(gotList) != len(m) {
 		t.Fatalf("got %v elements, wanted %v", len(gotList), len(m))
 	}
-	for i, entry := range KeySet(m).SortedList() {
+	for i, entry := range gotList {
 		if entry != expected[i] {
 			t.Errorf("got %v, expected %v", entry, expected[i])
 		}
@@ -312,10 +313,10 @@ func TestSetSymmetricDifference(t *testing.T) {
 	c := a.SymmetricDifference(b)
 	d := b.SymmetricDifference(a)
 	if !c.Equal(New("3", "4", "5")) {
-		t.Errorf("Unexpected contents: %#v", c.SortedList())
+		t.Errorf("Unexpected contents: %#v", List(c))
 	}
 	if !d.Equal(New("3", "4", "5")) {
-		t.Errorf("Unexpected contents: %#v", d.SortedList())
+		t.Errorf("Unexpected contents: %#v", List(d))
 	}
 }
 

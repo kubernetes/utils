@@ -151,13 +151,17 @@ func TestStringSetEquals(t *testing.T) {
 	if !a.Equal(b) {
 		t.Errorf("Expected to be equal: %v vs %v", a, b)
 	}
-
+	a = New[string]("1", "2", "3")
+	b = New[string]("2", "1")
+	if a.Equal(b) {
+		t.Errorf("Expected to be not-equal: %v vs %v", a, b)
+	}
 	// It is a set; duplicates are ignored
+	a = New[string]("1", "2")
 	b = New[string]("2", "2", "1")
 	if !a.Equal(b) {
 		t.Errorf("Expected to be equal: %v vs %v", a, b)
 	}
-
 	// Edge cases around empty sets / empty strings
 	a = New[string]()
 	b = New[string]()
@@ -368,4 +372,33 @@ func TestSetClearInSeparateFunction(t *testing.T) {
 func clearSetAndAdd[T ordered](s Set[T], a T) {
 	s.Clear()
 	s.Insert(a)
+}
+
+func TestPopAny(t *testing.T) {
+	a := New[string]("1", "2")
+	_, popped := a.PopAny()
+	if !popped {
+		t.Errorf("got len(%d): wanted 1", a.Len())
+	}
+	_, popped = a.PopAny()
+	if !popped {
+		t.Errorf("got len(%d): wanted 0", a.Len())
+	}
+	zeroVal, popped := a.PopAny()
+	if popped {
+		t.Errorf("got len(%d): wanted 0", a.Len())
+	}
+	if zeroVal != "" {
+		t.Errorf("should have gotten zero value when popping an empty set")
+	}
+}
+
+func TestClone(t *testing.T) {
+	a := New[string]("1", "2")
+	a.Insert("3")
+
+	got := a.Clone()
+	if !reflect.DeepEqual(got, a) {
+		t.Errorf("Expected to be equal: %v vs %v", got, a)
+	}
 }

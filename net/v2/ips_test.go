@@ -30,8 +30,9 @@ type testIP struct {
 	ips     []net.IP
 	addrs   []netip.Addr
 
-	skipFamily bool
-	skipParse  bool
+	skipFamily  bool
+	skipParse   bool
+	skipConvert bool
 }
 
 // goodTestIPs are "good" test IP values. For each item:
@@ -49,6 +50,10 @@ type testIP struct {
 //
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should parse to a value equal to .ips[0].
+//
+// Conversion tests (unless `skipConvert: true`):
+//   - Each element of .ips should convert to a value equal to .addrs[0].
+//   - Each element of .addrs should convert to a value equal to .ips[0].
 var goodTestIPs = []testIP{
 	{
 		desc:   "IPv4",
@@ -227,6 +232,13 @@ var goodTestIPs = []testIP{
 		// Skip the parsing tests, because no netutils method will parse
 		// .strings[0] to .addrs[0].
 		skipParse: true,
+
+		// Skip the conversion tests, because there is no net.IP value that
+		// unambiguously corresponds to these netip.Addr values. TestIPFromAddr()
+		// has a special case to test that an IPv4-mapped IPv6 netip.Addr maps to
+		// the expected net.IP value (which then doesn't round-trip back to the
+		// original netip.Addr value).
+		skipConvert: true,
 	},
 }
 
@@ -241,6 +253,10 @@ var goodTestIPs = []testIP{
 //   - Each element of .strings should fail to parse.
 //   - Each element of .ips should stringify to an error value that fails to parse.
 //   - Each element of .addrs should stringify to an error value that fails to parse.
+//
+// Conversion tests (unless `skipConvert: true`:
+//   - Each element of .ips should convert to an invalid netip.Addr.
+//   - Each element of .addrs should convert to a nil net.IP.
 var badTestIPs = []testIP{
 	{
 		desc: "empty string is not an IP",
@@ -343,8 +359,9 @@ type testCIDR struct {
 	ipnets   []*net.IPNet
 	prefixes []netip.Prefix
 
-	skipFamily bool
-	skipParse  bool
+	skipFamily  bool
+	skipParse   bool
+	skipConvert bool
 }
 
 // goodTestCIDRs are "good" test CIDR values. For each item:
@@ -361,6 +378,10 @@ type testCIDR struct {
 //
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should parse to a value "equal" to .ipnets[0].
+//
+// Conversion tests (unless `skipConvert: true`):
+//   - Each element of .ipnets should convert to a value equal to .prefixes[0].
+//   - Each element of .prefixes should convert to a value "equal" to .ipnets[0].
 //
 // (Unlike net.IP, *net.IPNet has no `.Equal()` method, and testing equality "by hand" is
 // complicated (there are 4 equivalent representations of every IPv4 CIDR value), so we
@@ -594,6 +615,13 @@ var goodTestCIDRs = []testCIDR{
 		// Skip the parsing tests, because no netutils method will parse
 		// .strings[0] to .prefixes[0].
 		skipParse: true,
+
+		// Skip the conversion tests, because there is no *net.IPNet value that
+		// unambiguously corresponds to these netip.Prefix values.
+		// TestIPNetFromPrefix() has a special case to test that a netip.Prefix
+		// with an IPv4-mapped IPv6 address maps to the expected *net.IPNet value
+		// (which then doesn't round-trip back to the original netip.Prefix value).
+		skipConvert: true,
 	},
 }
 
@@ -608,6 +636,10 @@ var goodTestCIDRs = []testCIDR{
 //   - Each element of .strings should fail to parse.
 //   - Each element of .ipnets should stringify to some error value that fails to parse.
 //   - Each element of .prefixes should stringify to some error value that fails to parse.
+//
+// Conversion tests (unless `skipConvert: true`):
+//   - Each element of .ipnets should convert to an invalid netip.Prefix.
+//   - Each element of .prefixes should convert to a nil *net.IPNet.
 var badTestCIDRs = []testCIDR{
 	{
 		desc: "empty string is not a CIDR",

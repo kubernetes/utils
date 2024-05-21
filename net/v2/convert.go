@@ -19,6 +19,7 @@ package net
 import (
 	"net"
 	"net/netip"
+	"strings"
 )
 
 // AddrFromIP converts a net.IP to a netip.Addr. Given valid input this will always
@@ -111,6 +112,40 @@ func IPFromAddr(addr netip.Addr) net.IP {
 	//   ip2.Equal(ip1)  =>  true
 
 	return net.IP(addr.AsSlice())
+}
+
+// IPFromInterfaceAddr can be used to extract the underlying IP address value (as a
+// net.IP) from the return values of net.InterfaceAddrs(), net.Interface.Addrs(), or
+// net.Interface.MulticastAddrs(). (net.Addr is also used in some other APIs, but this
+// function should not be used on net.Addrs that are not "interface addresses".)
+func IPFromInterfaceAddr(ifaddr net.Addr) net.IP {
+	// On both Linux and Windows, the values returned from the "interface address"
+	// methods are currently *net.IPNet for unicast addresses or *net.IPAddr for
+	// multicast addresses.
+	if ipnet, ok := ifaddr.(*net.IPNet); ok {
+		return ipnet.IP
+	} else if ipaddr, ok := ifaddr.(*net.IPAddr); ok {
+		return ipaddr.IP
+	}
+
+	// Try to deal with other similar types... in particular, this is needed for
+	// some existing unit tests...
+	addrStr := ifaddr.String()
+	// If it has a subnet length (like net.IPNet) or optional zone identifier (like
+	// net.IPAddr), trim that away.
+	if end := strings.IndexAny(addrStr, "/%"); end != -1 {
+		addrStr = addrStr[:end]
+	}
+	// What's left is either an IP address, or something we can't parse.
+	return ParseIPSloppy(addrStr)
+}
+
+// AddrFromInterfaceAddr can be used to extract the underlying IP address value (as a
+// netip.Addr) from the return values of net.InterfaceAddrs(), net.Interface.Addrs(), or
+// net.Interface.MulticastAddrs(). (net.Addr is also used in some other APIs, but this
+// function should not be used on net.Addrs that are not "interface addresses".)
+func AddrFromInterfaceAddr(ifaddr net.Addr) netip.Addr {
+	return AddrFromIP(IPFromInterfaceAddr(ifaddr))
 }
 
 // PrefixFromIPNet converts a *net.IPNet to a netip.Prefix. Given valid input this will

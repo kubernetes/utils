@@ -117,10 +117,10 @@ func (RealClock) NewTimer(d time.Duration) Timer {
 	}
 }
 
-// NewDeadlineTimer is the same as time.NewTimer(ts.Sub(time.Now()))
+// NewDeadlineTimer is the same as time.NewTimer(time.Until(ts))
 func (RealClock) NewDeadlineTimer(ts time.Time) Timer {
 	return &realTimer{
-		timer: time.NewTimer(ts.Sub(time.Now())),
+		timer: time.NewTimer(time.Until(ts)),
 	}
 }
 

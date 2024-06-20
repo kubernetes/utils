@@ -81,6 +81,15 @@ type Ticker interface {
 
 var _ = WithTicker(RealClock{})
 
+// WithDeadlineTimer extends Clock to add NewDeadlineTimer which fires at a given moment of time.
+type WithDeadlineTimer interface {
+	Clock
+	// NewDeadlineTimer returns a new Timer which fires at ts.
+	NewDeadlineTimer(ts time.Time) Timer
+}
+
+var _ = WithDeadlineTimer(RealClock{})
+
 // RealClock really calls time.Now()
 type RealClock struct{}
 
@@ -105,6 +114,13 @@ func (RealClock) After(d time.Duration) <-chan time.Time {
 func (RealClock) NewTimer(d time.Duration) Timer {
 	return &realTimer{
 		timer: time.NewTimer(d),
+	}
+}
+
+// NewDeadlineTimer is the same as time.NewTimer(ts.Sub(time.Now()))
+func (RealClock) NewDeadlineTimer(ts time.Time) Timer {
+	return &realTimer{
+		timer: time.NewTimer(ts.Sub(time.Now())),
 	}
 }
 

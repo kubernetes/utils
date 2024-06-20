@@ -332,6 +332,32 @@ func TestTimerNegative(t *testing.T) {
 	}
 }
 
+func TestDeadlineTimerFakeStop(t *testing.T) {
+	tc := NewFakeClock(time.Now())
+	timer := tc.NewDeadlineTimer(tc.Now().Add(time.Second))
+	if !tc.HasWaiters() {
+		t.Errorf("expected a waiter to be present, but it is not")
+	}
+	timer.Stop()
+	if tc.HasWaiters() {
+		t.Errorf("expected existing waiter to be cleaned up, but it is still present")
+	}
+}
+
+func TestDeadlineTimerNegative(t *testing.T) {
+	tc := NewFakeClock(time.Now())
+	timer := tc.NewDeadlineTimer(tc.Now().Add(-1 * time.Second))
+	if !tc.HasWaiters() {
+		t.Errorf("expected a waiter to be present, but it is not")
+	}
+	// force waiters to be called
+	tc.Step(0)
+	tick := assertReadTime(t, timer.C())
+	if tick != tc.Now() {
+		t.Errorf("expected -1s to turn into now: %v != %v", tick, tc.Now())
+	}
+}
+
 func TestTickNegative(t *testing.T) {
 	// The stdlib 'Tick' returns nil for negative and zero values, so our fake
 	// should too.

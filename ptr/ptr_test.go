@@ -122,3 +122,23 @@ func TestEqual(t *testing.T) {
 		t.Errorf("expected false (val != val)")
 	}
 }
+
+func TestIsNilPtr(t *testing.T) {
+	var nilIntPointer *int
+	testCases := []struct {
+		obj      interface{}
+		expected bool
+	}{
+		{(*struct{})(nil), true},
+		{&struct{}{}, false},
+		{nilIntPointer, true},
+	}
+	for i, tc := range testCases {
+		name := fmt.Sprintf("case[%d]", i)
+		t.Run(name, func(t *testing.T) {
+			if actual := ptr.IsNilPtr(tc.obj); actual != tc.expected {
+				t.Errorf("%s: expected %t, got %t", name, tc.expected, actual)
+			}
+		})
+	}
+}

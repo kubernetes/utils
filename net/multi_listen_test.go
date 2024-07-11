@@ -19,7 +19,9 @@ package net
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -479,6 +481,51 @@ func TestMultiListen_Accept(t *testing.T) {
 				assertNoError(t, err)
 			}
 		})
+	}
+}
+
+func TestMultiListen_HTTP(t *testing.T) {
+	ctx := context.TODO()
+	ml, err := MultiListen(ctx, "tcp", ":0", ":0", ":0")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	addrs := ml.(*multiListener).Addrs()
+	if len(addrs) != 3 {
+		t.Fatalf("expected 3 listeners, got %v", addrs)
+	}
+
+	// serve http on multi-listener
+	handler := func(w http.ResponseWriter, _ *http.Request) {
+		io.WriteString(w, "hello")
+	}
+	server := http.Server{
+		Handler: http.HandlerFunc(handler),
+	}
+	go func() { _ = server.Serve(ml) }()
+	defer server.Close()
+
+	// Wait for server
+	awake := false
+	for i := 0; i < 5; i++ {
+		_, err = http.Get("http://" + addrs[0].String())
+		if err == nil {
+			awake = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !awake {
+		t.Fatalf("http server did not respond in time")
+	}
+
+	// HTTP GET on each address.
+	for _, addr := range addrs {
+		_, err = http.Get("http://" + addr.String())
+		if err != nil {
+			t.Errorf("error connecting to %q: %v", addr.String(), err)
+		}
 	}
 }
 

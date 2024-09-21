@@ -26,6 +26,7 @@ import (
 var (
 	_ = clock.PassiveClock(&FakePassiveClock{})
 	_ = clock.WithTicker(&FakeClock{})
+	_ = clock.WithDeadlineTimer(&FakeClock{})
 	_ = clock.Clock(&IntervalClock{})
 )
 
@@ -110,6 +111,22 @@ func (f *FakeClock) NewTimer(d time.Duration) clock.Timer {
 		fakeClock: f,
 		waiter: fakeClockWaiter{
 			targetTime: stopTime,
+			destChan:   ch,
+		},
+	}
+	f.waiters = append(f.waiters, &timer.waiter)
+	return timer
+}
+
+// NewDeadlineTimer constructs a fake timer which fires at ts.
+func (f *FakeClock) NewDeadlineTimer(ts time.Time) clock.Timer {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	ch := make(chan time.Time, 1) // Don't block!
+	timer := &fakeTimer{
+		fakeClock: f,
+		waiter: fakeClockWaiter{
+			targetTime: ts,
 			destChan:   ch,
 		},
 	}

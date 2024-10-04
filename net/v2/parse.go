@@ -165,3 +165,33 @@ func ParseAddrAsPrefix(cidrStr string) (netip.Prefix, error) {
 	ipnet, err := ParseIPAsIPNet(cidrStr)
 	return PrefixFromIPNet(ipnet), err
 }
+
+type parser[T any] func(string) (T, error)
+
+func must[T any](parse parser[T]) func(string) T {
+	return func(str string) T {
+		ret, err := parse(str)
+		if err != nil {
+			panic(err)
+		}
+		return ret
+	}
+}
+
+// MustParseIP is like ParseIP, but it panics on error instead of returning an error value.
+var MustParseIP = must(ParseIP)
+
+// MustParseIPNet is like ParseIPNet, but it panics on error instead of returning an error value.
+var MustParseIPNet = must(ParseIPNet)
+
+// MustParseAddr is like ParseAddr, but it panics on error instead of returning an error value.
+var MustParseAddr = must(ParseAddr)
+
+// MustParsePrefix is like ParsePrefix, but it panics on error instead of returning an error value.
+var MustParsePrefix = must(ParsePrefix)
+
+// MustParseIPAsIPNet is like ParseIPAsIPNet, but it panics on error instead of returning an error value.
+var MustParseIPAsIPNet = must(ParseIPAsIPNet)
+
+// MustParseAddrAsPrefix is like ParseAddrAsPrefix, but it panics on error instead of returning an error value.
+var MustParseAddrAsPrefix = must(ParseAddrAsPrefix)

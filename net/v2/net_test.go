@@ -20,49 +20,6 @@ import (
 	"testing"
 )
 
-func TestParseCIDRs(t *testing.T) {
-	testCases := []struct {
-		cidrs         []string
-		errString     string
-		errorExpected bool
-	}{
-		{
-			cidrs:         []string{},
-			errString:     "should not return an error for an empty slice",
-			errorExpected: false,
-		},
-		{
-			cidrs:         []string{"10.0.0.0/8", "not-a-valid-cidr", "2000::/10"},
-			errString:     "should return error for bad cidr",
-			errorExpected: true,
-		},
-		{
-			cidrs:         []string{"10.0.0.0/8", "2000::/10"},
-			errString:     "should not return error for good  cidrs",
-			errorExpected: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		cidrs, err := ParseCIDRs(tc.cidrs)
-		if tc.errorExpected {
-			if err == nil {
-				t.Errorf("%v", tc.errString)
-			}
-			continue
-		}
-		if err != nil {
-			t.Errorf("%v error:%v", tc.errString, err)
-		}
-
-		// validate lengths
-		if len(cidrs) != len(tc.cidrs) {
-			t.Errorf("cidrs should be of the same lengths %v != %v", len(cidrs), len(tc.cidrs))
-		}
-
-	}
-}
-
 func TestParsePort(t *testing.T) {
 	var tests = []struct {
 		name          string

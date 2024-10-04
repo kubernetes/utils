@@ -195,3 +195,65 @@ var MustParseIPAsIPNet = must(ParseIPAsIPNet)
 
 // MustParseAddrAsPrefix is like ParseAddrAsPrefix, but it panics on error instead of returning an error value.
 var MustParseAddrAsPrefix = must(ParseAddrAsPrefix)
+
+type listParser[T any] func(...string) ([]T, error)
+
+func list[T any](parse parser[T]) listParser[T] {
+	return func(strs ...string) ([]T, error) {
+		var err error
+		ret := make([]T, len(strs))
+		for i, str := range strs {
+			ret[i], err = parse(str)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return ret, nil
+	}
+}
+
+// ParseIPList parses a list of strings with ParseIP and returns a []net.IP or an error.
+var ParseIPList = list(ParseIP)
+
+// ParseIPNetList parses a list of strings with ParseIPNet and returns a []*net.IPNet or an error.
+var ParseIPNetList = list(ParseIPNet)
+
+// ParseAddrList parses a list of strings with ParseAddr and returns a []netip.Addr or an error.
+var ParseAddrList = list(ParseAddr)
+
+// ParsePrefixList parses a list of strings with ParsePrefix and returns a []netip.Prefix or an error.
+var ParsePrefixList = list(ParsePrefix)
+
+// ParseIPAsIPNetList parses a list of strings with ParseIPAsIPNet and returns a []*net.IPNet or an error.
+var ParseIPAsIPNetList = list(ParseIPAsIPNet)
+
+// ParseAddrAsPrefixList parses a list of strings with ParseAddrAsPrefix and returns a []netip.Prefix or an error.
+var ParseAddrAsPrefixList = list(ParseAddrAsPrefix)
+
+func mustlist[T any](parse listParser[T]) func(...string) []T {
+	return func(strs ...string) []T {
+		ret, err := parse(strs...)
+		if err != nil {
+			panic(err)
+		}
+		return ret
+	}
+}
+
+// MustParseIPList parses a list of strings with ParseIP and returns a []net.IP or else panics on error.
+var MustParseIPList = mustlist(ParseIPList)
+
+// MustParseIPNetList parses a list of strings with ParseIPNet and returns a []*net.IPNet or else panics on error.
+var MustParseIPNetList = mustlist(ParseIPNetList)
+
+// MustParseAddrList parses a list of strings with ParseAddr and returns a []netip.Addr or else panics on error.
+var MustParseAddrList = mustlist(ParseAddrList)
+
+// MustParsePrefixList parses a list of strings with ParsePrefix and returns a []netip.Prefix or else panics on error.
+var MustParsePrefixList = mustlist(ParsePrefixList)
+
+// MustParseIPAsIPNetList parses a list of strings with ParseIPAsIPNet and returns a []*net.IPNet or else panics on error.
+var MustParseIPAsIPNetList = mustlist(ParseIPAsIPNetList)
+
+// MustParseAddrAsPrefixList parses a list of strings with ParseAddrAsPrefix and returns a []netip.Prefix or else panics on error.
+var MustParseAddrAsPrefixList = mustlist(ParseAddrAsPrefixList)

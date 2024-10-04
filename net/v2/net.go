@@ -25,20 +25,6 @@ import (
 	"strconv"
 )
 
-// ParseCIDRs parses a list of cidrs and return error if any is invalid.
-// order is maintained
-func ParseCIDRs(cidrsString []string) ([]*net.IPNet, error) {
-	cidrs := make([]*net.IPNet, 0, len(cidrsString))
-	for i, cidrString := range cidrsString {
-		cidr, err := ParseIPNet(cidrString)
-		if err != nil {
-			return nil, fmt.Errorf("invalid CIDR[%d]: %v (%v)", i, cidr, err)
-		}
-		cidrs = append(cidrs, cidr)
-	}
-	return cidrs, nil
-}
-
 // ParsePort parses a string representing an IP port.  If the string is not a
 // valid port number, this returns an error.
 func ParsePort(port string, allowZero bool) (int, error) {

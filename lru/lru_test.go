@@ -130,3 +130,31 @@ func TestEviction(t *testing.T) {
 		t.Errorf("unexpected eviction data: key=%v val=%v", seenKey, seenVal)
 	}
 }
+
+func TestSetEviction(t *testing.T) {
+	var seenKey Key
+	var seenVal interface{}
+
+	lru := New(1)
+
+	err := lru.SetEvictionFunc(func(key Key, value interface{}) {
+		seenKey = key
+		seenVal = value
+	})
+
+	if err != nil {
+		t.Errorf("unexpected error setting eviction function: %v", err)
+	}
+
+	lru.Add(1, 2)
+	lru.Add(3, 4)
+
+	if seenKey != 1 || seenVal != 2 {
+		t.Errorf("unexpected eviction data: key=%v val=%v", seenKey, seenVal)
+	}
+
+	err = lru.SetEvictionFunc(func(key Key, value interface{}) {})
+	if err == nil {
+		t.Errorf("expected error but got none")
+	}
+}

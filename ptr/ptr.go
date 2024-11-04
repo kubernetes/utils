@@ -71,3 +71,10 @@ func Equal[T comparable](a, b *T) bool {
 	}
 	return *a == *b
 }
+
+// IsNilPtr checks if the provided object is a nil pointer. This is specially useful when dealing
+// with interfaces that may hold pointers.
+func IsNilPtr(obj any) bool {
+	v := reflect.ValueOf(obj)
+	return v.Kind() == reflect.Ptr && v.IsNil()
+}

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 	"testing"
 )
 
-func TestDualStackIPs(t *testing.T) {
+func TestIsDualStack(t *testing.T) {
 	testCases := []struct {
 		desc           string
 		ips            []string
@@ -84,28 +84,33 @@ func TestDualStackIPs(t *testing.T) {
 			expectedResult: true,
 		},
 	}
-	// for each test case, test the regular func and the string func
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			dualStack := IsDualStackIPStrings(tc.ips)
-			if dualStack != tc.expectedResult {
-				t.Errorf("expected IsDualStackIPStrings=%v, got %v", tc.expectedResult, dualStack)
+			netips := make([]net.IP, len(tc.ips))
+			for i := range tc.ips {
+				netips[i] = ParseIPSloppy(tc.ips[i])
 			}
 
-			ips := make([]net.IP, 0, len(tc.ips))
-			for _, ip := range tc.ips {
-				parsedIP := ParseIPSloppy(ip)
-				ips = append(ips, parsedIP)
-			}
-			dualStack = IsDualStackIPs(ips)
+			dualStack := IsDualStack(tc.ips)
 			if dualStack != tc.expectedResult {
-				t.Errorf("expected IsDualStackIPs=%v, got %v", tc.expectedResult, dualStack)
+				t.Errorf("expected %v, []string got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackPair(tc.ips) != (dualStack && len(tc.ips) == 2) {
+				t.Errorf("IsDualStackIPPair gave wrong result for []string")
+			}
+
+			dualStack = IsDualStack(netips)
+			if dualStack != tc.expectedResult {
+				t.Errorf("expected %v []net.IP got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackPair(netips) != (dualStack && len(tc.ips) == 2) {
+				t.Errorf("IsDualStackIPPair gave wrong result for []net.IP")
 			}
 		})
 	}
 }
 
-func TestDualStackCIDRs(t *testing.T) {
+func TestIsDualStackCIDRs(t *testing.T) {
 	testCases := []struct {
 		desc           string
 		cidrs          []string
@@ -158,23 +163,27 @@ func TestDualStackCIDRs(t *testing.T) {
 		},
 	}
 
-	// for each test case, test the regular func and the string func
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			dualStack := IsDualStackCIDRStrings(tc.cidrs)
-			if dualStack != tc.expectedResult {
-				t.Errorf("expected IsDualStackCIDRStrings=%v, got %v", tc.expectedResult, dualStack)
+			ipnets := make([]*net.IPNet, len(tc.cidrs))
+			for i := range tc.cidrs {
+				_, ipnets[i], _ = ParseCIDRSloppy(tc.cidrs[i])
 			}
 
-			cidrs := make([]*net.IPNet, 0, len(tc.cidrs))
-			for _, cidr := range tc.cidrs {
-				_, parsedCIDR, _ := ParseCIDRSloppy(cidr)
-				cidrs = append(cidrs, parsedCIDR)
+			dualStack := IsDualStackCIDRs(tc.cidrs)
+			if dualStack != tc.expectedResult {
+				t.Errorf("expected %v []string got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackCIDRPair(tc.cidrs) != (dualStack && len(tc.cidrs) == 2) {
+				t.Errorf("IsDualStackCIDRPair gave wrong result for []string")
 			}
 
-			dualStack = IsDualStackCIDRs(cidrs)
+			dualStack = IsDualStackCIDRs(ipnets)
 			if dualStack != tc.expectedResult {
-				t.Errorf("expected IsDualStackCIDRs=%v, got %v", tc.expectedResult, dualStack)
+				t.Errorf("expected %v []*net.IPNet got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackCIDRPair(ipnets) != (dualStack && len(tc.cidrs) == 2) {
+				t.Errorf("IsDualStackCIDRPair gave wrong result for []*net.IPNet")
 			}
 		})
 	}
@@ -201,9 +210,9 @@ func TestIPFamilyOf(t *testing.T) {
 		}
 		t.Run(tc.desc, func(t *testing.T) {
 			for _, str := range tc.strings {
-				family := IPFamilyOfString(str)
-				isIPv4 := IsIPv4String(str)
-				isIPv6 := IsIPv6String(str)
+				family := IPFamilyOf(str)
+				isIPv4 := IsIPv4(str)
+				isIPv6 := IsIPv6(str)
 				checkOneIPFamily(t, str, tc.family, family, isIPv4, isIPv6)
 			}
 			for _, ip := range tc.ips {
@@ -228,9 +237,9 @@ func TestIPFamilyOf(t *testing.T) {
 				checkOneIPFamily(t, fmt.Sprintf("%#v", ip), IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 			for _, str := range tc.strings {
-				family := IPFamilyOfString(str)
-				isIPv4 := IsIPv4String(str)
-				isIPv6 := IsIPv6String(str)
+				family := IPFamilyOf(str)
+				isIPv4 := IsIPv4(str)
+				isIPv6 := IsIPv6(str)
 				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 		})
@@ -245,9 +254,9 @@ func TestIPFamilyOfCIDR(t *testing.T) {
 		}
 		t.Run(tc.desc, func(t *testing.T) {
 			for _, str := range tc.strings {
-				family := IPFamilyOfCIDRString(str)
-				isIPv4 := IsIPv4CIDRString(str)
-				isIPv6 := IsIPv6CIDRString(str)
+				family := IPFamilyOfCIDR(str)
+				isIPv4 := IsIPv4CIDR(str)
+				isIPv6 := IsIPv6CIDR(str)
 				checkOneIPFamily(t, str, tc.family, family, isIPv4, isIPv6)
 			}
 			for _, ipnet := range tc.ipnets {
@@ -276,9 +285,9 @@ func TestIPFamilyOfCIDR(t *testing.T) {
 				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 			for _, str := range tc.strings {
-				family := IPFamilyOfCIDRString(str)
-				isIPv4 := IsIPv4CIDRString(str)
-				isIPv6 := IsIPv6CIDRString(str)
+				family := IPFamilyOfCIDR(str)
+				isIPv4 := IsIPv4CIDR(str)
+				isIPv6 := IsIPv6CIDR(str)
 				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 		})

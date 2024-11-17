@@ -35,156 +35,146 @@ const (
 	IPFamilyUnknown IPFamily = ""
 )
 
-// IsDualStackIPs returns true if:
-// - all elements of ips are valid
-// - at least one IP from each family (v4 and v6) is present
-func IsDualStackIPs(ips []net.IP) bool {
-	v4Found := false
-	v6Found := false
-	for _, ip := range ips {
-		switch IPFamilyOf(ip) {
-		case IPv4:
-			v4Found = true
-		case IPv6:
-			v6Found = true
-		default:
-			return false
+type ipOrString interface {
+	net.IP | string
+}
+
+type cidrOrString interface {
+	*net.IPNet | string
+}
+
+// IPFamilyOf returns the IP family of val (or IPFamilyUnknown if val is nil or invalid).
+// IPv6-encoded IPv4 addresses (e.g., "::ffff:1.2.3.4") are considered IPv4. val can be a
+// net.IP or a string containing a single IP address.
+//
+// Note that "k8s.io/utils/net/v2".IPFamily intentionally has identical values to
+// "k8s.io/api/core/v1".IPFamily and "k8s.io/discovery/v1".AddressType, so you can cast
+// the return value of this function to those types.
+func IPFamilyOf[T ipOrString](val T) IPFamily {
+	switch typedVal := interface{}(val).(type) {
+	case net.IP:
+		switch {
+		case typedVal.To4() != nil:
+			return IPv4
+		case typedVal.To16() != nil:
+			return IPv6
 		}
+	case string:
+		return IPFamilyOf(ParseIPSloppy(typedVal))
 	}
 
-	return (v4Found && v6Found)
-}
-
-// IsDualStackIPStrings returns true if:
-// - all elements of ips can be parsed as IPs
-// - at least one IP from each family (v4 and v6) is present
-func IsDualStackIPStrings(ips []string) bool {
-	parsedIPs := make([]net.IP, 0, len(ips))
-	for _, ip := range ips {
-		parsedIP := ParseIPSloppy(ip)
-		if parsedIP == nil {
-			return false
-		}
-		parsedIPs = append(parsedIPs, parsedIP)
-	}
-	return IsDualStackIPs(parsedIPs)
-}
-
-// IsDualStackCIDRs returns true if:
-// - all elements of cidrs are non-nil
-// - at least one CIDR from each family (v4 and v6) is present
-func IsDualStackCIDRs(cidrs []*net.IPNet) bool {
-	v4Found := false
-	v6Found := false
-	for _, cidr := range cidrs {
-		switch IPFamilyOfCIDR(cidr) {
-		case IPv4:
-			v4Found = true
-		case IPv6:
-			v6Found = true
-		default:
-			return false
-		}
-	}
-
-	return (v4Found && v6Found)
-}
-
-// IsDualStackCIDRStrings returns if
-// - all elements of cidrs can be parsed as CIDRs
-// - at least one CIDR from each family (v4 and v6) is present
-func IsDualStackCIDRStrings(cidrs []string) bool {
-	parsedCIDRs, err := ParseCIDRs(cidrs)
-	if err != nil {
-		return false
-	}
-	return IsDualStackCIDRs(parsedCIDRs)
-}
-
-// IPFamilyOf returns the IP family of ip, or IPFamilyUnknown if it is invalid.
-func IPFamilyOf(ip net.IP) IPFamily {
-	switch {
-	case ip.To4() != nil:
-		return IPv4
-	case ip.To16() != nil:
-		return IPv6
-	default:
-		return IPFamilyUnknown
-	}
-}
-
-// IPFamilyOfString returns the IP family of ip, or IPFamilyUnknown if ip cannot
-// be parsed as an IP.
-func IPFamilyOfString(ip string) IPFamily {
-	return IPFamilyOf(ParseIPSloppy(ip))
-}
-
-// IPFamilyOfCIDR returns the IP family of cidr.
-func IPFamilyOfCIDR(cidr *net.IPNet) IPFamily {
-	if cidr != nil {
-		family := IPFamilyOf(cidr.IP)
-		// An IPv6 CIDR must have a 128-bit mask. An IPv4 CIDR must have a
-		// 32- or 128-bit mask. (Any other mask length is invalid.)
-		_, masklen := cidr.Mask.Size()
-		if masklen == 128 || (family == IPv4 && masklen == 32) {
-			return family
-		}
-	}
 	return IPFamilyUnknown
 }
 
-// IPFamilyOfCIDRString returns the IP family of cidr.
-func IPFamilyOfCIDRString(cidr string) IPFamily {
-	ip, _, _ := ParseCIDRSloppy(cidr)
-	return IPFamilyOf(ip)
+// IsIPv4 returns true if IPFamilyOf(val) is IPv4 (and false if it is IPv6 or invalid).
+func IsIPv4[T ipOrString](val T) bool {
+	return IPFamilyOf(val) == IPv4
 }
 
-// IsIPv6 returns true if netIP is IPv6 (and false if it is IPv4, nil, or invalid).
-func IsIPv6(netIP net.IP) bool {
-	return IPFamilyOf(netIP) == IPv6
+// IsIPv6 returns true if IPFamilyOf(val) is IPv6 (and false if it is IPv4 or invalid).
+func IsIPv6[T ipOrString](val T) bool {
+	return IPFamilyOf(val) == IPv6
 }
 
-// IsIPv6String returns true if ip contains a single IPv6 address and nothing else. It
-// returns false if ip is an empty string, an IPv4 address, or anything else that is not a
-// single IPv6 address.
-func IsIPv6String(ip string) bool {
-	return IPFamilyOfString(ip) == IPv6
+// IsDualStack returns true if vals contains at least one IPv4 address and at least one
+// IPv6 address (and no invalid values).
+func IsDualStack[T ipOrString](vals []T) bool {
+	v4Found := false
+	v6Found := false
+	for _, val := range vals {
+		switch IPFamilyOf(val) {
+		case IPv4:
+			v4Found = true
+		case IPv6:
+			v6Found = true
+		default:
+			return false
+		}
+	}
+
+	return (v4Found && v6Found)
 }
 
-// IsIPv6CIDR returns true if a cidr is a valid IPv6 CIDR. It returns false if cidr is
-// nil or an IPv4 CIDR. Its behavior is not defined if cidr is invalid.
-func IsIPv6CIDR(cidr *net.IPNet) bool {
-	return IPFamilyOfCIDR(cidr) == IPv6
+// IsDualStackPair returns true if vals contains exactly 1 IPv4 address and 1 IPv6 address
+// (in either order).
+func IsDualStackPair[T ipOrString](vals []T) bool {
+	return len(vals) == 2 && IsDualStack(vals)
 }
 
-// IsIPv6CIDRString returns true if cidr contains a single IPv6 CIDR and nothing else. It
-// returns false if cidr is an empty string, an IPv4 CIDR, or anything else that is not a
-// single valid IPv6 CIDR.
-func IsIPv6CIDRString(cidr string) bool {
-	return IPFamilyOfCIDRString(cidr) == IPv6
+// IPFamilyOfCIDR returns the IP family of val (or IPFamilyUnknown if val is nil or
+// invalid). IPv6-encoded IPv4 addresses (e.g., "::ffff:1.2.3.0/120") are considered IPv4.
+// val can be a *net.IPNet or a string containing a single CIDR value.
+//
+// Note that "k8s.io/utils/net/v2".IPFamily intentionally has identical values to
+// "k8s.io/api/core/v1".IPFamily and "k8s.io/discovery/v1".AddressType, so you can cast
+// the return value of this function to those types.
+func IPFamilyOfCIDR[T cidrOrString](val T) IPFamily {
+	switch typedVal := interface{}(val).(type) {
+	case *net.IPNet:
+		if typedVal != nil {
+			family := IPFamilyOf(typedVal.IP)
+			// An IPv6 CIDR must have a 128-bit mask. An IPv4 CIDR must have a
+			// 32- or 128-bit mask. (Any other mask length is invalid.)
+			_, masklen := typedVal.Mask.Size()
+			if masklen == 128 || (family == IPv4 && masklen == 32) {
+				return family
+			}
+		}
+	case string:
+		parsedIP, _, _ := ParseCIDRSloppy(typedVal)
+		return IPFamilyOf(parsedIP)
+	}
+
+	return IPFamilyUnknown
 }
 
-// IsIPv4 returns true if netIP is IPv4 (and false if it is IPv6, nil, or invalid).
-func IsIPv4(netIP net.IP) bool {
-	return IPFamilyOf(netIP) == IPv4
+// IsIPv4CIDR returns true if IPFamilyOfCIDR(val) is IPv4 (and false if it is IPv6 or invalid).
+func IsIPv4CIDR[T cidrOrString](val T) bool {
+	return IPFamilyOfCIDR(val) == IPv4
 }
 
-// IsIPv4String returns true if ip contains a single IPv4 address and nothing else. It
-// returns false if ip is an empty string, an IPv6 address, or anything else that is not a
-// single IPv4 address.
-func IsIPv4String(ip string) bool {
-	return IPFamilyOfString(ip) == IPv4
+// IsIPv6CIDR returns true if IPFamilyOfCIDR(val) is IPv6 (and false if it is IPv4 or invalid).
+func IsIPv6CIDR[T cidrOrString](val T) bool {
+	return IPFamilyOfCIDR(val) == IPv6
 }
 
-// IsIPv4CIDR returns true if cidr is a valid IPv4 CIDR. It returns false if cidr is nil
-// or an IPv6 CIDR. Its behavior is not defined if cidr is invalid.
-func IsIPv4CIDR(cidr *net.IPNet) bool {
-	return IPFamilyOfCIDR(cidr) == IPv4
+// IsDualStackCIDRs returns true if vals contains at least one IPv4 CIDR value and at
+// least one IPv6 CIDR value (and no invalid values).
+func IsDualStackCIDRs[T cidrOrString](vals []T) bool {
+	v4Found := false
+	v6Found := false
+	for _, val := range vals {
+		switch IPFamilyOfCIDR(val) {
+		case IPv4:
+			v4Found = true
+		case IPv6:
+			v6Found = true
+		default:
+			return false
+		}
+	}
+
+	return (v4Found && v6Found)
 }
 
-// IsIPv4CIDRString returns true if cidr contains a single IPv4 CIDR and nothing else. It
-// returns false if cidr is an empty string, an IPv6 CIDR, or anything else that is not a
-// single valid IPv4 CIDR.
-func IsIPv4CIDRString(cidr string) bool {
-	return IPFamilyOfCIDRString(cidr) == IPv4
+// IsDualStackCIDRPair returns true if vals contains exactly 1 IPv4 CIDR value and 1 IPv6
+// CIDR value (in either order).
+func IsDualStackCIDRPair[T cidrOrString](vals []T) bool {
+	return len(vals) == 2 && IsDualStackCIDRs(vals)
+}
+
+// OtherIPFamily returns the other IP family from ipFamily.
+//
+// Note that "k8s.io/utils/net/v2".IPFamily intentionally has identical values to
+// "k8s.io/api/core/v1".IPFamily and "k8s.io/discovery/v1".AddressType, so you can cast
+// the input/output values of this function between these types.
+func OtherIPFamily(ipFamily IPFamily) IPFamily {
+	switch ipFamily {
+	case IPv4:
+		return IPv6
+	case IPv6:
+		return IPv4
+	default:
+		return IPFamilyUnknown
+	}
 }

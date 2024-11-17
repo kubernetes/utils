@@ -18,6 +18,7 @@ package net
 
 import (
 	"net"
+	"net/netip"
 )
 
 // IPFamily refers to the IP family of an address or CIDR value. Its values are
@@ -36,16 +37,16 @@ const (
 )
 
 type ipOrString interface {
-	net.IP | string
+	net.IP | netip.Addr | string
 }
 
 type cidrOrString interface {
-	*net.IPNet | string
+	*net.IPNet | netip.Prefix | string
 }
 
 // IPFamilyOf returns the IP family of val (or IPFamilyUnknown if val is nil or invalid).
 // IPv6-encoded IPv4 addresses (e.g., "::ffff:1.2.3.4") are considered IPv4. val can be a
-// net.IP or a string containing a single IP address.
+// net.IP, a netip.Addr, or a string containing a single IP address.
 //
 // Note that "k8s.io/utils/net/v2".IPFamily intentionally has identical values to
 // "k8s.io/api/core/v1".IPFamily and "k8s.io/discovery/v1".AddressType, so you can cast
@@ -57,6 +58,13 @@ func IPFamilyOf[T ipOrString](val T) IPFamily {
 		case typedVal.To4() != nil:
 			return IPv4
 		case typedVal.To16() != nil:
+			return IPv6
+		}
+	case netip.Addr:
+		switch {
+		case typedVal.Is4(), typedVal.Is4In6():
+			return IPv4
+		case typedVal.Is6():
 			return IPv6
 		}
 	case string:
@@ -103,7 +111,7 @@ func IsDualStackPair[T ipOrString](vals []T) bool {
 
 // IPFamilyOfCIDR returns the IP family of val (or IPFamilyUnknown if val is nil or
 // invalid). IPv6-encoded IPv4 addresses (e.g., "::ffff:1.2.3.0/120") are considered IPv4.
-// val can be a *net.IPNet or a string containing a single CIDR value.
+// val can be a *net.IPNet, a netip.Prefix, or a string containing a single CIDR value.
 //
 // Note that "k8s.io/utils/net/v2".IPFamily intentionally has identical values to
 // "k8s.io/api/core/v1".IPFamily and "k8s.io/discovery/v1".AddressType, so you can cast
@@ -120,6 +128,11 @@ func IPFamilyOfCIDR[T cidrOrString](val T) IPFamily {
 				return family
 			}
 		}
+	case netip.Prefix:
+		if !typedVal.IsValid() {
+			return IPFamilyUnknown
+		}
+		return IPFamilyOf(typedVal.Addr())
 	case string:
 		parsedIP, _, _ := ParseCIDRSloppy(typedVal)
 		return IPFamilyOf(parsedIP)

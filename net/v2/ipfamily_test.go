@@ -19,6 +19,7 @@ package net
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"testing"
 )
 
@@ -87,8 +88,10 @@ func TestIsDualStack(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			netips := make([]net.IP, len(tc.ips))
+			addrs := make([]netip.Addr, len(tc.ips))
 			for i := range tc.ips {
 				netips[i] = ParseIPSloppy(tc.ips[i])
+				addrs[i], _ = netip.ParseAddr(tc.ips[i])
 			}
 
 			dualStack := IsDualStack(tc.ips)
@@ -105,6 +108,14 @@ func TestIsDualStack(t *testing.T) {
 			}
 			if IsDualStackPair(netips) != (dualStack && len(tc.ips) == 2) {
 				t.Errorf("IsDualStackIPPair gave wrong result for []net.IP")
+			}
+
+			dualStack = IsDualStack(addrs)
+			if dualStack != tc.expectedResult {
+				t.Errorf("expected %v []netip.Addr got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackPair(addrs) != (dualStack && len(tc.ips) == 2) {
+				t.Errorf("IsDualStackIPPair gave wrong result for []netip.Addr")
 			}
 		})
 	}
@@ -166,8 +177,10 @@ func TestIsDualStackCIDRs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			ipnets := make([]*net.IPNet, len(tc.cidrs))
+			prefixes := make([]netip.Prefix, len(tc.cidrs))
 			for i := range tc.cidrs {
 				_, ipnets[i], _ = ParseCIDRSloppy(tc.cidrs[i])
+				prefixes[i], _ = netip.ParsePrefix(tc.cidrs[i])
 			}
 
 			dualStack := IsDualStackCIDRs(tc.cidrs)
@@ -184,6 +197,14 @@ func TestIsDualStackCIDRs(t *testing.T) {
 			}
 			if IsDualStackCIDRPair(ipnets) != (dualStack && len(tc.cidrs) == 2) {
 				t.Errorf("IsDualStackCIDRPair gave wrong result for []*net.IPNet")
+			}
+
+			dualStack = IsDualStackCIDRs(prefixes)
+			if dualStack != tc.expectedResult {
+				t.Errorf("expected %v []netip.Prefix got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackCIDRPair(prefixes) != (dualStack && len(tc.cidrs) == 2) {
+				t.Errorf("IsDualStackCIDRPair gave wrong result for []netip.Prefix")
 			}
 		})
 	}
@@ -221,6 +242,12 @@ func TestIPFamilyOf(t *testing.T) {
 				isIPv6 := IsIPv6(ip)
 				checkOneIPFamily(t, ip.String(), tc.family, family, isIPv4, isIPv6)
 			}
+			for _, addr := range tc.addrs {
+				family := IPFamilyOf(addr)
+				isIPv4 := IsIPv4(addr)
+				isIPv6 := IsIPv6(addr)
+				checkOneIPFamily(t, addr.String(), tc.family, family, isIPv4, isIPv6)
+			}
 		})
 	}
 
@@ -235,6 +262,12 @@ func TestIPFamilyOf(t *testing.T) {
 				isIPv4 := IsIPv4(ip)
 				isIPv6 := IsIPv6(ip)
 				checkOneIPFamily(t, fmt.Sprintf("%#v", ip), IPFamilyUnknown, family, isIPv4, isIPv6)
+			}
+			for _, addr := range tc.addrs {
+				family := IPFamilyOf(addr)
+				isIPv4 := IsIPv4(addr)
+				isIPv6 := IsIPv6(addr)
+				checkOneIPFamily(t, fmt.Sprintf("%#v", addr), IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 			for _, str := range tc.strings {
 				family := IPFamilyOf(str)
@@ -265,6 +298,12 @@ func TestIPFamilyOfCIDR(t *testing.T) {
 				isIPv6 := IsIPv6CIDR(ipnet)
 				checkOneIPFamily(t, ipnet.String(), tc.family, family, isIPv4, isIPv6)
 			}
+			for _, prefix := range tc.prefixes {
+				family := IPFamilyOfCIDR(prefix)
+				isIPv4 := IsIPv4CIDR(prefix)
+				isIPv6 := IsIPv6CIDR(prefix)
+				checkOneIPFamily(t, prefix.String(), tc.family, family, isIPv4, isIPv6)
+			}
 		})
 	}
 
@@ -283,6 +322,12 @@ func TestIPFamilyOfCIDR(t *testing.T) {
 					str = fmt.Sprintf("%#v", *ipnet)
 				}
 				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
+			}
+			for _, prefix := range tc.prefixes {
+				family := IPFamilyOfCIDR(prefix)
+				isIPv4 := IsIPv4CIDR(prefix)
+				isIPv6 := IsIPv6CIDR(prefix)
+				checkOneIPFamily(t, fmt.Sprintf("%#v", prefix), IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 			for _, str := range tc.strings {
 				family := IPFamilyOfCIDR(str)

@@ -45,6 +45,7 @@ type testIP struct {
 // IPFamily tests (unless `skipFamily: true`):
 //   - Each element of .strings should be identified as .family.
 //   - Each element of .ips should be identified as .family.
+//   - Each element of .addrs should be identified as .family.
 //
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should parse to a value equal to .ips[0].
@@ -234,6 +235,7 @@ var goodTestIPs = []testIP{
 // IPFamily tests (unless `skipFamily: true`):
 //   - Each element of .strings should be identified as IPFamilyUnknown.
 //   - Each element of .ips should be identified as IPFamilyUnknown.
+//   - Each element of .addrs should be identified as IPFamilyUnknown.
 //
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should fail to parse.
@@ -355,6 +357,7 @@ type testCIDR struct {
 // IPFamily tests (unless `skipFamily: true`):
 //   - Each element of .strings should be identified as .family.
 //   - Each element of .ipnets should be identified as .family.
+//   - Each element of .prefixes should be identified as .family.
 //
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should parse to a value "equal" to .ipnets[0].
@@ -599,6 +602,7 @@ var goodTestCIDRs = []testCIDR{
 // IPFamily tests (unless `skipFamily: true`):
 //   - Each element of .strings should be identified as IPFamilyUnknown.
 //   - Each element of .ipnets should be identified as IPFamilyUnknown.
+//   - Each element of .prefixes should be identified as IPFamilyUnknown.
 //
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should fail to parse.

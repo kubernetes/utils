@@ -48,7 +48,6 @@ type fakeClockWaiter struct {
 	stepInterval  time.Duration
 	skipIfBlocked bool
 	destChan      chan time.Time
-	fired         bool
 	afterFunc     func()
 }
 
@@ -198,12 +197,10 @@ func (f *FakeClock) setTimeLocked(t time.Time) {
 			if w.skipIfBlocked {
 				select {
 				case w.destChan <- t:
-					w.fired = true
 				default:
 				}
 			} else {
 				w.destChan <- t
-				w.fired = true
 			}
 
 			if w.afterFunc != nil {
@@ -336,7 +333,6 @@ func (f *fakeTimer) Reset(d time.Duration) bool {
 
 	active := false
 
-	f.waiter.fired = false
 	f.waiter.targetTime = f.fakeClock.time.Add(d)
 
 	for i := range f.fakeClock.waiters {

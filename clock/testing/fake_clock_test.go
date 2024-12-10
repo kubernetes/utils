@@ -281,14 +281,19 @@ func TestFakeStop(t *testing.T) {
 	if !tc.HasWaiters() {
 		t.Errorf("expected a waiter to be present, but it is not")
 	}
-	timer.Stop()
+	if !timer.Stop() {
+		t.Errorf("stop should return true as we are stopping an unexpired timer")
+	}
 	if tc.HasWaiters() {
 		t.Errorf("expected existing waiter to be cleaned up, but it is still present")
+	}
+	if timer.Stop() {
+		t.Errorf("stop should return false as the timer has already been stopped")
 	}
 }
 
 // This tests the pattern documented in the go docs here: https://golang.org/pkg/time/#Timer.Stop
-// This pattern is required to safely reset a timer, so should be common.
+// This pattern is required to safely reset a timer prior to Go 1.23, so should be common.
 // This also tests resetting the timer
 func TestFakeStopDrain(t *testing.T) {
 	start := time.Time{}
@@ -303,7 +308,9 @@ func TestFakeStopDrain(t *testing.T) {
 		t.Errorf("timer should have ticked after 1 second, got %v", readTime)
 	}
 
-	timer.Reset(time.Second)
+	if timer.Reset(time.Second) {
+		t.Errorf("reset should return false as the timer had expired")
+	}
 	if !tc.HasWaiters() {
 		t.Errorf("expected a waiter to be present, but it is not")
 	}
@@ -316,6 +323,79 @@ func TestFakeStopDrain(t *testing.T) {
 	if readTime := assertReadTime(t, timer.C()); !readTime.Equal(start.Add(2 * time.Second)) {
 		t.Errorf("timer should have ticked again after reset + 1 more second, got %v", readTime)
 	}
+}
+
+func TestFakeReset(t *testing.T) {
+	start := time.Now()
+	t.Run("reset active timer", func(t *testing.T) {
+		tc := NewFakeClock(start)
+		timer := tc.NewTimer(time.Second)
+		if !tc.HasWaiters() {
+			t.Errorf("expected a waiter to be present, but it is not")
+		}
+		tc.Step(999 * time.Millisecond)
+		if !tc.HasWaiters() {
+			t.Errorf("expected a waiter to be present, but it is not")
+		}
+		if !timer.Reset(time.Second) {
+			t.Errorf("reset should return true as the timer is active")
+		}
+		tc.Step(time.Millisecond)
+		if !tc.HasWaiters() {
+			t.Errorf("expected a waiter to be present, but it is not")
+		}
+		tc.Step(999 * time.Millisecond)
+		if tc.HasWaiters() {
+			t.Errorf("expected existing waiter to be cleaned up, but it is still present")
+		}
+		if readTime := assertReadTime(t, timer.C()); !readTime.Equal(start.Add(1999 * time.Millisecond)) {
+			t.Errorf("timer should have ticked after reset + 1 second, got %v", readTime)
+		}
+	})
+
+	t.Run("reset expired timer", func(t *testing.T) {
+		tc := NewFakeClock(start)
+		timer := tc.NewTimer(time.Second)
+		if !tc.HasWaiters() {
+			t.Errorf("expected a waiter to be present, but it is not")
+		}
+		tc.Step(time.Second)
+		if tc.HasWaiters() {
+			t.Errorf("expected existing waiter to be cleaned up, but it is still present")
+		}
+		if readTime := assertReadTime(t, timer.C()); !readTime.Equal(start.Add(time.Second)) {
+			t.Errorf("timer should have ticked after 1 second, got %v", readTime)
+		}
+		if timer.Reset(time.Second) {
+			t.Errorf("reset should return false as the timer had expired")
+		}
+		if !tc.HasWaiters() {
+			t.Errorf("expected a waiter to be present, but it is not")
+		}
+		tc.Step(time.Second)
+		if readTime := assertReadTime(t, timer.C()); !readTime.Equal(start.Add(2 * time.Second)) {
+			t.Errorf("timer should have ticked again after reset + 1 more second, got %v", readTime)
+		}
+	})
+
+	t.Run("reset stopped timer", func(t *testing.T) {
+		tc := NewFakeClock(start)
+		timer := tc.NewTimer(time.Second)
+		if !tc.HasWaiters() {
+			t.Errorf("expected a waiter to be present, but it is not")
+		}
+		timer.Stop()
+		if timer.Reset(time.Second) {
+			t.Errorf("reset should return false as the timer had been stopped")
+		}
+		if !tc.HasWaiters() {
+			t.Errorf("expected a waiter to be present, but it is not")
+		}
+		tc.Step(time.Second)
+		if readTime := assertReadTime(t, timer.C()); !readTime.Equal(start.Add(time.Second)) {
+			t.Errorf("timer should have ticked after reset + 1 second, got %v", readTime)
+		}
+	})
 }
 
 func TestTimerNegative(t *testing.T) {

@@ -34,7 +34,7 @@ func New[E ordered](items ...E) Set[E] {
 	return ss
 }
 
-// KeySet creates a Set[E] from a keys of a map[E](? extends interface{}).
+// KeySet creates a Set[E] from a keys of a map[E](? extends any).
 func KeySet[E ordered, A any](theMap map[E]A) Set[E] {
 	ret := Set[E]{}
 	for key := range theMap {

@@ -17,7 +17,7 @@ import (
 type Equalities map[reflect.Type]reflect.Value
 
 // EqualitiesOrDie adds the given funcs and panics on any error.
-func EqualitiesOrDie(funcs ...interface{}) Equalities {
+func EqualitiesOrDie(funcs ...any) Equalities {
 	e := Equalities{}
 	if err := e.AddFuncs(funcs...); err != nil {
 		panic(err)
@@ -26,7 +26,7 @@ func EqualitiesOrDie(funcs ...interface{}) Equalities {
 }
 
 // AddFuncs is a shortcut for multiple calls to AddFunc.
-func (e Equalities) AddFuncs(funcs ...interface{}) error {
+func (e Equalities) AddFuncs(funcs ...any) error {
 	for _, f := range funcs {
 		if err := e.AddFunc(f); err != nil {
 			return err
@@ -37,7 +37,7 @@ func (e Equalities) AddFuncs(funcs ...interface{}) error {
 
 // AddFunc uses func as an equality function: it must take
 // two parameters of the same type, and return a boolean.
-func (e Equalities) AddFunc(eqFunc interface{}) error {
+func (e Equalities) AddFunc(eqFunc any) error {
 	fv := reflect.ValueOf(eqFunc)
 	ft := fv.Type()
 	if ft.Kind() != reflect.Func {
@@ -236,7 +236,7 @@ func (e Equalities) deepValueEqual(v1, v2 reflect.Value, visited map[visit]bool,
 //
 // Unexported field members cannot be compared and will cause an informative panic; you must add an Equality
 // function for these types.
-func (e Equalities) DeepEqual(a1, a2 interface{}) bool {
+func (e Equalities) DeepEqual(a1, a2 any) bool {
 	if a1 == nil || a2 == nil {
 		return a1 == a2
 	}
@@ -385,7 +385,7 @@ func (e Equalities) deepValueDerive(v1, v2 reflect.Value, visited map[visit]bool
 // the semantic comparison.
 //
 // The unset fields include a nil pointer and an empty string.
-func (e Equalities) DeepDerivative(a1, a2 interface{}) bool {
+func (e Equalities) DeepDerivative(a1, a2 any) bool {
 	if a1 == nil {
 		return true
 	}

@@ -19,7 +19,7 @@ package buffer
 // RingGrowing is a growing ring buffer.
 // Not thread safe.
 type RingGrowing struct {
-	data     []interface{}
+	data     []any
 	n        int // Size of Data
 	beg      int // First available element
 	readable int // Number of data items available
@@ -28,13 +28,13 @@ type RingGrowing struct {
 // NewRingGrowing constructs a new RingGrowing instance with provided parameters.
 func NewRingGrowing(initialSize int) *RingGrowing {
 	return &RingGrowing{
-		data: make([]interface{}, initialSize),
+		data: make([]any, initialSize),
 		n:    initialSize,
 	}
 }
 
 // ReadOne reads (consumes) first item from the buffer if it is available, otherwise returns false.
-func (r *RingGrowing) ReadOne() (data interface{}, ok bool) {
+func (r *RingGrowing) ReadOne() (data any, ok bool) {
 	if r.readable == 0 {
 		return nil, false
 	}
@@ -51,11 +51,11 @@ func (r *RingGrowing) ReadOne() (data interface{}, ok bool) {
 }
 
 // WriteOne adds an item to the end of the buffer, growing it if it is full.
-func (r *RingGrowing) WriteOne(data interface{}) {
+func (r *RingGrowing) WriteOne(data any) {
 	if r.readable == r.n {
 		// Time to grow
 		newN := r.n * 2
-		newData := make([]interface{}, newN)
+		newData := make([]any, newN)
 		to := r.beg + r.readable
 		if to <= r.n {
 			copy(newData, r.data[r.beg:to])

@@ -25,7 +25,7 @@ import (
 
 func TestAllPtrFieldsNil(t *testing.T) {
 	testCases := []struct {
-		obj      interface{}
+		obj      any
 		expected bool
 	}{
 		{struct{}{}, true},

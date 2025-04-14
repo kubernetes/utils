@@ -48,8 +48,8 @@ type complexStruct struct {
 
 var getTests = []struct {
 	name       string
-	keyToAdd   interface{}
-	keyToGet   interface{}
+	keyToAdd   any
+	keyToGet   any
 	expectedOk bool
 }{
 	{"string_hit", "myKey", "myKey", true},
@@ -116,9 +116,9 @@ func TestGetRace(t *testing.T) {
 
 func TestEviction(t *testing.T) {
 	var seenKey Key
-	var seenVal interface{}
+	var seenVal any
 
-	lru := NewWithEvictionFunc(1, func(key Key, value interface{}) {
+	lru := NewWithEvictionFunc(1, func(key Key, value any) {
 		seenKey = key
 		seenVal = value
 	})
@@ -133,11 +133,11 @@ func TestEviction(t *testing.T) {
 
 func TestSetEviction(t *testing.T) {
 	var seenKey Key
-	var seenVal interface{}
+	var seenVal any
 
 	lru := New(1)
 
-	err := lru.SetEvictionFunc(func(key Key, value interface{}) {
+	err := lru.SetEvictionFunc(func(key Key, value any) {
 		seenKey = key
 		seenVal = value
 	})
@@ -153,7 +153,7 @@ func TestSetEviction(t *testing.T) {
 		t.Errorf("unexpected eviction data: key=%v val=%v", seenKey, seenVal)
 	}
 
-	err = lru.SetEvictionFunc(func(key Key, value interface{}) {})
+	err = lru.SetEvictionFunc(func(key Key, value any) {})
 	if err == nil {
 		t.Errorf("expected error but got none")
 	}

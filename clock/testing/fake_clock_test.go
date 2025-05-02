@@ -444,3 +444,71 @@ func assertReadTime(t testing.TB, c <-chan time.Time) time.Time {
 	}
 	panic("unreachable")
 }
+
+func TestFakeClockWaiters(t *testing.T) {
+	startTime := time.Now()
+	tc := NewFakeClock(startTime)
+
+	// Initial state
+	if count := tc.Waiters(); count != 0 {
+		t.Errorf("Expected 0 waiters initially, got %d", count)
+	}
+
+	// Add a Timer
+	timer1 := tc.NewTimer(1 * time.Second)
+	if count := tc.Waiters(); count != 1 {
+		t.Errorf("Expected 1 waiter after NewTimer, got %d", count)
+	}
+
+	// Add an After
+	_ = tc.After(2 * time.Second)
+	if count := tc.Waiters(); count != 2 {
+		t.Errorf("Expected 2 waiters after After, got %d", count)
+	}
+
+	// Add a Ticker
+	ticker := tc.NewTicker(3 * time.Second)
+	if count := tc.Waiters(); count != 3 {
+		t.Errorf("Expected 3 waiters after NewTicker, got %d", count)
+	}
+
+	// Step past the first timer
+	tc.Step(1 * time.Second)
+	<-timer1.C() // Drain channel
+	if count := tc.Waiters(); count != 2 {
+		t.Errorf("Expected 2 waiters after first timer fired, got %d", count)
+	}
+
+	// Step past the After
+	tc.Step(1 * time.Second)
+	// Note: After channel is implicitly drained by setTimeLocked
+	if count := tc.Waiters(); count != 1 {
+		t.Errorf("Expected 1 waiter after After fired, got %d", count)
+	}
+
+	// Step past the Ticker (it should re-arm)
+	tc.Step(1 * time.Second)
+	<-ticker.C() // Drain channel
+	if count := tc.Waiters(); count != 1 {
+		t.Errorf("Expected 1 waiter after Ticker fired (should re-arm), got %d", count)
+	}
+
+	// Stop the ticker (Note: fakeTicker.Stop is currently a no-op, so this won't change the count)
+	// If fakeTicker.Stop were implemented to remove the waiter, the expected count would be 0.
+	ticker.Stop()
+	if count := tc.Waiters(); count != 1 {
+		t.Errorf("Expected 1 waiter after stopping ticker (no-op), got %d", count)
+	}
+
+	// Add another timer and stop it
+	timer2 := tc.NewTimer(5 * time.Second)
+	if count := tc.Waiters(); count != 2 {
+		t.Errorf("Expected 2 waiters after adding second timer, got %d", count)
+	}
+	if stopped := timer2.Stop(); !stopped {
+		t.Errorf("Expected timer2.Stop() to return true")
+	}
+	if count := tc.Waiters(); count != 1 {
+		t.Errorf("Expected 1 waiter after stopping second timer, got %d", count)
+	}
+}

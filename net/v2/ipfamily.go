@@ -20,15 +20,19 @@ import (
 	"net"
 )
 
-// IPFamily refers to a specific family if not empty, i.e. "4" or "6".
+// IPFamily refers to the IP family of an address or CIDR value. Its values are
+// intentionally identical to those of "k8s.io/api/core/v1".IPFamily and
+// "k8s.io/discovery/v1".AddressType, so you can cast values between these types.
 type IPFamily string
 
-// Constants for valid IPFamilys:
 const (
-	IPFamilyUnknown IPFamily = ""
+	// IPv4 indicates an IPv4 IP or CIDR.
+	IPv4 IPFamily = "IPv4"
+	// IPv6 indicates an IPv4 IP or CIDR.
+	IPv6 IPFamily = "IPv6"
 
-	IPv4 IPFamily = "4"
-	IPv6 IPFamily = "6"
+	// IPFamilyUnknown indicates an unspecified or invalid IP family.
+	IPFamilyUnknown IPFamily = ""
 )
 
 // IsDualStackIPs returns true if:

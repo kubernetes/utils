@@ -357,6 +357,7 @@ var badTestIPs = []testIP{
 // testCIDR represents a set of equivalent CIDR representations.
 type testCIDR struct {
 	desc     string
+	ifaddr   bool
 	family   IPFamily
 	strings  []string
 	ipnets   []*net.IPNet
@@ -380,8 +381,10 @@ type testCIDR struct {
 //   - Each element of .prefixes should be identified as .family.
 //
 // Parsing tests (unless `skipParse: true`):
-//   - Each element of .strings should parse to a value "equal" to .ipnets[0].
-//   - Each element of .strings should parse to a value equal to .prefixes[0].
+//   - Each element of .strings should parse to a value "equal" to .ipnets[0]
+//     (via ParseIPNet if .ifaddr is false, or ParseIPAsIPNet if .ifaddr is true).
+//   - Each element of .strings should parse to a value equal to .prefixes[0]
+//     (via ParsePrefix if .ifaddr is false, or ParseAddrAsPrefix if .ifaddr is true).
 //
 // Conversion tests (unless `skipConvert: true`):
 //   - Each element of .ipnets should convert to a value equal to .prefixes[0].
@@ -442,7 +445,8 @@ var goodTestCIDRs = []testCIDR{
 		},
 	},
 	{
-		desc: "IPv4 ifaddr (masked)",
+		desc:   "IPv4 ifaddr (masked)",
+		ifaddr: false,
 		// This tests that if you try to parse an "ifaddr-style" CIDR string with
 		// ParseIPNet/ParsePrefix, the return value has the bits beyond the prefix
 		// length masked out.
@@ -466,6 +470,7 @@ var goodTestCIDRs = []testCIDR{
 	},
 	{
 		desc:   "IPv4 ifaddr",
+		ifaddr: true,
 		family: IPv4,
 		strings: []string{
 			"1.2.3.4/24",
@@ -477,10 +482,6 @@ var goodTestCIDRs = []testCIDR{
 			netip.PrefixFrom(netip.AddrFrom4([4]byte{1, 2, 3, 4}), 24),
 			netip.MustParsePrefix("1.2.3.4/24"),
 		},
-
-		// The *net.IPNet return value of ParseCIDRSloppy() masks out the lower
-		// bits, so the parsed version won't compare equal to .ipnets[0]
-		skipParse: true,
 	},
 	{
 		desc:   "IPv6",
@@ -534,7 +535,8 @@ var goodTestCIDRs = []testCIDR{
 		},
 	},
 	{
-		desc: "IPv6 ifaddr (masked)",
+		desc:   "IPv6 ifaddr (masked)",
+		ifaddr: false,
 		// This tests that if you try to parse an "ifaddr-style" CIDR string with
 		// ParseIPNet, it value has the bits beyond the prefix length masked out.
 		family: IPv6,
@@ -557,6 +559,7 @@ var goodTestCIDRs = []testCIDR{
 	},
 	{
 		desc:   "IPv6 ifaddr",
+		ifaddr: true,
 		family: IPv6,
 		strings: []string{
 			"2001:db8::1/64",
@@ -568,10 +571,6 @@ var goodTestCIDRs = []testCIDR{
 			netip.PrefixFrom(netip.AddrFrom16([16]byte{0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}), 64),
 			netip.MustParsePrefix("2001:db8::1/64"),
 		},
-
-		// The *net.IPNet return value of ParseCIDRSloppy() masks out the lower
-		// bits, so the parsed version won't compare equal to .ipnets[0]
-		skipParse: true,
 	},
 	{
 		desc: "IPv4-mapped IPv6",

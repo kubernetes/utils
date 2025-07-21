@@ -133,6 +133,32 @@ func TestParseIPNet(t *testing.T) {
 				if err != nil {
 					t.Errorf("expected %q to parse, but got error %v", str, err)
 				}
+				ifaddr, err := ParseIPAsIPNet(str)
+				if err != nil {
+					t.Errorf("expected %q to parse via ParseIPAsIPNet, but got error %v", str, err)
+				}
+
+				if tc.ifaddr {
+					// The test case expects ParseIPNet and
+					// ParseIPAsIPNet to parse to different values.
+					if ipnet.String() == ifaddr.String() {
+						t.Errorf("expected %q to parse differently with ParseIPNet and ParseIPAsIPNet but got %q for both", str, ipnet.String())
+					}
+					// In this case, it's the ParseIPAsIPNet value
+					// that should re-stringify correctly. (ParseIPNet
+					// will have discarded the trailing bits.)
+					ipnet = ifaddr
+				} else {
+					// Some strings might parse to the same value and
+					// others might parse to different values.
+					// However, in all cases, the ParseIPAsIPNet value
+					// should be the same as the ParseIPNet value
+					// after masking it.
+					if !ipnet.IP.Equal(ifaddr.IP.Mask(ifaddr.Mask)) {
+						t.Errorf("expected %q to parse similarly with ParseIPNet and ParseIPAsIPNet but got IPs %q and %q->%q", str, ipnet.IP, ifaddr, ifaddr.IP.Mask(ifaddr.Mask))
+					}
+				}
+
 				if ipnet.String() != tc.ipnets[0].String() {
 					t.Errorf("expected string %d %q to parse and re-stringify to %q but got %q", i+1, str, tc.ipnets[0].String(), ipnet.String())
 				}
@@ -184,6 +210,32 @@ func TestParsePrefix(t *testing.T) {
 				if err != nil {
 					t.Errorf("expected %q to parse, but got error %v", str, err)
 				}
+				ifaddr, err := ParseAddrAsPrefix(str)
+				if err != nil {
+					t.Errorf("expected %q to parse via ParseAddrAsPrefix, but got error %v", str, err)
+				}
+
+				if tc.ifaddr {
+					// The test case expects ParsePrefix and
+					// ParseAddrAsPrefix to parse to different values.
+					if prefix == ifaddr {
+						t.Errorf("expected %q to parse differently with ParsePrefix and ParseAddrAsPrefix but got %#v %q for both", str, prefix, prefix)
+					}
+					// In this case, it's the ParseAddrAsPrefix value
+					// that should re-stringify correctly. (ParsePrefix
+					// will have discarded the trailing bits.)
+					prefix = ifaddr
+				} else {
+					// Some strings might parse to the same value and
+					// others might parse to different values.
+					// However, in all cases, the ParseAddrAsPrefix
+					// value should be the same as the ParsePrefix
+					// value after masking it.
+					if prefix != ifaddr.Masked() {
+						t.Errorf("expected %q to parse similarly with ParsePrefix and ParseAddrAsPrefix but got %q and %q->%q", str, prefix, ifaddr, ifaddr.Masked())
+					}
+				}
+
 				if prefix != tc.prefixes[0] {
 					t.Errorf("expected string %d %q to parse equal to Prefix %#v %q but got %#v (%q)", i+1, str, tc.prefixes[0], tc.prefixes[0].String(), prefix, prefix.String())
 				}

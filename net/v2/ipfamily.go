@@ -68,7 +68,9 @@ func IPFamilyOf[T ipOrString](val T) IPFamily {
 			return IPv6
 		}
 	case string:
-		return IPFamilyOf(ParseIPSloppy(typedVal))
+		if ip, _ := ParseIP(typedVal); ip != nil {
+			return IPFamilyOf(ip)
+		}
 	}
 
 	return IPFamilyUnknown
@@ -134,8 +136,9 @@ func IPFamilyOfCIDR[T cidrOrString](val T) IPFamily {
 		}
 		return IPFamilyOf(typedVal.Addr())
 	case string:
-		parsedIP, _, _ := ParseCIDRSloppy(typedVal)
-		return IPFamilyOf(parsedIP)
+		if ipnet, _ := ParseIPNet(typedVal); ipnet != nil {
+			return IPFamilyOf(ipnet.IP)
+		}
 	}
 
 	return IPFamilyUnknown

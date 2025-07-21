@@ -162,7 +162,7 @@ func TestRangeSize(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		_, cidr, err := ParseCIDRSloppy(tc.cidr)
+		cidr, err := ParseIPNet(tc.cidr)
 		if err != nil {
 			t.Errorf("failed to parse cidr for test %s, unexpected error: '%s'", tc.name, err)
 		}
@@ -228,7 +228,7 @@ func TestGetIndexedIP(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		_, subnet, err := ParseCIDRSloppy(tc.cidr)
+		subnet, err := ParseIPNet(tc.cidr)
 		if err != nil {
 			t.Errorf("failed to parse cidr %s, unexpected error: '%s'", tc.cidr, err)
 		}

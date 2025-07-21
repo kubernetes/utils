@@ -440,8 +440,8 @@ var goodTestCIDRs = []testCIDR{
 	{
 		desc: "IPv4 ifaddr (masked)",
 		// This tests that if you try to parse an "ifaddr-style" CIDR string with
-		// ParseCIDR/ParseCIDRSloppy, the *net.IPNet return value has the bits
-		// beyond the prefix length masked out.
+		// ParseIPNet/ParsePrefix, the return value has the bits beyond the prefix
+		// length masked out.
 		family: IPv4,
 		strings: []string{
 			"1.2.3.0/24",
@@ -532,8 +532,7 @@ var goodTestCIDRs = []testCIDR{
 	{
 		desc: "IPv6 ifaddr (masked)",
 		// This tests that if you try to parse an "ifaddr-style" CIDR string with
-		// ParseCIDRSloppy, the *net.IPNet return value has the bits beyond the
-		// prefix length masked out.
+		// ParseIPNet, it value has the bits beyond the prefix length masked out.
 		family: IPv6,
 		strings: []string{
 			"2001:db8::/64",

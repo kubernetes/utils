@@ -26,7 +26,12 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	forkednet "k8s.io/utils/internal/third_party/forked/golang/net"
 )
+
+// Temporary
+var parseIPSloppy = forkednet.ParseIP
 
 type fakeCon struct {
 	remoteAddr net.Addr
@@ -113,7 +118,7 @@ func listenFuncFactory(listeners []*fakeListener) func(_ context.Context, networ
 			}
 			listener := listeners[index]
 			addr := &net.TCPAddr{
-				IP:   ParseIPSloppy(host),
+				IP:   parseIPSloppy(host),
 				Port: port,
 			}
 			if err != nil {
@@ -265,14 +270,14 @@ func TestMultiListen_Close(t *testing.T) {
 			},
 			fakeListeners: []*fakeListener{{
 				connErrPairs: []connErrPair{{
-					conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("10.10.10.10"), Port: 50001}},
+					conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("10.10.10.10"), Port: 50001}},
 				}}}, {
 				connErrPairs: []connErrPair{{
-					conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("192.168.1.10"), Port: 50002}},
+					conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("192.168.1.10"), Port: 50002}},
 				},
 				}}, {
 				connErrPairs: []connErrPair{{
-					conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("127.0.0.1"), Port: 50003}},
+					conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("127.0.0.1"), Port: 50003}},
 				}},
 			}},
 		},
@@ -294,13 +299,13 @@ func TestMultiListen_Close(t *testing.T) {
 			},
 			fakeListeners: []*fakeListener{{
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("10.10.10.10"), Port: 50001}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("10.10.10.10"), Port: 50001}}},
 				}}, {
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("192.168.1.10"), Port: 50002}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("192.168.1.10"), Port: 50002}}},
 				}}, {
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("127.0.0.1"), Port: 50003}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("127.0.0.1"), Port: 50003}}},
 				},
 			}},
 			acceptCalls: 3,
@@ -381,13 +386,13 @@ func TestMultiListen_Accept(t *testing.T) {
 			},
 			fakeListeners: []*fakeListener{{
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("10.10.10.10"), Port: 50001}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("10.10.10.10"), Port: 50001}}},
 				}}, {
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("192.168.1.10"), Port: 50002}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("192.168.1.10"), Port: 50002}}},
 				}}, {
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("127.0.0.1"), Port: 50003}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("127.0.0.1"), Port: 50003}}},
 				},
 			}},
 			acceptCalls: 3,
@@ -412,24 +417,24 @@ func TestMultiListen_Accept(t *testing.T) {
 			},
 			fakeListeners: []*fakeListener{{
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("10.10.10.10"), Port: 30001}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("10.10.10.10"), Port: 30001}}},
 				}}, {
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("192.168.1.10"), Port: 40001}}},
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("192.168.1.10"), Port: 40002}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("192.168.1.10"), Port: 40001}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("192.168.1.10"), Port: 40002}}},
 				}}, {
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("172.16.20.10"), Port: 50001}}},
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("172.16.20.10"), Port: 50002}}},
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("172.16.20.10"), Port: 50003}}},
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("172.16.20.10"), Port: 50004}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("172.16.20.10"), Port: 50001}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("172.16.20.10"), Port: 50002}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("172.16.20.10"), Port: 50003}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("172.16.20.10"), Port: 50004}}},
 				}}, {
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("127.0.0.1"), Port: 60001}}},
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("127.0.0.1"), Port: 60002}}},
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("127.0.0.1"), Port: 60003}}},
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("127.0.0.1"), Port: 60004}}},
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("127.0.0.1"), Port: 60005}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("127.0.0.1"), Port: 60001}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("127.0.0.1"), Port: 60002}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("127.0.0.1"), Port: 60003}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("127.0.0.1"), Port: 60004}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("127.0.0.1"), Port: 60005}}},
 				},
 			}},
 			acceptCalls: 3,
@@ -452,13 +457,13 @@ func TestMultiListen_Accept(t *testing.T) {
 			},
 			fakeListeners: []*fakeListener{{
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("10.10.10.10"), Port: 50001}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("10.10.10.10"), Port: 50001}}},
 				}}, {
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("192.168.1.10"), Port: 50002}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("192.168.1.10"), Port: 50002}}},
 				}}, {
 				connErrPairs: []connErrPair{
-					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: ParseIPSloppy("127.0.0.1"), Port: 50003}}},
+					{conn: &fakeCon{remoteAddr: &net.TCPAddr{IP: parseIPSloppy("127.0.0.1"), Port: 50003}}},
 				},
 			}},
 			acceptCalls: 1,

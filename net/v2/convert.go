@@ -137,7 +137,8 @@ func IPFromInterfaceAddr(ifaddr net.Addr) net.IP {
 		addrStr = addrStr[:end]
 	}
 	// What's left is either an IP address, or something we can't parse.
-	return ParseIPSloppy(addrStr)
+	ip, _ := ParseIP(addrStr)
+	return ip
 }
 
 // AddrFromInterfaceAddr can be used to extract the underlying IP address value (as a

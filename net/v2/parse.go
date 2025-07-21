@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,17 +17,59 @@ limitations under the License.
 package net
 
 import (
+	"fmt"
+	"net"
+
 	forkednet "k8s.io/utils/internal/third_party/forked/golang/net"
 )
 
-// ParseIPSloppy is identical to Go's standard net.ParseIP, except that it allows
-// leading '0' characters on numbers.  Go used to allow this and then changed
-// the behavior in 1.17.  We're choosing to keep it for compat with potential
-// stored values.
-var ParseIPSloppy = forkednet.ParseIP
+// ParseIP parses an IPv4 or IPv6 address to a net.IP. This accepts both fully-valid IP
+// addresses and irregular/ambiguous forms, making it usable for both validated and
+// non-validated input strings. It should be used instead of net.ParseIP (which rejects
+// some strings we need to accept for backward compatibility) and the old
+// netutilsv1.ParseIPSloppy.
+func ParseIP(ipStr string) (net.IP, error) {
+	// Note: if we want to get rid of forkednet, we should be able to use some
+	// invocation of regexp.ReplaceAllString to get rid of leading 0s in ipStr.
+	ip := forkednet.ParseIP(ipStr)
+	if ip != nil {
+		return ip, nil
+	}
 
-// ParseCIDRSloppy is identical to Go's standard net.ParseCIDR, except that it allows
-// leading '0' characters on numbers.  Go used to allow this and then changed
-// the behavior in 1.17.  We're choosing to keep it for compat with potential
-// stored values.
-var ParseCIDRSloppy = forkednet.ParseCIDR
+	if ipStr == "" {
+		return nil, fmt.Errorf("expected an IP address")
+	}
+	// NB: we use forkednet.ParseCIDR directly, not ParseIPNet, to avoid recursing
+	// between ParseIP and ParseIPNet.
+	if _, _, err := forkednet.ParseCIDR(ipStr); err == nil {
+		return nil, fmt.Errorf("expected an IP address, got a CIDR value")
+	}
+	return nil, fmt.Errorf("not a valid IP address")
+}
+
+// ParseIPNet parses an IPv4 or IPv6 CIDR string representing a subnet or mask, to a
+// *net.IPNet. This accepts both fully-valid CIDR values and irregular/ambiguous forms,
+// making it usable for both validated and non-validated input strings. It should be used
+// instead of net.ParseCIDR (which rejects some strings that we need to accept for
+// backward-compatibility) and the old netutilsv1.ParseCIDRSloppy.
+//
+// The return value is equivalent to the second return value from net.ParseCIDR. Note that
+// this means that if the CIDR string has bits set beyond the prefix length (e.g., the "5"
+// in "192.168.1.5/24"), those bits are simply discarded.
+func ParseIPNet(cidrStr string) (*net.IPNet, error) {
+	// Note: if we want to get rid of forkednet, we should be able to use some
+	// invocation of regexp.ReplaceAllString to get rid of leading 0s in cidrStr.
+	if _, ipnet, err := forkednet.ParseCIDR(cidrStr); err == nil {
+		return ipnet, nil
+	}
+
+	if cidrStr == "" {
+		return nil, fmt.Errorf("expected a CIDR value")
+	}
+	// NB: we use forkednet.ParseIP directly, not our own ParseIP, to avoid recursing
+	// between ParseIPNet and ParseIP.
+	if forkednet.ParseIP(cidrStr) != nil {
+		return nil, fmt.Errorf("expected a CIDR value, but got IP address")
+	}
+	return nil, fmt.Errorf("not a valid CIDR value")
+}

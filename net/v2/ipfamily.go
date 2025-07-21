@@ -17,7 +17,6 @@ limitations under the License.
 package net
 
 import (
-	"fmt"
 	"net"
 )
 
@@ -35,32 +34,32 @@ const (
 // IsDualStackIPs returns true if:
 // - all elements of ips are valid
 // - at least one IP from each family (v4 and v6) is present
-func IsDualStackIPs(ips []net.IP) (bool, error) {
+func IsDualStackIPs(ips []net.IP) bool {
 	v4Found := false
 	v6Found := false
-	for i, ip := range ips {
+	for _, ip := range ips {
 		switch IPFamilyOf(ip) {
 		case IPv4:
 			v4Found = true
 		case IPv6:
 			v6Found = true
 		default:
-			return false, fmt.Errorf("invalid IP[%d]: %v", i, ip)
+			return false
 		}
 	}
 
-	return (v4Found && v6Found), nil
+	return (v4Found && v6Found)
 }
 
 // IsDualStackIPStrings returns true if:
 // - all elements of ips can be parsed as IPs
 // - at least one IP from each family (v4 and v6) is present
-func IsDualStackIPStrings(ips []string) (bool, error) {
+func IsDualStackIPStrings(ips []string) bool {
 	parsedIPs := make([]net.IP, 0, len(ips))
-	for i, ip := range ips {
+	for _, ip := range ips {
 		parsedIP := ParseIPSloppy(ip)
 		if parsedIP == nil {
-			return false, fmt.Errorf("invalid IP[%d]: %v", i, ip)
+			return false
 		}
 		parsedIPs = append(parsedIPs, parsedIP)
 	}
@@ -70,30 +69,30 @@ func IsDualStackIPStrings(ips []string) (bool, error) {
 // IsDualStackCIDRs returns true if:
 // - all elements of cidrs are non-nil
 // - at least one CIDR from each family (v4 and v6) is present
-func IsDualStackCIDRs(cidrs []*net.IPNet) (bool, error) {
+func IsDualStackCIDRs(cidrs []*net.IPNet) bool {
 	v4Found := false
 	v6Found := false
-	for i, cidr := range cidrs {
+	for _, cidr := range cidrs {
 		switch IPFamilyOfCIDR(cidr) {
 		case IPv4:
 			v4Found = true
 		case IPv6:
 			v6Found = true
 		default:
-			return false, fmt.Errorf("invalid CIDR[%d]: %v", i, cidr)
+			return false
 		}
 	}
 
-	return (v4Found && v6Found), nil
+	return (v4Found && v6Found)
 }
 
 // IsDualStackCIDRStrings returns if
 // - all elements of cidrs can be parsed as CIDRs
 // - at least one CIDR from each family (v4 and v6) is present
-func IsDualStackCIDRStrings(cidrs []string) (bool, error) {
+func IsDualStackCIDRStrings(cidrs []string) bool {
 	parsedCIDRs, err := ParseCIDRs(cidrs)
 	if err != nil {
-		return false, err
+		return false
 	}
 	return IsDualStackCIDRs(parsedCIDRs)
 }

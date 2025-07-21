@@ -27,85 +27,67 @@ func TestDualStackIPs(t *testing.T) {
 		desc           string
 		ips            []string
 		expectedResult bool
-		expectError    bool
 	}{
 		{
 			desc:           "should fail because length is not at least 2",
 			ips:            []string{"1.1.1.1"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because length is not at least 2",
 			ips:            []string{},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because all are v4",
 			ips:            []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because all are v6",
 			ips:            []string{"fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "fd92:20ba:ca:34f7:ffff:ffff:ffff:fff0", "fd92:20ba:ca:34f7:ffff:ffff:ffff:fff1"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because 2nd ip is invalid",
 			ips:            []string{"1.1.1.1", "not-a-valid-ip"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "should fail because 1st ip is invalid",
 			ips:            []string{"not-a-valid-ip", "fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "should fail despite dual-stack because 3rd ip is invalid",
 			ips:            []string{"1.1.1.1", "fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "not-a-valid-ip"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "dual-stack ipv4-primary",
 			ips:            []string{"1.1.1.1", "fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, multiple ipv6",
 			ips:            []string{"fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "1.1.1.1", "fd92:20ba:ca:34f7:ffff:ffff:ffff:fff0"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, multiple ipv4",
 			ips:            []string{"1.1.1.1", "fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "10.0.0.0"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, ipv6-primary",
 			ips:            []string{"fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "1.1.1.1"},
 			expectedResult: true,
-			expectError:    false,
 		},
 	}
 	// for each test case, test the regular func and the string func
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			dualStack, err := IsDualStackIPStrings(tc.ips)
-			if err == nil && tc.expectError {
-				t.Fatalf("expected an error from IsDualStackIPStrings")
-			}
-			if err != nil && !tc.expectError {
-				t.Fatalf("unexpected error from IsDualStackIPStrings: %v", err)
-			}
+			dualStack := IsDualStackIPStrings(tc.ips)
 			if dualStack != tc.expectedResult {
 				t.Errorf("expected IsDualStackIPStrings=%v, got %v", tc.expectedResult, dualStack)
 			}
@@ -115,13 +97,7 @@ func TestDualStackIPs(t *testing.T) {
 				parsedIP := ParseIPSloppy(ip)
 				ips = append(ips, parsedIP)
 			}
-			dualStack, err = IsDualStackIPs(ips)
-			if err == nil && tc.expectError {
-				t.Fatalf("expected an error from IsDualStackIPs")
-			}
-			if err != nil && !tc.expectError {
-				t.Fatalf("unexpected error from IsDualStackIPs: %v", err)
-			}
+			dualStack = IsDualStackIPs(ips)
 			if dualStack != tc.expectedResult {
 				t.Errorf("expected IsDualStackIPs=%v, got %v", tc.expectedResult, dualStack)
 			}
@@ -134,74 +110,58 @@ func TestDualStackCIDRs(t *testing.T) {
 		desc           string
 		cidrs          []string
 		expectedResult bool
-		expectError    bool
 	}{
 		{
 			desc:           "should fail because length is not at least 2",
 			cidrs:          []string{"10.10.10.10/8"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because length is not at least 2",
 			cidrs:          []string{},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because all cidrs are v4",
 			cidrs:          []string{"10.10.10.10/8", "20.20.20.20/8", "30.30.30.30/8"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because all cidrs are v6",
 			cidrs:          []string{"2000::/10", "3000::/10"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because 2nd cidr is invalid",
 			cidrs:          []string{"10.10.10.10/8", "not-a-valid-cidr"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "should fail because 1st cidr is invalid",
 			cidrs:          []string{"not-a-valid-ip", "2000::/10"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "dual-stack, ipv4-primary",
 			cidrs:          []string{"10.10.10.10/8", "2000::/10"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, ipv6-primary",
 			cidrs:          []string{"2000::/10", "10.10.10.10/8"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, multiple IPv6",
 			cidrs:          []string{"2000::/10", "10.10.10.10/8", "3000::/10"},
 			expectedResult: true,
-			expectError:    false,
 		},
 	}
 
 	// for each test case, test the regular func and the string func
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			dualStack, err := IsDualStackCIDRStrings(tc.cidrs)
-			if err == nil && tc.expectError {
-				t.Fatalf("expected an error from IsDualStackCIDRStrings")
-			}
-			if err != nil && !tc.expectError {
-				t.Fatalf("unexpected error from IsDualStackCIDRStrings: %v", err)
-			}
+			dualStack := IsDualStackCIDRStrings(tc.cidrs)
 			if dualStack != tc.expectedResult {
 				t.Errorf("expected IsDualStackCIDRStrings=%v, got %v", tc.expectedResult, dualStack)
 			}
@@ -212,13 +172,7 @@ func TestDualStackCIDRs(t *testing.T) {
 				cidrs = append(cidrs, parsedCIDR)
 			}
 
-			dualStack, err = IsDualStackCIDRs(cidrs)
-			if err == nil && tc.expectError {
-				t.Fatalf("expected an error from IsDualStackCIDRs")
-			}
-			if err != nil && !tc.expectError {
-				t.Fatalf("unexpected error from IsDualStackCIDRs: %v", err)
-			}
+			dualStack = IsDualStackCIDRs(cidrs)
 			if dualStack != tc.expectedResult {
 				t.Errorf("expected IsDualStackCIDRs=%v, got %v", tc.expectedResult, dualStack)
 			}

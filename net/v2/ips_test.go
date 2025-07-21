@@ -50,6 +50,7 @@ type testIP struct {
 //
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should parse to a value equal to .ips[0].
+//   - Each element of .strings should parse to a value equal to .addrs[0].
 //
 // Conversion tests (unless `skipConvert: true`):
 //   - Each element of .ips should convert to a value equal to .addrs[0].
@@ -184,6 +185,8 @@ var goodTestIPs = []testIP{
 		desc: "IPv4-mapped IPv6",
 		// net.IP can represent an IPv4 address internally as either a 4-byte
 		// value or a 16-byte value, but it treats the two forms as equivalent.
+		// Because IPv4-mapped IPv6 is annoying, we make our ParseAddr() behave
+		// this way too, even though that's *not* how netip.ParseAddr() behaves.
 		//
 		// This test case confirms that:
 		//   - The 4-byte and 16-byte forms of a given net.IP compare as .Equal().
@@ -378,6 +381,7 @@ type testCIDR struct {
 //
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should parse to a value "equal" to .ipnets[0].
+//   - Each element of .strings should parse to a value equal to .prefixes[0].
 //
 // Conversion tests (unless `skipConvert: true`):
 //   - Each element of .ipnets should convert to a value equal to .prefixes[0].

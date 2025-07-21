@@ -71,6 +71,56 @@ func TestParseIP(t *testing.T) {
 	}
 }
 
+func TestParseAddr(t *testing.T) {
+	// See test cases in ips_test.go
+	for _, tc := range goodTestIPs {
+		if tc.skipParse {
+			continue
+		}
+		t.Run(tc.desc, func(t *testing.T) {
+			for i, str := range tc.strings {
+				addr, err := ParseAddr(str)
+				if err != nil {
+					t.Errorf("expected %q to parse, but got error %v", str, err)
+				}
+				if addr != tc.addrs[0] {
+					t.Errorf("expected string %d %q to parse equal to Addr %#v %q but got %#v (%q)", i+1, str, tc.addrs[0], tc.addrs[0].String(), addr, addr.String())
+				}
+			}
+		})
+	}
+
+	for _, tc := range badTestIPs {
+		if tc.skipParse {
+			continue
+		}
+		t.Run(tc.desc, func(t *testing.T) {
+			for i, ip := range tc.ips {
+				errStr := ip.String()
+				parsedAddr, err := ParseAddr(errStr)
+				if err == nil {
+					t.Errorf("expected IP %d %#v (%q) to not re-parse but got %#v (%q)", i+1, ip, errStr, parsedAddr, parsedAddr.String())
+				}
+			}
+
+			for i, addr := range tc.addrs {
+				errStr := addr.String()
+				parsedAddr, err := ParseAddr(errStr)
+				if err == nil {
+					t.Errorf("expected Addr %d %#v (%q) to not re-parse but got %#v (%q)", i+1, addr, errStr, parsedAddr, parsedAddr.String())
+				}
+			}
+
+			for i, str := range tc.strings {
+				addr, err := ParseAddr(str)
+				if err == nil {
+					t.Errorf("expected string %d %q to not parse but got %#v (%q)", i+1, str, addr, addr.String())
+				}
+			}
+		})
+	}
+}
+
 func TestParseIPNet(t *testing.T) {
 	// See test cases in ips_test.go
 	for _, tc := range goodTestCIDRs {
@@ -116,6 +166,57 @@ func TestParseIPNet(t *testing.T) {
 				ipnet, err := ParseIPNet(str)
 				if err == nil {
 					t.Errorf("expected string %d %q to not parse but got %#v (%q)", i+1, str, *ipnet, ipnet.String())
+				}
+			}
+		})
+	}
+}
+
+func TestParsePrefix(t *testing.T) {
+	// See test cases in ips_test.go
+	for _, tc := range goodTestCIDRs {
+		if tc.skipParse {
+			continue
+		}
+		t.Run(tc.desc, func(t *testing.T) {
+			for i, str := range tc.strings {
+				prefix, err := ParsePrefix(str)
+				if err != nil {
+					t.Errorf("expected %q to parse, but got error %v", str, err)
+				}
+				if prefix != tc.prefixes[0] {
+					t.Errorf("expected string %d %q to parse equal to Prefix %#v %q but got %#v (%q)", i+1, str, tc.prefixes[0], tc.prefixes[0].String(), prefix, prefix.String())
+				}
+			}
+		})
+	}
+
+	// See test cases in ips_test.go
+	for _, tc := range badTestCIDRs {
+		if tc.skipParse {
+			continue
+		}
+		t.Run(tc.desc, func(t *testing.T) {
+			for i, ipnet := range tc.ipnets {
+				errStr := ipnet.String()
+				parsedPrefix, err := ParsePrefix(errStr)
+				if err == nil {
+					t.Errorf("expected IPNet %d %q to not parse but got %#v (%q)", i+1, errStr, parsedPrefix, parsedPrefix.String())
+				}
+			}
+
+			for i, prefix := range tc.prefixes {
+				errStr := prefix.String()
+				parsedPrefix, err := ParsePrefix(errStr)
+				if err == nil {
+					t.Errorf("expected Prefix %d %q to not parse but got %#v (%q)", i+1, errStr, parsedPrefix, parsedPrefix.String())
+				}
+			}
+
+			for i, str := range tc.strings {
+				prefix, err := ParsePrefix(str)
+				if err == nil {
+					t.Errorf("expected string %d %q to not parse but got %#v (%q)", i+1, str, prefix, prefix.String())
 				}
 			}
 		})

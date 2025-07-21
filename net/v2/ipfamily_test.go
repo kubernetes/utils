@@ -91,7 +91,7 @@ func TestIsDualStack(t *testing.T) {
 			addrs := make([]netip.Addr, len(tc.ips))
 			for i := range tc.ips {
 				netips[i], _ = ParseIP(tc.ips[i])
-				addrs[i], _ = netip.ParseAddr(tc.ips[i])
+				addrs[i], _ = ParseAddr(tc.ips[i])
 			}
 
 			dualStack := IsDualStack(tc.ips)
@@ -180,7 +180,7 @@ func TestIsDualStackCIDRs(t *testing.T) {
 			prefixes := make([]netip.Prefix, len(tc.cidrs))
 			for i := range tc.cidrs {
 				ipnets[i], _ = ParseIPNet(tc.cidrs[i])
-				prefixes[i], _ = netip.ParsePrefix(tc.cidrs[i])
+				prefixes[i], _ = ParsePrefix(tc.cidrs[i])
 			}
 
 			dualStack := IsDualStackCIDRs(tc.cidrs)

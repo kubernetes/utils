@@ -53,6 +53,14 @@ func TestParseIPSloppy(t *testing.T) {
 				}
 			}
 
+			for i, addr := range tc.addrs {
+				errStr := addr.String()
+				parsedIP := ParseIPSloppy(errStr)
+				if parsedIP != nil {
+					t.Errorf("expected Addr %d %#v (%q) to not re-parse but got %#v (%q)", i+1, addr, errStr, parsedIP, parsedIP.String())
+				}
+			}
+
 			for i, str := range tc.strings {
 				ip := ParseIPSloppy(str)
 				if ip != nil {
@@ -93,6 +101,14 @@ func TestParseCIDRSloppy(t *testing.T) {
 				_, parsedIPNet, err := ParseCIDRSloppy(errStr)
 				if err == nil {
 					t.Errorf("expected IPNet %d %q to not parse but got %#v (%q)", i+1, errStr, *parsedIPNet, parsedIPNet.String())
+				}
+			}
+
+			for i, prefix := range tc.prefixes {
+				errStr := prefix.String()
+				_, parsedIPNet, err := ParseCIDRSloppy(errStr)
+				if err == nil {
+					t.Errorf("expected Prefix %d %#v %q to not parse but got %#v (%q)", i+1, prefix, errStr, *parsedIPNet, parsedIPNet.String())
 				}
 			}
 

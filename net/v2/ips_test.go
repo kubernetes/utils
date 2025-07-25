@@ -18,6 +18,7 @@ package net
 
 import (
 	"net"
+	"net/netip"
 	"testing"
 )
 
@@ -27,6 +28,7 @@ type testIP struct {
 	family  IPFamily
 	strings []string
 	ips     []net.IP
+	addrs   []netip.Addr
 
 	skipFamily bool
 	skipParse  bool
@@ -37,6 +39,8 @@ type testIP struct {
 // Preconditions (not involving functions in netutils):
 //   - Each element of .ips is the same (i.e., .Equal()).
 //   - Each element of .ips stringifies to .strings[0].
+//   - Each element of .addrs is the same (i.e., ==).
+//   - Each element of .addrs stringifies to .strings[0].
 //
 // IPFamily tests (unless `skipFamily: true`):
 //   - Each element of .strings should be identified as .family.
@@ -60,6 +64,11 @@ var goodTestIPs = []testIP{
 			func() net.IP { ip, _, _ := net.ParseCIDR("192.168.0.5/24"); return ip }(),
 			func() net.IP { _, ipnet, _ := net.ParseCIDR("192.168.0.5/32"); return ipnet.IP }(),
 		},
+		addrs: []netip.Addr{
+			netip.AddrFrom4([4]byte{192, 168, 0, 5}),
+			netip.MustParseAddr("192.168.0.5"),
+			netip.MustParsePrefix("192.168.0.5/24").Addr(),
+		},
 	},
 	{
 		desc:   "IPv4 all-zeros",
@@ -74,6 +83,11 @@ var goodTestIPs = []testIP{
 			{0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0},
 			net.ParseIP("0.0.0.0"),
+		},
+		addrs: []netip.Addr{
+			netip.IPv4Unspecified(),
+			netip.AddrFrom4([4]byte{0, 0, 0, 0}),
+			netip.MustParseAddr("0.0.0.0"),
 		},
 	},
 	{
@@ -91,6 +105,10 @@ var goodTestIPs = []testIP{
 			// A /32 IPMask is equivalent to 255.255.255.255
 			func() net.IP { _, ipnet, _ := net.ParseCIDR("1.2.3.4/32"); return net.IP(ipnet.Mask) }(),
 		},
+		addrs: []netip.Addr{
+			netip.AddrFrom4([4]byte{0xFF, 0xFF, 0xFF, 0xFF}),
+			netip.MustParseAddr("255.255.255.255"),
+		},
 	},
 	{
 		desc:   "IPv6",
@@ -105,6 +123,11 @@ var goodTestIPs = []testIP{
 			net.ParseIP("2001:db8::5"),
 			func() net.IP { ip, _, _ := net.ParseCIDR("2001:db8::5/64"); return ip }(),
 			func() net.IP { _, ipnet, _ := net.ParseCIDR("2001:db8::5/128"); return ipnet.IP }(),
+		},
+		addrs: []netip.Addr{
+			netip.AddrFrom16([16]byte{0x20, 0x01, 0x0D, 0xB8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x05}),
+			netip.MustParseAddr("2001:db8::5"),
+			netip.MustParsePrefix("2001:db8::5/64").Addr(),
 		},
 	},
 	{
@@ -126,6 +149,12 @@ var goodTestIPs = []testIP{
 			func() net.IP { _, ipnet, _ := net.ParseCIDR("::/0"); return ipnet.IP }(),
 			func() net.IP { _, ipnet, _ := net.ParseCIDR("::/0"); return net.IP(ipnet.Mask) }(),
 		},
+		addrs: []netip.Addr{
+			netip.IPv6Unspecified(),
+			netip.AddrFrom16([16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+			netip.MustParseAddr("::"),
+			netip.MustParsePrefix("::/0").Addr(),
+		},
 	},
 	{
 		desc:   "IPv6 loopback",
@@ -139,6 +168,11 @@ var goodTestIPs = []testIP{
 			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 			net.ParseIP("::1"),
 		},
+		addrs: []netip.Addr{
+			netip.IPv6Loopback(),
+			netip.AddrFrom16([16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}),
+			netip.MustParseAddr("::1"),
+		},
 	},
 	{
 		desc: "IPv4-mapped IPv6",
@@ -149,8 +183,9 @@ var goodTestIPs = []testIP{
 		//   - The 4-byte and 16-byte forms of a given net.IP compare as .Equal().
 		//   - Our parsers parse the plain IPv4 and IPv4-mapped IPv6 forms of an
 		//     IPv4 string to the same thing.
-		//   - The 4-byte and 16-byte forms of a given net.IP all stringify
-		//     to the plain IPv4 string form (i.e., .strings[0]).
+		//   - The 4-byte and 16-byte forms of a given net.IP, and the 4-byte
+		//     (but *not* 16-byte) form of netip.Addr, all stringify to the plain
+		//     IPv4 string form (i.e., .strings[0]).
 		family: IPv4,
 		strings: []string{
 			"192.168.0.5",
@@ -167,6 +202,30 @@ var goodTestIPs = []testIP{
 			net.ParseIP("::ffff:192.168.0.5").To4(),
 			net.ParseIP("::ffff:192.168.0.5").To16(),
 		},
+		addrs: []netip.Addr{
+			netip.AddrFrom4([4]byte{192, 168, 0, 5}),
+			netip.MustParseAddr("192.168.0.5"),
+		},
+	},
+	{
+		desc: "IPv4-mapped IPv6 (netip.Addr)",
+		// In constrast to net.IP, netip.Addr considers plain IPv4 and IPv4-mapped
+		// IPv6 to be distinct things, and netip.ParseAddr will parse the plain
+		// IPv4 and IPv4-mapped IPv6 strings into distinct netip.Addr values
+		// (where the IPv4-mapped IPv6 netip.Addr value does not correspond
+		// exactly to any net.IP value).
+		family: IPv4,
+		strings: []string{
+			"::ffff:192.168.0.5",
+		},
+		addrs: []netip.Addr{
+			netip.AddrFrom16([16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 192, 168, 0, 5}),
+			netip.MustParseAddr("::ffff:192.168.0.5"),
+		},
+
+		// Skip the parsing tests, because no netutils method will parse
+		// .strings[0] to .addrs[0].
+		skipParse: true,
 	},
 }
 
@@ -179,6 +238,7 @@ var goodTestIPs = []testIP{
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should fail to parse.
 //   - Each element of .ips should stringify to an error value that fails to parse.
+//   - Each element of .addrs should stringify to an error value that fails to parse.
 var badTestIPs = []testIP{
 	{
 		desc: "empty string is not an IP",
@@ -265,14 +325,21 @@ var badTestIPs = []testIP{
 			{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18},
 		},
 	},
+	{
+		desc: "the zero netip.Addr is invalid",
+		addrs: []netip.Addr{
+			{},
+		},
+	},
 }
 
 // testCIDR represents a set of equivalent CIDR representations.
 type testCIDR struct {
-	desc    string
-	family  IPFamily
-	strings []string
-	ipnets  []*net.IPNet
+	desc     string
+	family   IPFamily
+	strings  []string
+	ipnets   []*net.IPNet
+	prefixes []netip.Prefix
 
 	skipFamily bool
 	skipParse  bool
@@ -282,6 +349,8 @@ type testCIDR struct {
 //
 // Preconditions:
 //   - Each element of .ipnets stringifies to .strings[0].
+//   - Each element of .prefixes is the same (i.e., ==).
+//   - Each element of .prefixes stringifies to .strings[0].
 //
 // IPFamily tests (unless `skipFamily: true`):
 //   - Each element of .strings should be identified as .family.
@@ -305,6 +374,11 @@ var goodTestCIDRs = []testCIDR{
 			{IP: net.ParseIP("1.2.3.0"), Mask: net.CIDRMask(24, 32)},
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("1.2.3.0/24"); return ipnet }(),
 		},
+		prefixes: []netip.Prefix{
+			netip.MustParsePrefix("1.2.3.0/24"),
+			netip.PrefixFrom(netip.MustParseAddr("1.2.3.0"), 24),
+			netip.PrefixFrom(netip.AddrFrom4([4]byte{1, 2, 3, 0}), 24),
+		},
 	},
 	{
 		desc:   "IPv4, single IP",
@@ -315,6 +389,10 @@ var goodTestCIDRs = []testCIDR{
 		ipnets: []*net.IPNet{
 			{IP: net.IPv4(1, 1, 1, 1), Mask: net.CIDRMask(32, 32)},
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("1.1.1.1/32"); return ipnet }(),
+		},
+		prefixes: []netip.Prefix{
+			netip.MustParsePrefix("1.1.1.1/32"),
+			netip.PrefixFrom(netip.AddrFrom4([4]byte{1, 1, 1, 1}), 32),
 		},
 	},
 	{
@@ -328,6 +406,11 @@ var goodTestCIDRs = []testCIDR{
 			{IP: net.IPv4zero.To4(), Mask: net.IPMask(net.IPv4zero.To4())},
 			{IP: net.IPv4(0, 0, 0, 0), Mask: net.CIDRMask(0, 32)},
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("0.0.0.0/0"); return ipnet }(),
+		},
+		prefixes: []netip.Prefix{
+			netip.MustParsePrefix("0.0.0.0/0"),
+			netip.PrefixFrom(netip.AddrFrom4([4]byte{0, 0, 0, 0}), 0),
+			netip.PrefixFrom(netip.IPv4Unspecified(), 0),
 		},
 	},
 	{
@@ -346,6 +429,12 @@ var goodTestCIDRs = []testCIDR{
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("1.2.3.0/24"); return ipnet }(),
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("1.2.3.4/24"); return ipnet }(),
 		},
+		prefixes: []netip.Prefix{
+			netip.PrefixFrom(netip.AddrFrom4([4]byte{1, 2, 3, 0}), 24),
+			netip.PrefixFrom(netip.AddrFrom4([4]byte{1, 2, 3, 4}), 24).Masked(),
+			netip.MustParsePrefix("1.2.3.0/24"),
+			netip.MustParsePrefix("1.2.3.4/24").Masked(),
+		},
 	},
 	{
 		desc:   "IPv4 ifaddr",
@@ -355,6 +444,10 @@ var goodTestCIDRs = []testCIDR{
 		},
 		ipnets: []*net.IPNet{
 			{IP: net.IPv4(1, 2, 3, 4), Mask: net.CIDRMask(24, 32)},
+		},
+		prefixes: []netip.Prefix{
+			netip.PrefixFrom(netip.AddrFrom4([4]byte{1, 2, 3, 4}), 24),
+			netip.MustParsePrefix("1.2.3.4/24"),
 		},
 
 		// The *net.IPNet return value of ParseCIDRSloppy() masks out the lower
@@ -374,6 +467,10 @@ var goodTestCIDRs = []testCIDR{
 			{IP: net.ParseIP("2001:db8::"), Mask: net.CIDRMask(64, 128)},
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("2001:db8::/64"); return ipnet }(),
 		},
+		prefixes: []netip.Prefix{
+			netip.MustParsePrefix("2001:db8::/64"),
+			netip.PrefixFrom(netip.AddrFrom16([16]byte{0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 64),
+		},
 	},
 	{
 		desc:   "IPv6, all IPs",
@@ -386,6 +483,11 @@ var goodTestCIDRs = []testCIDR{
 			{IP: net.IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, Mask: net.CIDRMask(0, 128)},
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("::/0"); return ipnet }(),
 		},
+		prefixes: []netip.Prefix{
+			netip.MustParsePrefix("::/0"),
+			netip.PrefixFrom(netip.AddrFrom16([16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 0),
+			netip.PrefixFrom(netip.IPv6Unspecified(), 0),
+		},
 	},
 	{
 		desc:   "IPv6, single IP",
@@ -397,6 +499,10 @@ var goodTestCIDRs = []testCIDR{
 			{IP: net.IPv6loopback, Mask: net.CIDRMask(128, 128)},
 			{IP: net.IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}, Mask: net.CIDRMask(128, 128)},
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("::1/128"); return ipnet }(),
+		},
+		prefixes: []netip.Prefix{
+			netip.MustParsePrefix("::1/128"),
+			netip.PrefixFrom(netip.AddrFrom16([16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}), 128),
 		},
 	},
 	{
@@ -415,6 +521,12 @@ var goodTestCIDRs = []testCIDR{
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("2001:db8::/64"); return ipnet }(),
 			func() *net.IPNet { _, ipnet, _ := net.ParseCIDR("2001:db8::1/64"); return ipnet }(),
 		},
+		prefixes: []netip.Prefix{
+			netip.PrefixFrom(netip.AddrFrom16([16]byte{0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 64),
+			netip.PrefixFrom(netip.AddrFrom16([16]byte{0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}), 64).Masked(),
+			netip.MustParsePrefix("2001:db8::/64"),
+			netip.MustParsePrefix("2001:db8::1/64").Masked(),
+		},
 	},
 	{
 		desc:   "IPv6 ifaddr",
@@ -424,6 +536,10 @@ var goodTestCIDRs = []testCIDR{
 		},
 		ipnets: []*net.IPNet{
 			{IP: net.IP{0x20, 0x01, 0x0D, 0xB8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, Mask: net.CIDRMask(64, 128)},
+		},
+		prefixes: []netip.Prefix{
+			netip.PrefixFrom(netip.AddrFrom16([16]byte{0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}), 64),
+			netip.MustParsePrefix("2001:db8::1/64"),
 		},
 
 		// The *net.IPNet return value of ParseCIDRSloppy() masks out the lower
@@ -454,6 +570,27 @@ var goodTestCIDRs = []testCIDR{
 			{IP: net.IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 1, 1, 1, 0}, Mask: net.IPMask{255, 255, 255, 0}},
 			{IP: net.IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 1, 1, 1, 0}, Mask: net.IPMask{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0}},
 		},
+		prefixes: []netip.Prefix{
+			netip.MustParsePrefix("1.1.1.0/24"),
+			netip.PrefixFrom(netip.AddrFrom4([4]byte{1, 1, 1, 0}), 24),
+		},
+	},
+	{
+		// As in the IP/Addr tests, additional checks for IPv4-mapped IPv6 netip
+		// values.
+		desc:   "IPv4-mapped IPv6 (netip.Prefix)",
+		family: IPv4,
+		strings: []string{
+			"::ffff:1.1.1.0/120",
+		},
+		prefixes: []netip.Prefix{
+			netip.PrefixFrom(netip.AddrFrom16([16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 1, 1, 1, 0}), 120),
+			netip.MustParsePrefix("::ffff:1.1.1.0/120"),
+		},
+
+		// Skip the parsing tests, because no netutils method will parse
+		// .strings[0] to .prefixes[0].
+		skipParse: true,
 	},
 }
 
@@ -466,6 +603,7 @@ var goodTestCIDRs = []testCIDR{
 // Parsing tests (unless `skipParse: true`):
 //   - Each element of .strings should fail to parse.
 //   - Each element of .ipnets should stringify to some error value that fails to parse.
+//   - Each element of .prefixes should stringify to some error value that fails to parse.
 var badTestCIDRs = []testCIDR{
 	{
 		desc: "empty string is not a CIDR",
@@ -546,6 +684,34 @@ var badTestCIDRs = []testCIDR{
 		// IPFamilyOfCIDR only looks at IP and doesn't notice that Mask is invalid
 		skipFamily: true,
 	},
+	{
+		desc:   "the zero netip.Prefix is invalid",
+		family: IPFamilyUnknown,
+		prefixes: []netip.Prefix{
+			{},
+		},
+	},
+	{
+		desc:   "Prefix containing an invalid Addr is invalid",
+		family: IPFamilyUnknown,
+		prefixes: []netip.Prefix{
+			netip.PrefixFrom(netip.Addr{}, 24),
+		},
+	},
+	{
+		desc:   "Prefix containing a negative length is invalid",
+		family: IPv4,
+		prefixes: []netip.Prefix{
+			netip.PrefixFrom(netip.IPv4Unspecified(), -1),
+		},
+	},
+	{
+		desc:   "Prefix containing a too-long length is invalid",
+		family: IPv4,
+		prefixes: []netip.Prefix{
+			netip.PrefixFrom(netip.IPv4Unspecified(), 64),
+		},
+	},
 }
 
 // TestGoodTestIPs confirms the Preconditions for goodTestIPs.
@@ -561,6 +727,16 @@ func TestGoodTestIPs(t *testing.T) {
 					t.Errorf("BAD TEST DATA: IP %d %#v %q does not stringify to %q", i+1, ip, ip, tc.strings[0])
 				}
 			}
+
+			for i, addr := range tc.addrs {
+				if addr != tc.addrs[0] {
+					t.Errorf("BAD TEST DATA: Addr %d %#v %q does not equal %#v %q", i+1, addr, addr, tc.addrs[0], tc.addrs[0])
+				}
+				str := addr.String()
+				if str != tc.strings[0] {
+					t.Errorf("BAD TEST DATA: Addr %d %#v %q does not stringify to %q", i+1, addr, addr, tc.strings[0])
+				}
+			}
 		})
 	}
 }
@@ -572,6 +748,16 @@ func TestGoodTestCIDRs(t *testing.T) {
 			for i, ipnet := range tc.ipnets {
 				if ipnet.String() != tc.strings[0] {
 					t.Errorf("BAD TEST DATA: IPNet %d %#v %q does not stringify to %q", i+1, ipnet, ipnet, tc.strings[0])
+				}
+			}
+
+			for i, prefix := range tc.prefixes {
+				if prefix != tc.prefixes[0] {
+					t.Errorf("BAD TEST DATA: Prefix %d %#v %q does not equal %#v %q", i+1, prefix, prefix, tc.prefixes[0], tc.prefixes[0])
+				}
+				str := prefix.String()
+				if str != tc.strings[0] {
+					t.Errorf("BAD TEST DATA: Prefix %d %#v %q does not stringify to %q", i+1, prefix, prefix, tc.strings[0])
 				}
 			}
 		})

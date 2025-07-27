@@ -117,10 +117,16 @@ func IPFamilyOfString(ip string) IPFamily {
 
 // IPFamilyOfCIDR returns the IP family of cidr.
 func IPFamilyOfCIDR(cidr *net.IPNet) IPFamily {
-	if cidr == nil {
-		return IPFamilyUnknown
+	if cidr != nil {
+		family := IPFamilyOf(cidr.IP)
+		// An IPv6 CIDR must have a 128-bit mask. An IPv4 CIDR must have a
+		// 32- or 128-bit mask. (Any other mask length is invalid.)
+		_, masklen := cidr.Mask.Size()
+		if masklen == 128 || (family == IPv4 && masklen == 32) {
+			return family
+		}
 	}
-	return IPFamilyOf(cidr.IP)
+	return IPFamilyUnknown
 }
 
 // IPFamilyOfCIDRString returns the IP family of cidr.

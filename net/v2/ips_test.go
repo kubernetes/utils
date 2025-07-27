@@ -671,18 +671,12 @@ var badTestCIDRs = []testCIDR{
 		ipnets: []*net.IPNet{
 			{IP: net.IP{192, 168, 0, 0}, Mask: net.IPMask{255, 0, 255, 0}},
 		},
-
-		// IPFamilyOfCIDR only looks at IP and doesn't notice that Mask is invalid
-		skipFamily: true,
 	},
 	{
 		desc: "IPNet containing IPv6 IP and IPv4 Mask is invalid",
 		ipnets: []*net.IPNet{
 			{IP: net.IP{0x20, 0x01, 0x0D, 0xB8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, Mask: net.CIDRMask(24, 32)},
 		},
-
-		// IPFamilyOfCIDR only looks at IP and doesn't notice that Mask is invalid
-		skipFamily: true,
 	},
 	{
 		desc:   "the zero netip.Prefix is invalid",

@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net"
 	"sync"
-	"sync/atomic"
 )
 
 // connErrPair pairs conn and error which is returned by accept on sub-listeners.
@@ -38,8 +37,8 @@ type multiListener struct {
 	// connCh passes accepted connections, from child listeners to parent.
 	connCh chan connErrPair
 	// stopCh communicates from parent to child listeners.
-	stopCh chan struct{}
-	closed atomic.Bool
+	stopCh    chan struct{}
+	closeOnce sync.Once
 }
 
 // compile time check to ensure *multiListener implements net.Listener
@@ -152,29 +151,27 @@ func (ml *multiListener) Accept() (net.Conn, error) {
 // the go-routines to exit.
 func (ml *multiListener) Close() error {
 	// Make sure this can be called repeatedly without explosions.
-	if !ml.closed.CompareAndSwap(false, true) {
-		return fmt.Errorf("use of closed network connection")
-	}
+	ml.closeOnce.Do(func() {
+		// Tell all sub-listeners to stop.
+		close(ml.stopCh)
 
-	// Tell all sub-listeners to stop.
-	close(ml.stopCh)
-
-	// Closing the listeners causes Accept() to immediately return an error in
-	// the sub-listener go-routines.
-	for _, l := range ml.listeners {
-		_ = l.Close()
-	}
-
-	// Wait for all the sub-listener go-routines to exit.
-	ml.wg.Wait()
-	close(ml.connCh)
-
-	// Drain any already-queued connections.
-	for connErr := range ml.connCh {
-		if connErr.conn != nil {
-			_ = connErr.conn.Close()
+		// Closing the listeners causes Accept() to immediately return an error in
+		// the sub-listener go-routines.
+		for _, l := range ml.listeners {
+			_ = l.Close()
 		}
-	}
+
+		// Wait for all the sub-listener go-routines to exit.
+		ml.wg.Wait()
+		close(ml.connCh)
+
+		// Drain any already-queued connections.
+		for connErr := range ml.connCh {
+			if connErr.conn != nil {
+				_ = connErr.conn.Close()
+			}
+		}
+	})
 	return nil
 }
 

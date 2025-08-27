@@ -227,7 +227,6 @@ func TestMultiListen_Close(t *testing.T) {
 		runner        func(listener net.Listener, acceptCalls int) error
 		fakeListeners []*fakeListener
 		acceptCalls   int
-		errString     string
 	}{
 		{
 			name:  "close",
@@ -327,7 +326,6 @@ func TestMultiListen_Close(t *testing.T) {
 				return nil
 			},
 			fakeListeners: []*fakeListener{{}, {}, {}},
-			errString:     "use of closed network connection",
 		},
 	}
 
@@ -339,11 +337,7 @@ func TestMultiListen_Close(t *testing.T) {
 				t.Errorf("Did not expect error: %v", err)
 			}
 			err = tc.runner(ml, tc.acceptCalls)
-			if tc.errString != "" {
-				assertError(t, tc.errString, err)
-			} else {
-				assertNoError(t, err)
-			}
+			assertNoError(t, err)
 
 			for _, f := range tc.fakeListeners {
 				if !f.closed.Load() {

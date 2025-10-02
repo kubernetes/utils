@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,208 +19,192 @@ package net
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"testing"
 )
 
-func TestDualStackIPs(t *testing.T) {
+func TestIsDualStack(t *testing.T) {
 	testCases := []struct {
 		desc           string
 		ips            []string
 		expectedResult bool
-		expectError    bool
 	}{
 		{
 			desc:           "should fail because length is not at least 2",
 			ips:            []string{"1.1.1.1"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because length is not at least 2",
 			ips:            []string{},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because all are v4",
 			ips:            []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because all are v6",
 			ips:            []string{"fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "fd92:20ba:ca:34f7:ffff:ffff:ffff:fff0", "fd92:20ba:ca:34f7:ffff:ffff:ffff:fff1"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because 2nd ip is invalid",
 			ips:            []string{"1.1.1.1", "not-a-valid-ip"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "should fail because 1st ip is invalid",
 			ips:            []string{"not-a-valid-ip", "fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "should fail despite dual-stack because 3rd ip is invalid",
 			ips:            []string{"1.1.1.1", "fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "not-a-valid-ip"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "dual-stack ipv4-primary",
 			ips:            []string{"1.1.1.1", "fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, multiple ipv6",
 			ips:            []string{"fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "1.1.1.1", "fd92:20ba:ca:34f7:ffff:ffff:ffff:fff0"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, multiple ipv4",
 			ips:            []string{"1.1.1.1", "fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "10.0.0.0"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, ipv6-primary",
 			ips:            []string{"fd92:20ba:ca:34f7:ffff:ffff:ffff:ffff", "1.1.1.1"},
 			expectedResult: true,
-			expectError:    false,
 		},
 	}
-	// for each test case, test the regular func and the string func
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			dualStack, err := IsDualStackIPStrings(tc.ips)
-			if err == nil && tc.expectError {
-				t.Fatalf("expected an error from IsDualStackIPStrings")
-			}
-			if err != nil && !tc.expectError {
-				t.Fatalf("unexpected error from IsDualStackIPStrings: %v", err)
-			}
-			if dualStack != tc.expectedResult {
-				t.Errorf("expected IsDualStackIPStrings=%v, got %v", tc.expectedResult, dualStack)
+			netips := make([]net.IP, len(tc.ips))
+			addrs := make([]netip.Addr, len(tc.ips))
+			for i := range tc.ips {
+				netips[i], _ = ParseIP(tc.ips[i])
+				addrs[i], _ = ParseAddr(tc.ips[i])
 			}
 
-			ips := make([]net.IP, 0, len(tc.ips))
-			for _, ip := range tc.ips {
-				parsedIP := ParseIPSloppy(ip)
-				ips = append(ips, parsedIP)
-			}
-			dualStack, err = IsDualStackIPs(ips)
-			if err == nil && tc.expectError {
-				t.Fatalf("expected an error from IsDualStackIPs")
-			}
-			if err != nil && !tc.expectError {
-				t.Fatalf("unexpected error from IsDualStackIPs: %v", err)
-			}
+			dualStack := IsDualStack(tc.ips)
 			if dualStack != tc.expectedResult {
-				t.Errorf("expected IsDualStackIPs=%v, got %v", tc.expectedResult, dualStack)
+				t.Errorf("expected %v, []string got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackPair(tc.ips) != (dualStack && len(tc.ips) == 2) {
+				t.Errorf("IsDualStackIPPair gave wrong result for []string")
+			}
+
+			dualStack = IsDualStack(netips)
+			if dualStack != tc.expectedResult {
+				t.Errorf("expected %v []net.IP got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackPair(netips) != (dualStack && len(tc.ips) == 2) {
+				t.Errorf("IsDualStackIPPair gave wrong result for []net.IP")
+			}
+
+			dualStack = IsDualStack(addrs)
+			if dualStack != tc.expectedResult {
+				t.Errorf("expected %v []netip.Addr got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackPair(addrs) != (dualStack && len(tc.ips) == 2) {
+				t.Errorf("IsDualStackIPPair gave wrong result for []netip.Addr")
 			}
 		})
 	}
 }
 
-func TestDualStackCIDRs(t *testing.T) {
+func TestIsDualStackCIDRs(t *testing.T) {
 	testCases := []struct {
 		desc           string
 		cidrs          []string
 		expectedResult bool
-		expectError    bool
 	}{
 		{
 			desc:           "should fail because length is not at least 2",
 			cidrs:          []string{"10.10.10.10/8"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because length is not at least 2",
 			cidrs:          []string{},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because all cidrs are v4",
 			cidrs:          []string{"10.10.10.10/8", "20.20.20.20/8", "30.30.30.30/8"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because all cidrs are v6",
 			cidrs:          []string{"2000::/10", "3000::/10"},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			desc:           "should fail because 2nd cidr is invalid",
 			cidrs:          []string{"10.10.10.10/8", "not-a-valid-cidr"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "should fail because 1st cidr is invalid",
 			cidrs:          []string{"not-a-valid-ip", "2000::/10"},
 			expectedResult: false,
-			expectError:    true,
 		},
 		{
 			desc:           "dual-stack, ipv4-primary",
 			cidrs:          []string{"10.10.10.10/8", "2000::/10"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, ipv6-primary",
 			cidrs:          []string{"2000::/10", "10.10.10.10/8"},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			desc:           "dual-stack, multiple IPv6",
 			cidrs:          []string{"2000::/10", "10.10.10.10/8", "3000::/10"},
 			expectedResult: true,
-			expectError:    false,
 		},
 	}
 
-	// for each test case, test the regular func and the string func
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			dualStack, err := IsDualStackCIDRStrings(tc.cidrs)
-			if err == nil && tc.expectError {
-				t.Fatalf("expected an error from IsDualStackCIDRStrings")
-			}
-			if err != nil && !tc.expectError {
-				t.Fatalf("unexpected error from IsDualStackCIDRStrings: %v", err)
-			}
-			if dualStack != tc.expectedResult {
-				t.Errorf("expected IsDualStackCIDRStrings=%v, got %v", tc.expectedResult, dualStack)
+			ipnets := make([]*net.IPNet, len(tc.cidrs))
+			prefixes := make([]netip.Prefix, len(tc.cidrs))
+			for i := range tc.cidrs {
+				ipnets[i], _ = ParseIPNet(tc.cidrs[i])
+				prefixes[i], _ = ParsePrefix(tc.cidrs[i])
 			}
 
-			cidrs := make([]*net.IPNet, 0, len(tc.cidrs))
-			for _, cidr := range tc.cidrs {
-				_, parsedCIDR, _ := ParseCIDRSloppy(cidr)
-				cidrs = append(cidrs, parsedCIDR)
+			dualStack := IsDualStackCIDRs(tc.cidrs)
+			if dualStack != tc.expectedResult {
+				t.Errorf("expected %v []string got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackCIDRPair(tc.cidrs) != (dualStack && len(tc.cidrs) == 2) {
+				t.Errorf("IsDualStackCIDRPair gave wrong result for []string")
 			}
 
-			dualStack, err = IsDualStackCIDRs(cidrs)
-			if err == nil && tc.expectError {
-				t.Fatalf("expected an error from IsDualStackCIDRs")
-			}
-			if err != nil && !tc.expectError {
-				t.Fatalf("unexpected error from IsDualStackCIDRs: %v", err)
-			}
+			dualStack = IsDualStackCIDRs(ipnets)
 			if dualStack != tc.expectedResult {
-				t.Errorf("expected IsDualStackCIDRs=%v, got %v", tc.expectedResult, dualStack)
+				t.Errorf("expected %v []*net.IPNet got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackCIDRPair(ipnets) != (dualStack && len(tc.cidrs) == 2) {
+				t.Errorf("IsDualStackCIDRPair gave wrong result for []*net.IPNet")
+			}
+
+			dualStack = IsDualStackCIDRs(prefixes)
+			if dualStack != tc.expectedResult {
+				t.Errorf("expected %v []netip.Prefix got %v", tc.expectedResult, dualStack)
+			}
+			if IsDualStackCIDRPair(prefixes) != (dualStack && len(tc.cidrs) == 2) {
+				t.Errorf("IsDualStackCIDRPair gave wrong result for []netip.Prefix")
 			}
 		})
 	}
@@ -247,9 +231,9 @@ func TestIPFamilyOf(t *testing.T) {
 		}
 		t.Run(tc.desc, func(t *testing.T) {
 			for _, str := range tc.strings {
-				family := IPFamilyOfString(str)
-				isIPv4 := IsIPv4String(str)
-				isIPv6 := IsIPv6String(str)
+				family := IPFamilyOf(str)
+				isIPv4 := IsIPv4(str)
+				isIPv6 := IsIPv6(str)
 				checkOneIPFamily(t, str, tc.family, family, isIPv4, isIPv6)
 			}
 			for _, ip := range tc.ips {
@@ -257,6 +241,12 @@ func TestIPFamilyOf(t *testing.T) {
 				isIPv4 := IsIPv4(ip)
 				isIPv6 := IsIPv6(ip)
 				checkOneIPFamily(t, ip.String(), tc.family, family, isIPv4, isIPv6)
+			}
+			for _, addr := range tc.addrs {
+				family := IPFamilyOf(addr)
+				isIPv4 := IsIPv4(addr)
+				isIPv6 := IsIPv6(addr)
+				checkOneIPFamily(t, addr.String(), tc.family, family, isIPv4, isIPv6)
 			}
 		})
 	}
@@ -273,10 +263,16 @@ func TestIPFamilyOf(t *testing.T) {
 				isIPv6 := IsIPv6(ip)
 				checkOneIPFamily(t, fmt.Sprintf("%#v", ip), IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
+			for _, addr := range tc.addrs {
+				family := IPFamilyOf(addr)
+				isIPv4 := IsIPv4(addr)
+				isIPv6 := IsIPv6(addr)
+				checkOneIPFamily(t, fmt.Sprintf("%#v", addr), IPFamilyUnknown, family, isIPv4, isIPv6)
+			}
 			for _, str := range tc.strings {
-				family := IPFamilyOfString(str)
-				isIPv4 := IsIPv4String(str)
-				isIPv6 := IsIPv6String(str)
+				family := IPFamilyOf(str)
+				isIPv4 := IsIPv4(str)
+				isIPv6 := IsIPv6(str)
 				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 		})
@@ -291,9 +287,9 @@ func TestIPFamilyOfCIDR(t *testing.T) {
 		}
 		t.Run(tc.desc, func(t *testing.T) {
 			for _, str := range tc.strings {
-				family := IPFamilyOfCIDRString(str)
-				isIPv4 := IsIPv4CIDRString(str)
-				isIPv6 := IsIPv6CIDRString(str)
+				family := IPFamilyOfCIDR(str)
+				isIPv4 := IsIPv4CIDR(str)
+				isIPv6 := IsIPv6CIDR(str)
 				checkOneIPFamily(t, str, tc.family, family, isIPv4, isIPv6)
 			}
 			for _, ipnet := range tc.ipnets {
@@ -301,6 +297,12 @@ func TestIPFamilyOfCIDR(t *testing.T) {
 				isIPv4 := IsIPv4CIDR(ipnet)
 				isIPv6 := IsIPv6CIDR(ipnet)
 				checkOneIPFamily(t, ipnet.String(), tc.family, family, isIPv4, isIPv6)
+			}
+			for _, prefix := range tc.prefixes {
+				family := IPFamilyOfCIDR(prefix)
+				isIPv4 := IsIPv4CIDR(prefix)
+				isIPv6 := IsIPv6CIDR(prefix)
+				checkOneIPFamily(t, prefix.String(), tc.family, family, isIPv4, isIPv6)
 			}
 		})
 	}
@@ -321,10 +323,16 @@ func TestIPFamilyOfCIDR(t *testing.T) {
 				}
 				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
+			for _, prefix := range tc.prefixes {
+				family := IPFamilyOfCIDR(prefix)
+				isIPv4 := IsIPv4CIDR(prefix)
+				isIPv6 := IsIPv6CIDR(prefix)
+				checkOneIPFamily(t, fmt.Sprintf("%#v", prefix), IPFamilyUnknown, family, isIPv4, isIPv6)
+			}
 			for _, str := range tc.strings {
-				family := IPFamilyOfCIDRString(str)
-				isIPv4 := IsIPv4CIDRString(str)
-				isIPv6 := IsIPv6CIDRString(str)
+				family := IPFamilyOfCIDR(str)
+				isIPv4 := IsIPv4CIDR(str)
+				isIPv6 := IsIPv6CIDR(str)
 				checkOneIPFamily(t, str, IPFamilyUnknown, family, isIPv4, isIPv6)
 			}
 		})

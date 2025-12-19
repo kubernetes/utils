@@ -62,14 +62,10 @@
 // for any type, and require a passed-in "less" function to define their ordering.
 // Those without this prefix are specific to the 'Item' interface, and use
 // its 'Less' function for ordering.
-
 package btree
 
 import (
-	"fmt"
-	"io"
 	"sort"
-	"strings"
 	"sync"
 )
 
@@ -83,9 +79,8 @@ type Item interface {
 	Less(than Item) bool
 }
 
-const (
-	DefaultFreeListSize = 32
-)
+// DefaultFreeListSize is the default capacity of a BTree node free list.
+const DefaultFreeListSize = 32
 
 // FreeListG represents a free list of btree nodes. By default each
 // BTree has its own FreeList, but multiple BTrees can share the same
@@ -136,7 +131,7 @@ type Ordered interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64 | ~string
 }
 
-// Less[T] returns a default LessFunc that uses the '<' operator for types that support it.
+// Less returns a default LessFunc that uses the '<' operator for types that support it.
 func Less[T Ordered]() LessFunc[T] {
 	return func(a, b T) bool { return a < b }
 }
@@ -575,14 +570,6 @@ func (n *node[T]) iterate(dir direction, start, stop optionalItem[T], includeSta
 	return hit, true
 }
 
-// print is used for testing/debugging purposes.
-func (n *node[T]) print(w io.Writer, level int) {
-	fmt.Fprintf(w, "%sNODE:%v\n", strings.Repeat("  ", level), n.items)
-	for _, c := range n.children {
-		c.print(w, level+1)
-	}
-}
-
 // BTreeG is a generic implementation of a B-Tree.
 //
 // BTreeG stores items of type T in an ordered structure, allowing easy insertion,
@@ -597,7 +584,7 @@ type BTreeG[T any] struct {
 	cow    *copyOnWriteContext[T]
 }
 
-// LessFunc[T] determines how to order a type 'T'.  It should implement a strict
+// LessFunc determines how to order a type 'T'.  It should implement a strict
 // ordering, and should return true if within that ordering, 'a' < 'b'.
 type LessFunc[T any] func(a, b T) bool
 
@@ -680,12 +667,10 @@ func (c *copyOnWriteContext[T]) freeNode(n *node[T]) freeType {
 		n.cow = nil
 		if c.freelist.freeNode(n) {
 			return ftStored
-		} else {
-			return ftFreelistFull
 		}
-	} else {
-		return ftNotOwned
+		return ftFreelistFull
 	}
+	return ftNotOwned
 }
 
 // ReplaceOrInsert adds the given item to the tree.  If an item in the tree
@@ -699,15 +684,14 @@ func (t *BTreeG[T]) ReplaceOrInsert(item T) (_ T, _ bool) {
 		t.root.items = append(t.root.items, item)
 		t.length++
 		return
-	} else {
-		t.root = t.root.mutableFor(t.cow)
-		if len(t.root.items) >= t.maxItems() {
-			item2, second := t.root.split(t.maxItems() / 2)
-			oldroot := t.root
-			t.root = t.cow.newNode()
-			t.root.items = append(t.root.items, item2)
-			t.root.children = append(t.root.children, oldroot, second)
-		}
+	}
+	t.root = t.root.mutableFor(t.cow)
+	if len(t.root.items) >= t.maxItems() {
+		item2, second := t.root.split(t.maxItems() / 2)
+		oldroot := t.root
+		t.root = t.cow.newNode()
+		t.root.items = append(t.root.items, item2)
+		t.root.children = append(t.root.children, oldroot, second)
 	}
 	out, outb := t.root.insert(item, t.maxItems())
 	if !outb {

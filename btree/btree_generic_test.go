@@ -368,7 +368,7 @@ func BenchmarkSeekG(b *testing.B) {
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		tr.AscendGreaterOrEqual(i%size, func(i int) bool { return false })
+		tr.AscendGreaterOrEqual(i%size, func(_ int) bool { return false })
 	}
 }
 

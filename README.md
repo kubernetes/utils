@@ -1,6 +1,6 @@
 # Utils
 
-[![Build Status]](https://travis-ci.org/kubernetes/utils) [![GoDoc](https://godoc.org/k8s.io/utils?status.svg)](https://godoc.org/k8s.io/utils)
+[![Test](https://github.com/kubernetes/utils/actions/workflows/test.yml/badge.svg)](https://github.com/kubernetes/utils/actions/workflows/test.yml) [![GoDoc](https://godoc.org/k8s.io/utils?status.svg)](https://godoc.org/k8s.io/utils)
 
 A set of Go libraries that provide low-level, kubernetes-independent packages
 supplementing the [Go standard libs].

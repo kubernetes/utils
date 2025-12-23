@@ -17,6 +17,7 @@ limitations under the License.
 package set
 
 import (
+	"cmp"
 	"sort"
 )
 
@@ -24,11 +25,11 @@ import (
 // string arrays and internal sets, and conversion logic requires public types today.
 type Empty struct{}
 
-// Set is a set of the same type elements, implemented via map[ordered]struct{} for minimal memory consumption.
-type Set[E ordered] map[E]Empty
+// Set is a set of the same type elements, implemented via map[cmp.Ordered]struct{} for minimal memory consumption.
+type Set[E cmp.Ordered] map[E]Empty
 
 // New creates a new set.
-func New[E ordered](items ...E) Set[E] {
+func New[E cmp.Ordered](items ...E) Set[E] {
 	ss := Set[E]{}
 	ss.Insert(items...)
 	return ss
@@ -43,7 +44,7 @@ func (s Set[T]) Clear() Set[T] {
 }
 
 // KeySet creates a Set[E] from a keys of a map[E](? extends interface{}).
-func KeySet[E ordered, A any](theMap map[E]A) Set[E] {
+func KeySet[E cmp.Ordered, A any](theMap map[E]A) Set[E] {
 	ret := Set[E]{}
 	for key := range theMap {
 		ret.Insert(key)
@@ -166,7 +167,7 @@ func (s Set[E]) Equal(s2 Set[E]) bool {
 	return s.Len() == s2.Len() && s.IsSuperset(s2)
 }
 
-type sortableSlice[E ordered] []E
+type sortableSlice[E cmp.Ordered] []E
 
 func (s sortableSlice[E]) Len() int {
 	return len(s)

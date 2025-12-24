@@ -55,6 +55,7 @@
 package btree
 
 import (
+	"cmp"
 	"sort"
 	"sync"
 )
@@ -106,18 +107,13 @@ func (f *FreeList[T]) freeNode(n *node[T]) (out bool) {
 // associated Ascend* function will immediately return.
 type ItemIterator[T any] func(item T) bool
 
-// Ordered represents the set of types for which the '<' operator work.
-type Ordered interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64 | ~string
-}
-
 // Less returns a default LessFunc that uses the '<' operator for types that support it.
-func Less[T Ordered]() LessFunc[T] {
+func Less[T cmp.Ordered]() LessFunc[T] {
 	return func(a, b T) bool { return a < b }
 }
 
 // NewOrdered creates a new B-Tree for ordered types.
-func NewOrdered[T Ordered](degree int) *BTree[T] {
+func NewOrdered[T cmp.Ordered](degree int) *BTree[T] {
 	return New[T](degree, Less[T]())
 }
 

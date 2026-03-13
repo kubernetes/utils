@@ -17,6 +17,7 @@ limitations under the License.
 package set
 
 import (
+	"cmp"
 	"sort"
 )
 
@@ -169,7 +170,7 @@ func (s Set[E]) Equal(s2 Set[E]) bool {
 	return s.Len() == s2.Len() && s.IsSuperset(s2)
 }
 
-type sortableSlice[E ordered] []E
+type sortableSlice[E cmp.Ordered] []E
 
 func (s sortableSlice[E]) Len() int {
 	return len(s)
@@ -181,7 +182,7 @@ func (s sortableSlice[E]) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 //
 // This is a separate function and not a method because not all types supported
 // by Generic are ordered and only those can be sorted.
-func List[E ordered](s Set[E]) []E {
+func List[E cmp.Ordered](s Set[E]) []E {
 	res := make(sortableSlice[E], 0, len(s))
 	for key := range s {
 		res = append(res, key)

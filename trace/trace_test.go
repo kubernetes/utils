@@ -71,6 +71,72 @@ func TestStep(t *testing.T) {
 	}
 }
 
+func TestParallelStep(t *testing.T) {
+	d := 50 * time.Millisecond
+
+	t.Run("State", func(t *testing.T) {
+		sampleTrace := &Trace{}
+		sampleTrace.ParallelStep("parallel1", d)
+
+		if len(sampleTrace.traceItems) != 1 {
+			t.Fatalf("Expected 1 trace item, got %d", len(sampleTrace.traceItems))
+		}
+
+		step, ok := sampleTrace.traceItems[0].(traceStep)
+		if !ok {
+			t.Fatalf("Expected traceItem to be traceStep")
+		}
+
+		if step.msg != "parallel1" {
+			t.Errorf("Expected msg 'parallel1', got %q", step.msg)
+		}
+
+		if step.duration == nil || *step.duration != d {
+			t.Errorf("Expected duration %v, got %v", d, step.duration)
+		}
+
+		if !step.parallel {
+			t.Errorf("Expected parallel to be true")
+		}
+	})
+
+	t.Run("TimelineAndRendering", func(t *testing.T) {
+		currentTime := time.Now()
+		sampleTrace := &Trace{
+			name:      "TestTrace",
+			startTime: currentTime,
+		}
+
+		sampleTrace.traceItems = []traceItem{
+			traceStep{stepTime: currentTime.Add(10 * time.Millisecond), msg: "step1"},
+			traceStep{stepTime: currentTime.Add(20 * time.Millisecond), msg: "parallel1", duration: &d, parallel: true},
+			traceStep{stepTime: currentTime.Add(30 * time.Millisecond), msg: "step2"},
+		}
+
+		var buf bytes.Buffer
+		klog.SetOutput(&buf)
+
+		orig := klogV
+		klogV = func(_ klog.Level) bool { return true } // Force logging
+		defer func() { klogV = orig }()
+
+		sampleTrace.endTime = &currentTime // simulate completion
+		sampleTrace.logTrace()
+
+		output := buf.String()
+
+		if !strings.Contains(output, `---"step1" 10ms`) {
+			t.Errorf("Expected output to contain '---\"step1\" 10ms', got:\n%s", output)
+		}
+		if !strings.Contains(output, `|||"parallel1" 50ms`) {
+			t.Errorf("Expected output to contain '|||\"parallel1\" 50ms', got:\n%s", output)
+		}
+		if !strings.Contains(output, `---"step2" 10ms`) {
+			t.Errorf("Expected output to contain '---\"step2\" 10ms', got:\n%s", output)
+		}
+	})
+}
+
 func TestNestedTrace(t *testing.T) {
 	tests := []struct {
 		name          string

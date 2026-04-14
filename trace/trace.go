@@ -82,6 +82,10 @@ type traceStep struct {
 	stepTime time.Time
 	msg      string
 	fields   []Field
+	// explicit duration override; nil means infer from timestamps
+	duration *time.Duration
+	// if true, renders with ||| prefix to indicate concurrent work.
+	parallel bool
 }
 
 // rLock doesn't need to do anything because traceStep instances are immutable.
@@ -94,8 +98,15 @@ func (s traceStep) time() time.Time {
 
 func (s traceStep) writeItem(b *bytes.Buffer, formatter string, startTime time.Time, stepThreshold *time.Duration) {
 	stepDuration := s.stepTime.Sub(startTime)
+	if s.duration != nil {
+		stepDuration = *s.duration
+	}
+	prefix := "---"
+	if s.parallel {
+		prefix = "|||"
+	}
 	if stepThreshold == nil || *stepThreshold == 0 || stepDuration >= *stepThreshold || klogV(4) {
-		b.WriteString(fmt.Sprintf("%s---", formatter))
+		b.WriteString(fmt.Sprintf("%s%s", formatter, prefix))
 		writeTraceItemSummary(b, s.msg, stepDuration, s.stepTime, s.fields)
 	}
 }
@@ -166,6 +177,18 @@ func (t *Trace) Step(msg string, fields ...Field) {
 		t.traceItems = make([]traceItem, 0, 6)
 	}
 	t.traceItems = append(t.traceItems, traceStep{stepTime: time.Now(), msg: msg, fields: fields})
+}
+
+// ParallelStep records a step representing concurrent work with an explicit duration.
+// The step is rendered with a "|||" prefix to indicate concurrent work.
+func (t *Trace) ParallelStep(msg string, d time.Duration, fields ...Field) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	if t.traceItems == nil {
+		// traces almost always have less than 6 steps, do this to avoid more than a single allocation
+		t.traceItems = make([]traceItem, 0, 6)
+	}
+	t.traceItems = append(t.traceItems, traceStep{stepTime: time.Now(), msg: msg, fields: fields, duration: &d, parallel: true})
 }
 
 // Nest adds a nested trace with the given message and fields and returns it.

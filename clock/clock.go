@@ -31,8 +31,8 @@ type PassiveClock interface {
 type Clock interface {
 	PassiveClock
 	// After returns the channel of a new Timer.
-	// This method does not allow to free/GC the backing timer before it fires. Use
-	// NewTimer instead.
+	// As of Go 1.23, the garbage collector can recover unreferenced,
+	// unstopped timers. There is no reason to prefer NewTimer when After will do.
 	After(d time.Duration) <-chan time.Time
 	// NewTimer returns a new Timer.
 	NewTimer(d time.Duration) Timer
@@ -40,8 +40,8 @@ type Clock interface {
 	// Consider making the sleep interruptible by using 'select' on a context channel and a timer channel.
 	Sleep(d time.Duration)
 	// Tick returns the channel of a new Ticker.
-	// This method does not allow to free/GC the backing ticker. Use
-	// NewTicker from WithTicker instead.
+	// As of Go 1.23, the garbage collector can recover unreferenced
+	// tickers, even if they haven't been stopped.
 	Tick(d time.Duration) <-chan time.Time
 }
 
@@ -95,8 +95,8 @@ func (RealClock) Since(ts time.Time) time.Duration {
 }
 
 // After is the same as time.After(d).
-// This method does not allow to free/GC the backing timer before it fires. Use
-// NewTimer instead.
+// As of Go 1.23, the garbage collector can recover unreferenced,
+// unstopped timers. There is no reason to prefer NewTimer when After will do.
 func (RealClock) After(d time.Duration) <-chan time.Time {
 	return time.After(d)
 }
@@ -116,8 +116,8 @@ func (RealClock) AfterFunc(d time.Duration, f func()) Timer {
 }
 
 // Tick is the same as time.Tick(d)
-// This method does not allow to free/GC the backing ticker. Use
-// NewTicker instead.
+// As of Go 1.23, the garbage collector can recover unreferenced
+// tickers, even if they haven't been stopped.
 func (RealClock) Tick(d time.Duration) <-chan time.Time {
 	return time.Tick(d)
 }

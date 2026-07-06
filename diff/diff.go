@@ -186,7 +186,7 @@ func objectReflectDiff(path *field.Path, a, b reflect.Value) []diff {
 			}
 		}
 		return changes
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Pointer, reflect.Interface:
 		if a.IsNil() || b.IsNil() {
 			switch {
 			case a.IsNil() && b.IsNil():

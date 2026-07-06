@@ -409,8 +409,7 @@ func (mounter *SafeFormatAndMount) GetDiskFormat(disk string) (string, error) {
 
 	var fstype, pttype string
 
-	lines := strings.Split(output, "\n")
-	for _, l := range lines {
+	for l := range strings.SplitSeq(output, "\n") {
 		if len(l) <= 0 {
 			// Ignore empty line.
 			continue
@@ -449,8 +448,7 @@ func ListProcMounts(mountFilePath string) ([]MountPoint, error) {
 
 func parseProcMounts(content []byte) ([]MountPoint, error) {
 	out := []MountPoint{}
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
+	for line := range strings.SplitSeq(string(content), "\n") {
 		if line == "" {
 			// the last split() item is empty string following the last \n
 			continue

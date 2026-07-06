@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -316,22 +317,7 @@ func (mounter *SafeFormatAndMount) checkAndRepairFilesystem(source string) error
 
 // formatAndMount uses unix utils to format and mount the given disk
 func (mounter *SafeFormatAndMount) formatAndMountSensitive(source string, target string, fstype string, options []string, sensitiveOptions []string) error {
-	readOnly := false
-	for _, option := range options {
-		if option == "ro" {
-			readOnly = true
-			break
-		}
-	}
-	if !readOnly {
-		// Check sensitiveOptions for ro
-		for _, option := range sensitiveOptions {
-			if option == "ro" {
-				readOnly = true
-				break
-			}
-		}
-	}
+	readOnly := slices.Contains(options, "ro") || slices.Contains(sensitiveOptions, "ro")
 
 	options = append(options, "defaults")
 	mountErrorValue := UnknownMountError

@@ -30,7 +30,7 @@ import (
 
 func intRange(s int, reverse bool) []int {
 	out := make([]int, s)
-	for i := 0; i < s; i++ {
+	for i := range s {
 		v := i
 		if reverse {
 			v = s - i - 1
@@ -61,7 +61,7 @@ var btreeDegree = flag.Int("degree", 32, "B-Tree degree")
 func TestBTree(t *testing.T) {
 	tr := NewOrdered[int](*btreeDegree)
 	const treeSize = 10000
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		if min, ok := tr.Min(); ok || min != 0 {
 			t.Fatalf("empty min, got %+v", min)
 		}
@@ -114,7 +114,7 @@ func TestBTree(t *testing.T) {
 
 func ExampleBTree() {
 	tr := NewOrdered[int](*btreeDegree)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		tr.ReplaceOrInsert(i)
 	}
 	fmt.Println("len:       ", tr.Len())

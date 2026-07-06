@@ -216,7 +216,7 @@ func objectReflectDiff(path *field.Path, a, b reflect.Value) []diff {
 			return nil
 		}
 		var diffs []diff
-		for i := 0; i < l; i++ {
+		for i := range l {
 			if !reflect.DeepEqual(a.Index(i), b.Index(i)) {
 				diffs = append(diffs, objectReflectDiff(path.Index(i), a.Index(i), b.Index(i))...)
 			}

@@ -96,7 +96,7 @@ func TestGetRace(_ *testing.T) {
 	defer close(stop)
 
 	// set up parallel getters/writers on 2x len keys
-	for key := 0; key < 50; key++ {
+	for key := range 50 {
 		go func(key int) {
 			for {
 				select {

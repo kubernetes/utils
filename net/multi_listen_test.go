@@ -233,7 +233,7 @@ func TestMultiListen_Close(t *testing.T) {
 			name:  "close",
 			addrs: []string{"10.10.10.10:5000", "192.168.1.10:5000", "127.0.0.1:5000"},
 			runner: func(ml net.Listener, acceptCalls int) error {
-				for i := 0; i < acceptCalls; i++ {
+				for range acceptCalls {
 					_, err := ml.Accept()
 					if err != nil {
 						return err
@@ -251,7 +251,7 @@ func TestMultiListen_Close(t *testing.T) {
 			name:  "close with pending connections",
 			addrs: []string{"10.10.10.10:5001", "192.168.1.10:5002", "127.0.0.1:5003"},
 			runner: func(ml net.Listener, acceptCalls int) error {
-				for i := 0; i < acceptCalls; i++ {
+				for range acceptCalls {
 					_, err := ml.Accept()
 					if err != nil {
 						return err
@@ -280,7 +280,7 @@ func TestMultiListen_Close(t *testing.T) {
 			name:  "close with no pending connections",
 			addrs: []string{"10.10.10.10:3001", "192.168.1.10:3002", "127.0.0.1:3003"},
 			runner: func(ml net.Listener, acceptCalls int) error {
-				for i := 0; i < acceptCalls; i++ {
+				for range acceptCalls {
 					_, err := ml.Accept()
 					if err != nil {
 						return err
@@ -309,7 +309,7 @@ func TestMultiListen_Close(t *testing.T) {
 			name:  "close on close",
 			addrs: []string{"10.10.10.10:5000", "192.168.1.10:5000", "127.0.0.1:5000"},
 			runner: func(ml net.Listener, acceptCalls int) error {
-				for i := 0; i < acceptCalls; i++ {
+				for range acceptCalls {
 					_, err := ml.Accept()
 					if err != nil {
 						return err
@@ -367,7 +367,7 @@ func TestMultiListen_Accept(t *testing.T) {
 			name:  "accept all connections",
 			addrs: []string{"10.10.10.10:3000", "192.168.1.103:4000", "127.0.0.1:5000"},
 			runner: func(ml net.Listener, acceptCalls int) error {
-				for i := 0; i < acceptCalls; i++ {
+				for range acceptCalls {
 					_, err := ml.Accept()
 					if err != nil {
 						return err
@@ -397,7 +397,7 @@ func TestMultiListen_Accept(t *testing.T) {
 			addrs: []string{"10.10.10.10:3000", "192.168.1.103:4000", "172.16.20.10:5000", "127.0.0.1:6000"},
 			runner: func(ml net.Listener, acceptCalls int) error {
 
-				for i := 0; i < acceptCalls; i++ {
+				for range acceptCalls {
 					_, err := ml.Accept()
 					if err != nil {
 						return err
@@ -442,7 +442,7 @@ func TestMultiListen_Accept(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				for i := 0; i < acceptCalls; i++ {
+				for range acceptCalls {
 					_, err := ml.Accept()
 					if err != nil {
 						return err
@@ -508,7 +508,7 @@ func TestMultiListen_HTTP(t *testing.T) {
 
 	// Wait for server
 	awake := false
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		_, err = http.Get("http://" + addrs[0].String())
 		if err == nil {
 			awake = true

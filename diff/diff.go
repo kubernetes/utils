@@ -205,10 +205,7 @@ func objectReflectDiff(path *field.Path, a, b reflect.Value) []diff {
 		return nil
 	case reflect.Slice:
 		lA, lB := a.Len(), b.Len()
-		l := lA
-		if lB < lA {
-			l = lB
-		}
+		l := min(lB, lA)
 		if lA == lB && lA == 0 {
 			if a.IsNil() != b.IsNil() {
 				return []diff{{path: path, a: a.Interface(), b: b.Interface()}}

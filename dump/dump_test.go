@@ -77,7 +77,7 @@ func TestPretty(t *testing.T) {
 	tebw := embedwrap{teb, &teb}
 
 	testCases := []struct {
-		a    interface{}
+		a    any
 		want string
 	}{
 		{int8(93), "(int8) 93\n"},
@@ -130,7 +130,7 @@ func TestPretty(t *testing.T) {
 		{tebw, "(dump.embedwrap) {\n  embed: (dump.embed) {\n    s: (string) (len=4) \"test\"\n  },\n  e: (*dump.embed)({\n    s: (string) (len=4) \"test\"\n  })\n}\n"},
 		{map[string]int{}, "(map[string]int) {\n}\n"},
 		{map[string]int{"one": 1}, "(map[string]int) (len=1) {\n  (string) (len=3) \"one\": (int) 1\n}\n"},
-		{map[string]interface{}{"one": 1}, "(map[string]interface {}) (len=1) {\n  (string) (len=3) \"one\": (int) 1\n}\n"},
+		{map[string]any{"one": 1}, "(map[string]interface {}) (len=1) {\n  (string) (len=3) \"one\": (int) 1\n}\n"},
 		{map[string]customString{"key": tcs}, "(map[string]dump.customString) (len=1) {\n  (string) (len=3) \"key\": (dump.customString) (len=4) \"test\"\n}\n"},
 		{map[string]customError{"key": tce}, "(map[string]dump.customError) (len=1) {\n  (string) (len=3) \"key\": (dump.customError) 0\n}\n"},
 		{map[string]embed{"key": teb}, "(map[string]dump.embed) (len=1) {\n  (string) (len=3) \"key\": (dump.embed) {\n    s: (string) (len=4) \"test\"\n  }\n}\n"},
@@ -156,7 +156,7 @@ func TestForHash(t *testing.T) {
 	tebw := embedwrap{teb, &teb}
 
 	testCases := []struct {
-		a    interface{}
+		a    any
 		want string
 	}{
 		{int8(93), "(int8)93"},
@@ -209,7 +209,7 @@ func TestForHash(t *testing.T) {
 		{tebw, "(dump.embedwrap){embed:(dump.embed){s:(string)test} e:(*dump.embed){s:(string)test}}"},
 		{map[string]int{}, "(map[string]int)map[]"},
 		{map[string]int{"one": 1, "two": 2}, "(map[string]int)map[one:1 two:2]"},
-		{map[string]interface{}{"one": 1}, "(map[string]interface {})map[one:(int)1]"},
+		{map[string]any{"one": 1}, "(map[string]interface {})map[one:(int)1]"},
 		{map[string]customString{"key": tcs}, "(map[string]dump.customString)map[key:test]"},
 		{map[string]customError{"key": tce}, "(map[string]dump.customError)map[key:0]"},
 		{map[string]embed{"key": teb}, "(map[string]dump.embed)map[key:{s:(string)test}]"},
@@ -235,7 +235,7 @@ func TestOneLine(t *testing.T) {
 	tebw := embedwrap{teb, &teb}
 
 	testCases := []struct {
-		a    interface{}
+		a    any
 		want string
 	}{
 		{int8(93), "(int8)93"},
@@ -288,7 +288,7 @@ func TestOneLine(t *testing.T) {
 		{tebw, "(dump.embedwrap){embed:(dump.embed){s:(string)test} e:(*dump.embed){s:(string)test}}"},
 		{map[string]int{}, "(map[string]int)map[]"},
 		{map[string]int{"one": 1}, "(map[string]int)map[one:1]"},
-		{map[string]interface{}{"one": 1}, "(map[string]interface {})map[one:(int)1]"},
+		{map[string]any{"one": 1}, "(map[string]interface {})map[one:(int)1]"},
 		{map[string]customString{"key": tcs}, "(map[string]dump.customString)map[key:test]"},
 		{map[string]customError{"key": tce}, "(map[string]dump.customError)map[key:0]"},
 		{map[string]embed{"key": teb}, "(map[string]dump.embed)map[key:{s:(string)test}]"},

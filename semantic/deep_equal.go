@@ -25,6 +25,6 @@ import (
 type Equalities = reflect.Equalities
 
 // EqualitiesOrDie adds the given funcs and panics on any error.
-func EqualitiesOrDie(funcs ...interface{}) Equalities {
+func EqualitiesOrDie(funcs ...any) Equalities {
 	return reflect.EqualitiesOrDie(funcs...)
 }

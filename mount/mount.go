@@ -110,7 +110,7 @@ func (mountError MountError) Error() string {
 	return mountError.Message
 }
 
-func NewMountError(mountErrorValue MountErrorType, format string, args ...interface{}) error {
+func NewMountError(mountErrorValue MountErrorType, format string, args ...any) error {
 	mountError := MountError{
 		Type:    mountErrorValue,
 		Message: fmt.Sprintf(format, args...),

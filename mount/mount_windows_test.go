@@ -207,7 +207,7 @@ func TestIsLikelyNotMountPoint(t *testing.T) {
 	for _, test := range tests {
 		base, err := ioutil.TempDir("", test.fileName)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 
 		defer os.RemoveAll(base)
@@ -292,7 +292,7 @@ func TestFormatAndMount(t *testing.T) {
 		}
 		base, err := ioutil.TempDir("", test.device)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 		defer os.RemoveAll(base)
 

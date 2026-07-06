@@ -52,8 +52,7 @@ func (e Equalities) AddFunc(eqFunc any) error {
 	if ft.In(0) != ft.In(1) {
 		return fmt.Errorf("expected arg 1 and 2 to have same type, but got %v", ft)
 	}
-	var forReturnType bool
-	boolType := reflect.TypeOf(forReturnType)
+	boolType := reflect.TypeFor[bool]()
 	if ft.Out(0) != boolType {
 		return fmt.Errorf("expected bool return, got: %v", ft)
 	}

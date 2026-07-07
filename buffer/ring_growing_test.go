@@ -52,7 +52,7 @@ func TestGrowthGrowing(t *testing.T) {
 			}
 
 			x := 10
-			for i := 0; i < x; i++ {
+			for i := range x {
 				if e, a := i, g.readable; e != a {
 					t.Fatalf("expected equal, got %#v, %#v", e, a)
 				}
@@ -133,7 +133,7 @@ func TestGrowth(t *testing.T) {
 			}
 
 			x := 10
-			for i := 0; i < x; i++ {
+			for i := range x {
 				if e, a := i, g.growing.readable; e != a {
 					t.Fatalf("expected equal, got %#v, %#v", e, a)
 				}
@@ -193,7 +193,7 @@ func BenchmarkTypedRingGrowing_Spike(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buffer := NewTypedRingGrowing[int](RingGrowingOptions{InitialSize: initialSize})
 
-		for j := 0; j < spikeSize; j++ {
+		for j := range spikeSize {
 			buffer.WriteOne(j)
 		}
 
@@ -215,7 +215,7 @@ func BenchmarkRing_Spike_And_Shrink(b *testing.B) {
 			NormalSize:  normalSize,
 		})
 
-		for j := 0; j < spikeSize; j++ {
+		for j := range spikeSize {
 			buffer.WriteOne(j)
 		}
 

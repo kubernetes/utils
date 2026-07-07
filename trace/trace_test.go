@@ -649,7 +649,7 @@ func TestParentEndedBeforeChild(_ *testing.T) {
 	var buf bytes.Buffer
 	klog.SetOutput(&buf)
 	parent := New("foo")
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		go func(parent *Trace) {
 			child := parent.Nest("bar")
 			child.Step("hello")

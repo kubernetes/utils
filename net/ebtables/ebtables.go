@@ -202,7 +202,7 @@ func (runner *runner) EnsureChain(table Table, chain Chain) (bool, error) {
 // WARNING: checkIfRuleExists expects the input args matches the format and sequence of ebtables list output
 func checkIfRuleExists(listChainOutput string, args ...string) bool {
 	rule := strings.Join(args, " ")
-	for _, line := range strings.Split(listChainOutput, "\n") {
+	for line := range strings.SplitSeq(listChainOutput, "\n") {
 		if strings.TrimSpace(line) == rule {
 			return true
 		}

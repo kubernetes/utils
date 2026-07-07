@@ -38,7 +38,7 @@ func Test_SingleLock_NoUnlock(t *testing.T) {
 	for _, km := range newKeyMutexes() {
 		// Arrange
 		key := "fakeid"
-		callbackCh := make(chan interface{})
+		callbackCh := make(chan any)
 
 		// Act
 		go lockAndCallback(km, key, callbackCh)
@@ -52,7 +52,7 @@ func Test_SingleLock_SingleUnlock(t *testing.T) {
 	for _, km := range newKeyMutexes() {
 		// Arrange
 		key := "fakeid"
-		callbackCh := make(chan interface{})
+		callbackCh := make(chan any)
 
 		// Act & Assert
 		go lockAndCallback(km, key, callbackCh)
@@ -65,8 +65,8 @@ func Test_DoubleLock_DoubleUnlock(t *testing.T) {
 	for _, km := range newKeyMutexes() {
 		// Arrange
 		key := "fakeid"
-		callbackCh1stLock := make(chan interface{})
-		callbackCh2ndLock := make(chan interface{})
+		callbackCh1stLock := make(chan any)
+		callbackCh2ndLock := make(chan any)
 
 		// Act & Assert
 		go lockAndCallback(km, key, callbackCh1stLock)
@@ -79,12 +79,12 @@ func Test_DoubleLock_DoubleUnlock(t *testing.T) {
 	}
 }
 
-func lockAndCallback(km KeyMutex, id string, callbackCh chan<- interface{}) {
+func lockAndCallback(km KeyMutex, id string, callbackCh chan<- any) {
 	km.LockKey(id)
 	callbackCh <- true
 }
 
-func verifyCallbackHappens(t *testing.T, callbackCh <-chan interface{}) bool {
+func verifyCallbackHappens(t *testing.T, callbackCh <-chan any) bool {
 	select {
 	case <-callbackCh:
 		return true
@@ -94,7 +94,7 @@ func verifyCallbackHappens(t *testing.T, callbackCh <-chan interface{}) bool {
 	}
 }
 
-func verifyCallbackDoesntHappens(t *testing.T, callbackCh <-chan interface{}) bool {
+func verifyCallbackDoesntHappens(t *testing.T, callbackCh <-chan any) bool {
 	select {
 	case <-callbackCh:
 		t.Fatalf("Unexpected callback.")

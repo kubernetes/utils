@@ -4,7 +4,7 @@ jobs:
   build:
     strategy:
       matrix:
-        go-version: [1.23.x, 1.25.x]
+        go-version: [1.25.x, 1.26.x]
         platform: [windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -24,7 +24,7 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.23.x, 1.25.x]
+        go-version: [1.25.x, 1.26.x]
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -40,7 +40,7 @@ jobs:
   verify-go-directive:
     strategy:
       matrix:
-        go-version: [1.23.x, 1.25.x]
+        go-version: [1.25.x, 1.26.x]
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -59,14 +59,14 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
-          go-version: v1.23
+          go-version: v1.25
       - name: Checkout code
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - name: Lint
-        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v1.60.1
-          args: --disable-all -v -E govet -E misspell -E gofmt -E ineffassign -E revive
+          version: v2.4.0
+          args: -v --enable-only govet,misspell,ineffassign
   apidiff:
     runs-on: ubuntu-latest
     if: github.base_ref

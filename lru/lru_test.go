@@ -48,8 +48,8 @@ type complexStruct struct {
 
 var getTests = []struct {
 	name       string
-	keyToAdd   interface{}
-	keyToGet   interface{}
+	keyToAdd   any
+	keyToGet   any
 	expectedOk bool
 }{
 	{"string_hit", "myKey", "myKey", true},
@@ -96,7 +96,7 @@ func TestGetRace(_ *testing.T) {
 	defer close(stop)
 
 	// set up parallel getters/writers on 2x len keys
-	for key := 0; key < 50; key++ {
+	for key := range 50 {
 		go func(key int) {
 			for {
 				select {
@@ -116,9 +116,9 @@ func TestGetRace(_ *testing.T) {
 
 func TestEviction(t *testing.T) {
 	var seenKey Key
-	var seenVal interface{}
+	var seenVal any
 
-	lru := NewWithEvictionFunc(1, func(key Key, value interface{}) {
+	lru := NewWithEvictionFunc(1, func(key Key, value any) {
 		seenKey = key
 		seenVal = value
 	})
@@ -133,11 +133,11 @@ func TestEviction(t *testing.T) {
 
 func TestSetEviction(t *testing.T) {
 	var seenKey Key
-	var seenVal interface{}
+	var seenVal any
 
 	lru := New(1)
 
-	err := lru.SetEvictionFunc(func(key Key, value interface{}) {
+	err := lru.SetEvictionFunc(func(key Key, value any) {
 		seenKey = key
 		seenVal = value
 	})
@@ -153,7 +153,7 @@ func TestSetEviction(t *testing.T) {
 		t.Errorf("unexpected eviction data: key=%v val=%v", seenKey, seenVal)
 	}
 
-	err = lru.SetEvictionFunc(func(_ Key, _ interface{}) {})
+	err = lru.SetEvictionFunc(func(_ Key, _ any) {})
 	if err == nil {
 		t.Errorf("expected error but got none")
 	}

@@ -47,8 +47,10 @@ func AllPtrFieldsNil(obj any) bool {
 }
 
 // To returns a pointer to the given value.
+// Deprecated: Use new instead.
+//go:fix inline
 func To[T any](v T) *T {
-	return &v
+	return new(v)
 }
 
 // Deref dereferences ptr and returns the value it points to if not nil, or else

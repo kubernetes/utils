@@ -39,9 +39,9 @@ vet:
 update-fmt:
 	gofmt -s -w .
 
-# We set the maximum version of the go directive as 1.25 here
+# We set the maximum version of the go directive as 1.26 here
 # because the oldest go directive that exists on our supported
-# release branches in k/k is 1.25.
+# release branches in k/k is 1.26.
 .PHONY: verify-go-directive
 verify-go-directive:
-	./hack/verify-go-directive.sh -g 1.25
+	./hack/verify-go-directive.sh -g 1.26

@@ -50,14 +50,14 @@ func writeFields(b *bytes.Buffer, l []Field) {
 	}
 }
 
-func writeTraceItemSummary(b *bytes.Buffer, msg string, totalTime time.Duration, startTime time.Time, fields []Field) {
+func writeTraceItemSummary(b *bytes.Buffer, msg string, milliseconds string, startTime time.Time, fields []Field) {
 	b.WriteString(fmt.Sprintf("%q ", msg))
 	if len(fields) > 0 {
 		writeFields(b, fields)
 		b.WriteString(" ")
 	}
 
-	b.WriteString(fmt.Sprintf("%vms (%v)", durationToMilliseconds(totalTime), startTime.Format("15:04:05.000")))
+	b.WriteString(fmt.Sprintf("%sms (%v)", milliseconds, startTime.Format("15:04:05.000")))
 }
 
 func durationToMilliseconds(timeDuration time.Duration) int64 {
@@ -94,9 +94,21 @@ func (s traceStep) time() time.Time {
 
 func (s traceStep) writeItem(b *bytes.Buffer, formatter string, startTime time.Time, stepThreshold *time.Duration) {
 	stepDuration := s.stepTime.Sub(startTime)
+	milliseconds := fmt.Sprint(durationToMilliseconds(stepDuration))
+	fields := s.fields
+	for i, field := range s.fields {
+		if duration, ok := field.Value.(time.Duration); field.Key == "duration" && ok && duration >= 0 {
+			stepDuration = duration
+			milliseconds = fmt.Sprint(float64(duration) / float64(time.Millisecond))
+			fields = make([]Field, 0, len(s.fields)-1)
+			fields = append(fields, s.fields[:i]...)
+			fields = append(fields, s.fields[i+1:]...)
+			break
+		}
+	}
 	if stepThreshold == nil || *stepThreshold == 0 || stepDuration >= *stepThreshold || klogV(4) {
 		b.WriteString(fmt.Sprintf("%s---", formatter))
-		writeTraceItemSummary(b, s.msg, stepDuration, s.stepTime, s.fields)
+		writeTraceItemSummary(b, s.msg, milliseconds, s.stepTime, fields)
 	}
 }
 
@@ -133,7 +145,7 @@ func (t *Trace) time() time.Time {
 func (t *Trace) writeItem(b *bytes.Buffer, formatter string, startTime time.Time, stepThreshold *time.Duration) {
 	if t.durationIsWithinThreshold() || klogV(4) {
 		b.WriteString(fmt.Sprintf("%v[", formatter))
-		writeTraceItemSummary(b, t.name, t.TotalTime(), t.startTime, t.fields)
+		writeTraceItemSummary(b, t.name, fmt.Sprint(durationToMilliseconds(t.TotalTime())), t.startTime, t.fields)
 		if st := t.calculateStepThreshold(); st != nil {
 			stepThreshold = st
 		}
@@ -157,7 +169,9 @@ func New(name string, fields ...Field) *Trace {
 
 // Step adds a new step with a specific message. Call this at the end of an execution step to record
 // how long it took. The Fields add key value pairs to provide additional details about the trace
-// step.
+// step. The first "duration" field with a non-negative time.Duration value overrides
+// the step duration, including threshold filtering, and is omitted from the fields.
+// It does not change the time used to measure the next step or the total trace duration.
 func (t *Trace) Step(msg string, fields ...Field) {
 	t.lock.Lock()
 	defer t.lock.Unlock()

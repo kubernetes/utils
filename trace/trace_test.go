@@ -21,6 +21,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -66,6 +67,94 @@ func TestStep(t *testing.T) {
 			sampleTrace.Step(tt.inputString)
 			if sampleTrace.traceItems[0].(traceStep).msg != tt.expectedTrace.traceItems[0].(traceStep).msg {
 				t.Errorf("Expected %v \n Got %v \n", tt.expectedTrace, sampleTrace)
+			}
+		})
+	}
+}
+
+func TestStepDuration(t *testing.T) {
+	start := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	threshold := 10 * time.Millisecond
+	longThreshold := 30 * time.Millisecond
+	tests := []struct {
+		name      string
+		fields    []Field
+		threshold *time.Duration
+		want      string
+	}{
+		{
+			name:   "elapsed time without override",
+			fields: []Field{{"size", 123}},
+			want:   `---"work" size:123 20ms (12:00:00.020)`,
+		},
+		{
+			name:   "explicit duration preserves precision and field order",
+			fields: []Field{{"size", 123}, {"duration", 3532100 * time.Nanosecond}, {"parallel", true}},
+			want:   `---"work" size:123,parallel:true 3.5321ms (12:00:00.020)`,
+		},
+		{
+			name:   "duration as only field",
+			fields: []Field{{"duration", time.Second}},
+			want:   `---"work" 1000ms (12:00:00.020)`,
+		},
+		{
+			name:   "zero duration",
+			fields: []Field{{"duration", time.Duration(0)}, {"size", 123}},
+			want:   `---"work" size:123 0ms (12:00:00.020)`,
+		},
+		{
+			name:   "different type remains a field",
+			fields: []Field{{"duration", "5ms"}},
+			want:   `---"work" duration:5ms 20ms (12:00:00.020)`,
+		},
+		{
+			name:   "negative duration remains a field",
+			fields: []Field{{"duration", -time.Second}},
+			want:   `---"work" duration:-1s 20ms (12:00:00.020)`,
+		},
+		{
+			name:      "override below threshold is omitted",
+			fields:    []Field{{"duration", time.Millisecond}},
+			threshold: &threshold,
+		},
+		{
+			name:      "override at threshold is included",
+			fields:    []Field{{"duration", threshold}},
+			threshold: &threshold,
+			want:      `---"work" 10ms (12:00:00.020)`,
+		},
+		{
+			name:      "override above threshold despite short elapsed time",
+			fields:    []Field{{"size", 123}, {"duration", 40 * time.Millisecond}},
+			threshold: &longThreshold,
+			want:      `---"work" size:123 40ms (12:00:00.020)`,
+		},
+		{
+			name:   "first valid duration wins",
+			fields: []Field{{"duration", "5ms"}, {"duration", time.Millisecond}, {"duration", 2 * time.Millisecond}},
+			want:   `---"work" duration:5ms,duration:2ms 1ms (12:00:00.020)`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fieldsBefore := append([]Field(nil), tt.fields...)
+			tr := &Trace{startTime: start}
+			tr.Step("work", tt.fields...)
+			step := tr.traceItems[0].(traceStep)
+			step.stepTime = start.Add(20 * time.Millisecond)
+			tr.traceItems[0] = step
+			tr.traceItems = append(tr.traceItems, traceStep{msg: "next", stepTime: start.Add(25 * time.Millisecond)})
+			var b bytes.Buffer
+			tr.writeTraceSteps(&b, "", tt.threshold)
+			want := tt.want
+			if tt.threshold == nil {
+				want += `---"next" 5ms (12:00:00.025)`
+			}
+			if got := b.String(); got != want {
+				t.Errorf("trace = %q, want %q", got, want)
+			}
+			if !reflect.DeepEqual(tt.fields, fieldsBefore) {
+				t.Errorf("caller fields changed: got %v, want %v", tt.fields, fieldsBefore)
 			}
 		})
 	}

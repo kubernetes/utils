@@ -18,7 +18,6 @@ package mount
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -77,12 +76,7 @@ func TestDoCleanupMountPoint(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-
-			tmpDir, err := ioutil.TempDir("", "unmount-mount-point-test")
-			if err != nil {
-				t.Fatalf("failed to create tmpdir: %v", err)
-			}
-			defer os.RemoveAll(tmpDir)
+			tmpDir := t.TempDir()
 
 			if tt.prepare == nil {
 				t.Fatalf("prepare function required")
@@ -120,7 +114,7 @@ func TestDoCleanupMountPoint(t *testing.T) {
 }
 
 func validateDirExists(dir string) error {
-	_, err := ioutil.ReadDir(dir)
+	_, err := os.ReadDir(dir)
 	if err != nil {
 		return err
 	}
@@ -128,7 +122,7 @@ func validateDirExists(dir string) error {
 }
 
 func validateDirNotExists(dir string) error {
-	_, err := ioutil.ReadDir(dir)
+	_, err := os.ReadDir(dir)
 	if os.IsNotExist(err) {
 		return nil
 	}

@@ -159,7 +159,7 @@ func TestMultiListen(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.TODO()
+			ctx := t.Context()
 			ml, err := multiListen(ctx, tc.network, tc.addrs, listenFuncFactory(tc.fakeListeners))
 
 			if tc.errString != "" {
@@ -178,7 +178,7 @@ func TestMultiListen(t *testing.T) {
 }
 
 func TestMultiListen_Addr(t *testing.T) {
-	ctx := context.TODO()
+	ctx := t.Context()
 	ml, err := multiListen(ctx, "tcp", []string{"10.10.10.10:5000", "192.168.1.10:5000", "127.0.0.1:5000"}, listenFuncFactory(
 		[]*fakeListener{{}, {}, {}},
 	))
@@ -197,7 +197,7 @@ func TestMultiListen_Addr(t *testing.T) {
 }
 
 func TestMultiListen_Addrs(t *testing.T) {
-	ctx := context.TODO()
+	ctx := t.Context()
 	addrs := []string{"10.10.10.10:5000", "192.168.1.10:5000", "127.0.0.1:5000"}
 	ml, err := multiListen(ctx, "tcp", addrs, listenFuncFactory(
 		[]*fakeListener{{}, {}, {}},
@@ -333,7 +333,7 @@ func TestMultiListen_Close(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.TODO()
+			ctx := t.Context()
 			ml, err := multiListen(ctx, "tcp", tc.addrs, listenFuncFactory(tc.fakeListeners))
 			if err != nil {
 				t.Errorf("Did not expect error: %v", err)
@@ -468,7 +468,7 @@ func TestMultiListen_Accept(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.TODO()
+			ctx := t.Context()
 			ml, err := multiListen(ctx, "tcp", tc.addrs, listenFuncFactory(tc.fakeListeners))
 			if err != nil {
 				t.Errorf("Did not expect error: %v", err)
@@ -485,7 +485,7 @@ func TestMultiListen_Accept(t *testing.T) {
 }
 
 func TestMultiListen_HTTP(t *testing.T) {
-	ctx := context.TODO()
+	ctx := t.Context()
 	ml, err := MultiListen(ctx, "tcp", ":0", ":0", ":0")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

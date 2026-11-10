@@ -25,17 +25,14 @@ import (
 )
 
 func TestFileUtils(t *testing.T) {
-	// Create tmp dir
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "util_file_test_")
-	if err != nil {
-		t.Fatal("Failed to test: failed to create temp dir.")
-	}
+	tmpDir := t.TempDir()
 
 	// create tmp file
 	tmpFile, err := os.CreateTemp(tmpDir, "test_file_exists_")
 	if err != nil {
 		t.Fatal("Failed to test: failed to create temp file.")
 	}
+	tmpFile.Close()
 
 	// create tmp sym link
 	tmpSymlinkName := filepath.Join(tmpDir, "test_file_exists_sym_link")
@@ -50,23 +47,7 @@ func TestFileUtils(t *testing.T) {
 		t.Fatal("Failed to test: failed to create temp sub dir.")
 	}
 
-	// record the current dir
-	currentDir, err := os.Getwd()
-	if err != nil {
-		t.Fatal("Failed to test: failed to get current dir.")
-	}
-
-	// change the work dir to temp dir
-	err = os.Chdir(tmpDir)
-	if err != nil {
-		t.Fatal("Failed to test: failed to change work dir.")
-	}
-
-	// recover test environment
-	defer func() {
-		os.Chdir(currentDir)
-		os.RemoveAll(tmpDir)
-	}()
+	t.Chdir(tmpDir)
 
 	t.Run("TestExists", func(t *testing.T) {
 		tests := []struct {

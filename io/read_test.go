@@ -18,7 +18,6 @@ package io
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,12 +44,7 @@ func writeToPipe(namedPipe string, flaky bool, i int) {
 }
 
 func makePipe(t *testing.T) string {
-	tmp, err := ioutil.TempDir("", "pipe-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	pipe := filepath.Join(tmp, "pipe")
+	pipe := filepath.Join(t.TempDir(), "pipe")
 	syscall.Mkfifo(pipe, 0600)
 
 	return pipe
@@ -66,7 +60,6 @@ func writer(namedPipe string, flaky bool, c <-chan int, d <-chan bool) {
 		case i := <-c:
 			writeToPipe(namedPipe, flaky, i)
 		case <-d:
-			os.RemoveAll(namedPipe)
 			return
 		}
 	}
@@ -89,8 +82,8 @@ func TestConsistentReadFlakyReader(t *testing.T) {
 	prog, done := make(chan int), make(chan bool)
 	go writer(pipe, true, prog, done)
 
-	var err error
-	if _, err = consistentReadSync(pipe, 3, func(i int) { prog <- i }); err == nil {
+	_, err := consistentReadSync(pipe, 3, func(i int) { prog <- i })
+	if err == nil {
 		t.Fatal("flaky reader returned consistent results")
 	}
 	if !IsInconsistentReadError(err) {

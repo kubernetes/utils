@@ -661,7 +661,7 @@ func TestParentEndedBeforeChild(_ *testing.T) {
 }
 
 func TestContext(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	trace1 := FromContext(ctx).Nest("op1")
 	ctx = ContextWithTrace(ctx, trace1)

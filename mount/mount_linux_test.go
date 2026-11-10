@@ -19,7 +19,6 @@ limitations under the License.
 package mount
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -418,11 +417,10 @@ func TestSearchMountPoints(t *testing.T) {
 			nil,
 		},
 	}
-	tmpFile, err := ioutil.TempFile("", "test-get-filetype")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "test-get-filetype")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(tmpFile.Name())
 	defer tmpFile.Close()
 	for _, v := range testcases {
 		tmpFile.Truncate(0)

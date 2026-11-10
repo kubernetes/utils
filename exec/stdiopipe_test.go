@@ -18,7 +18,7 @@ package exec_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"k8s.io/utils/exec"
 )
@@ -33,7 +33,7 @@ func ExampleNew_stderrPipe() {
 
 	stderr := make(chan []byte)
 	go func() {
-		b, err := ioutil.ReadAll(stderrPipe)
+		b, err := io.ReadAll(stderrPipe)
 		if err != nil {
 			panic(err)
 		}

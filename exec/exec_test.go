@@ -19,8 +19,6 @@ package exec
 import (
 	"context"
 	"io"
-	"io/ioutil"
-	"os"
 	osexec "os/exec"
 	"testing"
 	"time"
@@ -134,7 +132,7 @@ func TestStopBeforeStart(_ *testing.T) {
 
 func TestTimeout(t *testing.T) {
 	exec := New()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Nanosecond)
 	defer cancel()
 
 	err := exec.CommandContext(ctx, "sleep", "2").Run()
@@ -207,7 +205,7 @@ func TestStdIOPipes(t *testing.T) {
 func readAll(t *testing.T, r io.Reader, n string) string {
 	t.Helper()
 
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatalf("unexpected error when reading from %s: %v", n, err)
 	}
@@ -216,10 +214,7 @@ func readAll(t *testing.T, r io.Reader, n string) string {
 }
 
 func TestExecutorGo119LookPath(t *testing.T) {
-	orig := os.Getenv("PATH")
-	defer func() { os.Setenv("PATH", orig) }()
-
-	os.Setenv("PATH", "./testdata")
+	t.Setenv("PATH", "./testdata")
 
 	ex := New()
 	path, err := ex.LookPath("hello")
@@ -240,7 +235,7 @@ func TestExecutorGo119LookPath(t *testing.T) {
 		}
 	}
 
-	cmd = ex.CommandContext(context.Background(), "hello")
+	cmd = ex.CommandContext(t.Context(), "hello")
 	out, err = cmd.CombinedOutput()
 	if err != nil {
 		t.Errorf("expected success, got %v", err)

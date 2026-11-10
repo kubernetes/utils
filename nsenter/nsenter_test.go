@@ -19,7 +19,6 @@ limitations under the License.
 package nsenter
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -107,23 +106,23 @@ func TestEvalSymlinks(t *testing.T) {
 	tests := []struct {
 		name        string
 		mustExist   bool
-		prepare     func(tmpdir string) (src string, expectedDst string, err error)
+		prepare     func() (src string, expectedDst string, err error)
 		expectError bool
 	}{
 		{
 			name:      "simple file /src",
 			mustExist: true,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
-				src = filepath.Join(tmpdir, "src")
-				err = ioutil.WriteFile(src, []byte{}, 0644)
+			prepare: func() (src string, expectedDst string, err error) {
+				src = filepath.Join(t.TempDir(), "src")
+				err = os.WriteFile(src, []byte{}, 0644)
 				return src, src, err
 			},
 		},
 		{
 			name:      "non-existing file /src",
 			mustExist: true,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
-				src = filepath.Join(tmpdir, "src")
+			prepare: func() (src string, expectedDst string, err error) {
+				src = filepath.Join(t.TempDir(), "src")
 				return src, "", nil
 			},
 			expectError: true,
@@ -131,16 +130,16 @@ func TestEvalSymlinks(t *testing.T) {
 		{
 			name:      "non-existing file /src/ with mustExist=false",
 			mustExist: false,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
-				src = filepath.Join(tmpdir, "src")
+			prepare: func() (src string, expectedDst string, err error) {
+				src = filepath.Join(t.TempDir(), "src")
 				return src, src, nil
 			},
 		},
 		{
 			name:      "non-existing file /existing/path/src with mustExist=false with existing directories",
 			mustExist: false,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
-				src = filepath.Join(tmpdir, "existing/path")
+			prepare: func() (src string, expectedDst string, err error) {
+				src = filepath.Join(t.TempDir(), "existing/path")
 				if err := os.MkdirAll(src, 0755); err != nil {
 					return "", "", err
 				}
@@ -151,9 +150,10 @@ func TestEvalSymlinks(t *testing.T) {
 		{
 			name:      "simple symlink /src -> /dst",
 			mustExist: false,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
+			prepare: func() (src string, expectedDst string, err error) {
+				tmpdir := t.TempDir()
 				dst := filepath.Join(tmpdir, "dst")
-				if err = ioutil.WriteFile(dst, []byte{}, 0644); err != nil {
+				if err = os.WriteFile(dst, []byte{}, 0644); err != nil {
 					return "", "", err
 				}
 				src = filepath.Join(tmpdir, "src")
@@ -164,7 +164,8 @@ func TestEvalSymlinks(t *testing.T) {
 		{
 			name:      "dangling symlink /src -> /non-existing-path",
 			mustExist: true,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
+			prepare: func() (src string, expectedDst string, err error) {
+				tmpdir := t.TempDir()
 				dst := filepath.Join(tmpdir, "non-existing-path")
 				src = filepath.Join(tmpdir, "src")
 				err = os.Symlink(dst, src)
@@ -175,7 +176,8 @@ func TestEvalSymlinks(t *testing.T) {
 		{
 			name:      "dangling symlink /src -> /non-existing-path with mustExist=false",
 			mustExist: false,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
+			prepare: func() (src string, expectedDst string, err error) {
+				tmpdir := t.TempDir()
 				dst := filepath.Join(tmpdir, "non-existing-path")
 				src = filepath.Join(tmpdir, "src")
 				err = os.Symlink(dst, src)
@@ -185,13 +187,14 @@ func TestEvalSymlinks(t *testing.T) {
 		{
 			name:      "symlink to directory /src/file, where /src is link to /dst",
 			mustExist: true,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
+			prepare: func() (src string, expectedDst string, err error) {
+				tmpdir := t.TempDir()
 				dst := filepath.Join(tmpdir, "dst")
 				if err = os.Mkdir(dst, 0755); err != nil {
 					return "", "", err
 				}
 				dstFile := filepath.Join(dst, "file")
-				if err = ioutil.WriteFile(dstFile, []byte{}, 0644); err != nil {
+				if err = os.WriteFile(dstFile, []byte{}, 0644); err != nil {
 					return "", "", err
 				}
 
@@ -206,7 +209,8 @@ func TestEvalSymlinks(t *testing.T) {
 		{
 			name:      "symlink to non-existing directory: /src/file, where /src is link to /dst and dst does not exist",
 			mustExist: true,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
+			prepare: func() (src string, expectedDst string, err error) {
+				tmpdir := t.TempDir()
 				dst := filepath.Join(tmpdir, "dst")
 
 				src = filepath.Join(tmpdir, "src")
@@ -221,7 +225,8 @@ func TestEvalSymlinks(t *testing.T) {
 		{
 			name:      "symlink to non-existing directory: /src/file, where /src is link to /dst and dst does not exist with mustExist=false",
 			mustExist: false,
-			prepare: func(tmpdir string) (src string, expectedDst string, err error) {
+			prepare: func() (src string, expectedDst string, err error) {
+				tmpdir := t.TempDir()
 				dst := filepath.Join(tmpdir, "dst")
 				dstFile := filepath.Join(dst, "file")
 
@@ -243,13 +248,7 @@ func TestEvalSymlinks(t *testing.T) {
 			},
 		}
 
-		tmpdir, err := ioutil.TempDir("", "nsenter-hostpath-")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tmpdir)
-
-		src, expectedDst, err := test.prepare(tmpdir)
+		src, expectedDst, err := test.prepare()
 		if err != nil {
 			t.Error(err)
 			continue
@@ -272,18 +271,12 @@ func TestNewNsenter(t *testing.T) {
 	// Create a symlink /tmp/xyz/rootfs -> / and use it as rootfs path
 	// It should resolve all binaries correctly, the test runs on Linux
 
-	tmpdir, err := ioutil.TempDir("", "nsenter-hostpath-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpdir)
-
-	rootfs := filepath.Join(tmpdir, "rootfs")
-	if err = os.Symlink("/", rootfs); err != nil {
+	rootfs := filepath.Join(t.TempDir(), "rootfs")
+	if err := os.Symlink("/", rootfs); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = NewNsenter(rootfs, exec.New())
+	_, err := NewNsenter(rootfs, exec.New())
 	if err != nil {
 		t.Errorf("Error: %s", err)
 	}
@@ -293,18 +286,12 @@ func TestNewNsenterError(t *testing.T) {
 	// Create empty dir /tmp/xyz/rootfs and use it as rootfs path
 	// It should resolve all binaries correctly, the test runs on Linux
 
-	tmpdir, err := ioutil.TempDir("", "nsenter-hostpath-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpdir)
-
-	rootfs := filepath.Join(tmpdir, "rootfs")
-	if err = os.MkdirAll(rootfs, 0755); err != nil {
+	rootfs := filepath.Join(t.TempDir(), "rootfs")
+	if err := os.MkdirAll(rootfs, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = NewNsenter(rootfs, exec.New())
+	_, err := NewNsenter(rootfs, exec.New())
 	if err == nil {
 		t.Errorf("Expected error, got none")
 	}

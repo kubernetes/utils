@@ -19,25 +19,19 @@ limitations under the License.
 package mount
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 )
 
-func writeFile(content string) (string, string, error) {
-	tempDir, err := ioutil.TempDir("", "mounter_shared_test")
-	if err != nil {
-		return "", "", err
+func writeFile(t *testing.T, content string) string {
+	t.Helper()
+	filename := filepath.Join(t.TempDir(), "mountinfo")
+	if err := os.WriteFile(filename, []byte(content), 0600); err != nil {
+		t.Fatal(err)
 	}
-	filename := filepath.Join(tempDir, "mountinfo")
-	err = ioutil.WriteFile(filename, []byte(content), 0600)
-	if err != nil {
-		os.RemoveAll(tempDir)
-		return "", "", err
-	}
-	return tempDir, filename, nil
+	return filename
 }
 
 func TestParseMountInfo(t *testing.T) {
@@ -83,11 +77,7 @@ func TestParseMountInfo(t *testing.T) {
 39 28 0:35 / /sys/fs/cgroup/memory rw,nosuid,nodev,noexec,relatime shared:21 - cgroup cgroup rw,memory
 40 28 0:36 / /sys/fs/cgroup/perf_event rw,nosuid,nodev,noexec,relatime shared:22 - cgroup cgroup rw,perf_event
 `
-	tempDir, filename, err := writeFile(info)
-	if err != nil {
-		t.Fatalf("cannot create temporary file: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+	filename := writeFile(t, info)
 
 	tests := []struct {
 		name         string
@@ -285,12 +275,7 @@ func TestBadParseMountInfo(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		tempDir, filename, err := writeFile(test.info)
-		if err != nil {
-			t.Fatalf("cannot create temporary file: %v", err)
-		}
-		defer os.RemoveAll(tempDir)
-
+		filename := writeFile(t, test.info)
 		infos, err := ParseMountInfo(filename)
 		if err != nil {
 			if err.Error() != test.error {

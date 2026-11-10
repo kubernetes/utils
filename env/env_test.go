@@ -17,7 +17,6 @@ limitations under the License.
 package env
 
 import (
-	"os"
 	"strconv"
 	"testing"
 )
@@ -26,7 +25,7 @@ func TestGetString(t *testing.T) {
 	const expected = "foo"
 
 	key := "STRING_SET_VAR"
-	os.Setenv(key, expected)
+	t.Setenv(key, expected)
 	if e, a := expected, GetString(key, "~"+expected); e != a {
 		t.Fatalf("expected %#v==%#v", e, a)
 	}
@@ -42,7 +41,7 @@ func TestGetInt(t *testing.T) {
 	const defaultValue = 2
 
 	key := "INT_SET_VAR"
-	os.Setenv(key, strconv.Itoa(expected))
+	t.Setenv(key, strconv.Itoa(expected))
 	returnVal, _ := GetInt(key, defaultValue)
 	if e, a := expected, returnVal; e != a {
 		t.Fatalf("expected %#v==%#v", e, a)
@@ -55,7 +54,7 @@ func TestGetInt(t *testing.T) {
 	}
 
 	key = "INT_SET_VAR"
-	os.Setenv(key, "not-an-int")
+	t.Setenv(key, "not-an-int")
 	returnVal, err := GetInt(key, defaultValue)
 	if e, a := defaultValue, returnVal; e != a {
 		t.Fatalf("expected %#v==%#v", e, a)
@@ -70,7 +69,7 @@ func TestGetFloat64(t *testing.T) {
 	const defaultValue = 2.0
 
 	key := "FLOAT_SET_VAR"
-	os.Setenv(key, "1.0")
+	t.Setenv(key, "1.0")
 	returnVal, _ := GetFloat64(key, defaultValue)
 	if e, a := expected, returnVal; e != a {
 		t.Fatalf("expected %#v==%#v", e, a)
@@ -83,7 +82,7 @@ func TestGetFloat64(t *testing.T) {
 	}
 
 	key = "FLOAT_SET_VAR"
-	os.Setenv(key, "not-a-float")
+	t.Setenv(key, "not-a-float")
 	returnVal, err := GetFloat64(key, defaultValue)
 	if e, a := defaultValue, returnVal; e != a {
 		t.Fatalf("expected %#v==%#v", e, a)
@@ -98,7 +97,7 @@ func TestGetBool(t *testing.T) {
 	const defaultValue = false
 
 	key := "BOOL_SET_VAR"
-	os.Setenv(key, "true")
+	t.Setenv(key, "true")
 	returnVal, _ := GetBool(key, defaultValue)
 	if e, a := expected, returnVal; e != a {
 		t.Fatalf("expected %#v==%#v", e, a)
@@ -111,7 +110,7 @@ func TestGetBool(t *testing.T) {
 	}
 
 	key = "BOOL_SET_VAR"
-	os.Setenv(key, "not-a-bool")
+	t.Setenv(key, "not-a-bool")
 	returnVal, err := GetBool(key, defaultValue)
 	if e, a := defaultValue, returnVal; e != a {
 		t.Fatalf("expected %#v==%#v", e, a)

@@ -20,7 +20,6 @@ package mount
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -205,12 +204,7 @@ func TestIsLikelyNotMountPoint(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		base, err := ioutil.TempDir("", test.fileName)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		defer os.RemoveAll(base)
+		base := t.TempDir()
 
 		if err := test.setUp(base, test.fileName, test.targetLinkName); err != nil {
 			t.Fatalf("unexpected error in setUp(%s, %s): %v", test.fileName, test.targetLinkName, err)
@@ -290,14 +284,10 @@ func TestFormatAndMount(t *testing.T) {
 			Interface: &fakeMounter,
 			Exec:      fakeExec,
 		}
-		base, err := ioutil.TempDir("", test.device)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		defer os.RemoveAll(base)
+		base := t.TempDir()
 
 		target := filepath.Join(base, test.target)
-		err = mounter.FormatAndMount(test.device, target, test.fstype, test.mountOptions)
+		err := mounter.FormatAndMount(test.device, target, test.fstype, test.mountOptions)
 
 		if test.expectError {
 			if err == nil {
